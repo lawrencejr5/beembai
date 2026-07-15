@@ -1,0 +1,28 @@
+export default {
+  light: {
+    papyrus: "#282600",
+    palm: "#636d21",
+    lemonade: "#fff6a0",
+    coconut: "#fff8ea",
+    sand: "#fcf6e3",
+    cream: "#fffdf6",
+    oliveGray: "#5a5732",
+    border: "#dad4c2",
+    success: "#3e5c1e",
+    warning: "#c99320",
+    error: "#a63e26",
+  },
+  dark: {
+    papyrus: "#171600",
+    palm: "#7f8b2d",
+    lemonade: "#fff6a0",
+    coconut: "#fff8ea",
+    sand: "#282600",
+    cream: "#212002",
+    oliveGray: "#b3b092",
+    border: "#423f0c",
+    success: "#76a147",
+    warning: "#e8ad2e",
+    error: "#d65b40",
+  },
+};
