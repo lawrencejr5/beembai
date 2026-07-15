@@ -16,23 +16,21 @@
   --font-figtree: 'Figtree', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-papyrus: #171600;
-    --color-palm: #7f8b2d;
-    --color-lemonade: #fff6a0;
-    --color-coconut: #fff8ea;
-    --color-sand: #282600;
-    --color-cream: #212002;
-    --color-olive-gray: #b3b092;
-    --color-border: #423f0c;
-    --color-success: #76a147;
-    --color-warning: #e8ad2e;
-    --color-error: #d65b40;
+[data-theme="dark"] {
+  --color-papyrus: #171600;
+  --color-palm: #7f8b2d;
+  --color-lemonade: #fff6a0;
+  --color-coconut: #fff8ea;
+  --color-sand: #282600;
+  --color-cream: #212002;
+  --color-olive-gray: #b3b092;
+  --color-border: #423f0c;
+  --color-success: #76a147;
+  --color-warning: #e8ad2e;
+  --color-error: #d65b40;
 
-    --background: var(--color-papyrus);
-    --foreground: var(--color-coconut);
-  }
+  --background: var(--color-papyrus);
+  --foreground: var(--color-coconut);
 }
 
 html {
@@ -94,8 +92,6 @@ button {
   background: var(--color-palm);
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
