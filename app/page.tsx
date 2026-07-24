@@ -72,6 +72,100 @@ const CreditCardIcon = () => (
   </svg>
 );
 
+const ChevronLeftIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+const SparklesIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+  </svg>
+);
+
+interface AdvertSlide {
+  id: string;
+  type: "in-app" | "product" | "brand";
+  tag: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  imageAlt: string;
+  isTransparentImage?: boolean;
+  isLightSlide?: boolean;
+  ctaText: string;
+  ctaLink: string;
+  price?: number;
+  originalPrice?: number;
+  bgGradient: string;
+}
+
+const ADVERT_SLIDES: AdvertSlide[] = [
+  {
+    id: "fujifilm-ad",
+    type: "product",
+    tag: "Sponsored Showcase • Fujifilm",
+    title: "Fujifilm X-T5 Mirrorless Camera",
+    subtitle: "Capture life's richest details with vintage tactile controls, 40MP HR X-Trans sensor, and classic color science.",
+    image: "/images/products/fujifilm-camera.jpg",
+    imageAlt: "Fujifilm X-T5 Mirrorless Camera Showcase",
+    ctaText: "Shop Fujifilm X-T5",
+    ctaLink: "#shop",
+    price: 1699,
+    originalPrice: 1899,
+    bgGradient: "linear-gradient(135deg, #241c0e 0%, #3d2f16 50%, #140f07 100%)",
+  },
+  {
+    id: "shure-ad",
+    type: "product",
+    tag: "Acoustic Showcase • Shure",
+    title: "Shure Aonic 50 Wireless Headset",
+    subtitle: "Studio-quality noise cancelling audio engineered for audiophiles, immersive listening, and all-day acoustic comfort.",
+    image: "/images/products/shure-headset.jpg",
+    imageAlt: "Shure Aonic 50 Wireless Headset Showcase",
+    ctaText: "Get Shure Aonic 50",
+    ctaLink: "#shop",
+    price: 299,
+    originalPrice: 349,
+    bgGradient: "linear-gradient(135deg, #160f26 0%, #2b1747 50%, #0c0716 100%)",
+  },
+  {
+    id: "ipad-ad",
+    type: "product",
+    tag: "Featured Merchant • Apple",
+    title: "iPad Pro M2 with Magic Keyboard",
+    subtitle: "Transform your daily creative workflow into a portable powerhouse with Liquid Retina XDR and precision trackpad.",
+    image: "/images/products/ipad-pro-with-keyboard.jpg",
+    imageAlt: "iPad Pro M2 with Magic Keyboard Showcase",
+    ctaText: "Explore iPad Pro",
+    ctaLink: "#shop",
+    price: 1099,
+    originalPrice: 1199,
+    bgGradient: "linear-gradient(135deg, #0e192b 0%, #1a2f4c 50%, #080f1a 100%)",
+  },
+  {
+    id: "apple-watch-ad",
+    type: "product",
+    tag: "Smart Wearables • Apple",
+    title: "Apple Watch Series 9 (GPS)",
+    subtitle: "Smarter, brighter, and more powerful health tracking with double tap gestures and edge-to-edge Retina display.",
+    image: "/images/products/apple-watch.jpg",
+    imageAlt: "Apple Watch Series 9 Showcase",
+    ctaText: "Shop Apple Watch",
+    ctaLink: "#shop",
+    price: 399,
+    originalPrice: 429,
+    bgGradient: "linear-gradient(135deg, #1c1813 0%, #332a1e 50%, #110e0a 100%)",
+  },
+];
+
 interface Product {
   id: string;
   title: string;
@@ -216,11 +310,30 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [subscribeEmail, setSubscribeEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   // Apply theme to document element
   React.useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  // Auto-advance advert slides every 15 seconds
+  React.useEffect(() => {
+    if (!isAutoPlaying) return;
+    const interval = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % ADVERT_SLIDES.length);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isAutoPlaying]);
+
+  const handlePrevSlide = () => {
+    setCurrentSlideIndex((prev) => (prev - 1 + ADVERT_SLIDES.length) % ADVERT_SLIDES.length);
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlideIndex((prev) => (prev + 1) % ADVERT_SLIDES.length);
+  };
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
@@ -268,17 +381,29 @@ export default function Home() {
         </nav>
 
         <div className={styles.navActions}>
-          <div className={styles.searchBar}>
+          {/* Prominent Navbar Search Bar */}
+          <div className={styles.navbarSearchBar}>
             <span className={styles.searchIcon}>
               <SearchIcon />
             </span>
             <input
               type="text"
-              placeholder="Search items..."
+              placeholder="Search products, brands, categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
+              className={styles.navbarSearchInput}
             />
+            {searchQuery ? (
+              <button 
+                onClick={() => setSearchQuery("")} 
+                className={styles.searchClearBtn}
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            ) : (
+              <span className={styles.searchShortcutHint}>Search</span>
+            )}
           </div>
 
           <button
@@ -296,45 +421,87 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
-          <div className={styles.heroTag}>
-            <span className={styles.heroTagLine} />
-            Pure & Organic Aesthetics
-          </div>
-          <h1 className={styles.heroTitle}>Elegance in Every Detail.</h1>
-          <p className={styles.heroDescription}>
-            Explore our curated line of premium tech and home gear. Crafted to bring harmonized styling, warm organic tones, and timeless quality straight to your workspace.
-          </p>
-          <div className={styles.heroActions}>
-            <a href="#shop" className={styles.btnPrimary}>
-              Explore Collection
-            </a>
-            <a href="#story" className={styles.btnSecondary}>
-              Our Philosophy
-            </a>
-          </div>
+      {/* Hero Advert Showcase Section (Border-Radius All Round) */}
+      <section
+        className={styles.heroAdvertSection}
+        onMouseEnter={() => setIsAutoPlaying(false)}
+        onMouseLeave={() => setIsAutoPlaying(true)}
+      >
+        <div className={styles.advertTrack}>
+          {ADVERT_SLIDES.map((slide, index) => (
+            <div
+              key={slide.id}
+              className={`${styles.advertSlide} ${index === currentSlideIndex ? styles.advertSlideActive : ""} ${slide.isLightSlide ? styles.lightAdvertSlide : ""}`}
+              style={{ background: slide.bgGradient }}
+            >
+              <div className={styles.advertSlideInner}>
+                <div className={styles.advertContent}>
+                  <div className={styles.advertTagBadge}>
+                    <SparklesIcon />
+                    <span>{slide.tag}</span>
+                  </div>
+
+                  <h1 className={styles.advertTitle}>{slide.title}</h1>
+                  <p className={styles.advertSubtitle}>{slide.subtitle}</p>
+
+                  <div className={styles.advertActions}>
+                    <a href={slide.ctaLink} className={styles.advertCtaBtn}>
+                      {slide.ctaText}
+                    </a>
+                    {slide.price && (
+                      <div className={styles.advertPriceBadge}>
+                        <span className={styles.advertCurrentPrice}>${slide.price}</span>
+                        {slide.originalPrice && (
+                          <span className={styles.advertOriginalPrice}>${slide.originalPrice}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.advertVisual}>
+                  <div className={`${styles.advertImageContainer} ${slide.isTransparentImage ? styles.transparentImgContainer : ""}`}>
+                    <Image
+                      src={slide.image}
+                      alt={slide.imageAlt}
+                      fill
+                      priority={index === 0}
+                      className={slide.isTransparentImage ? styles.transparentAdImg : styles.cardAdImg}
+                      sizes="(max-width: 768px) 100vw, 45vw"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className={styles.heroVisual}>
-          <div className={styles.heroImageContainer}>
-            <div className={styles.heroImageWrapper}>
-              <Image
-                src="/images/products/shure-headset.jpg"
-                alt="Featured Shure Wireless Headset"
-                fill
-                priority
-                className={styles.heroImg}
-              />
-            </div>
-          </div>
-          <div className={styles.heroBadge}>
-            <div className={styles.heroBadgeText}>
-              <span className={styles.heroBadgeVal}>$299.00</span>
-              <span className={styles.heroBadgeLbl}>Featured Audio</span>
-            </div>
-          </div>
+        {/* Carousel Navigation Controls */}
+        <button
+          onClick={handlePrevSlide}
+          className={`${styles.carouselNavBtn} ${styles.carouselNavLeft}`}
+          aria-label="Previous Advert"
+        >
+          <ChevronLeftIcon />
+        </button>
+        <button
+          onClick={handleNextSlide}
+          className={`${styles.carouselNavBtn} ${styles.carouselNavRight}`}
+          aria-label="Next Advert"
+        >
+          <ChevronRightIcon />
+        </button>
+
+        {/* Pagination Dots */}
+        <div className={styles.carouselDots}>
+          {ADVERT_SLIDES.map((slide, index) => (
+            <button
+              key={slide.id}
+              onClick={() => setCurrentSlideIndex(index)}
+              className={`${styles.carouselDot} ${index === currentSlideIndex ? styles.carouselDotActive : ""}`}
+              aria-label={`Go to advert ${index + 1}`}
+            />
+          ))}
         </div>
       </section>
 

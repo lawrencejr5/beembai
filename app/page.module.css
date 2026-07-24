@@ -95,304 +95,416 @@
   gap: 1.5rem;
 }
 
-.searchBar {
+.navbarSearchBar {
   display: flex;
   align-items: center;
   background-color: var(--color-sand);
-  border: 1px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
   border-radius: 99px;
-  padding: 0.4rem 1rem;
-  gap: 0.5rem;
-  max-width: 240px;
-  transition: all 0.3s ease;
+  padding: 0.45rem 1.1rem;
+  gap: 0.6rem;
+  min-width: 280px;
+  max-width: 440px;
+  flex: 1;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (max-width: 480px) {
-  .searchBar {
-    display: none;
-  }
+:global([data-theme="dark"]) .navbarSearchBar {
+  background-color: rgba(23, 22, 0, 0.6);
+  border-color: var(--color-border);
 }
 
-.searchBar:focus-within {
+.navbarSearchBar:focus-within {
   border-color: var(--color-palm);
-  box-shadow: 0 0 0 2px rgba(99, 109, 33, 0.15);
+  background-color: var(--color-cream);
+  box-shadow: 0 0 0 3px rgba(99, 109, 33, 0.18);
 }
 
-.searchInput {
+:global([data-theme="dark"]) .navbarSearchBar:focus-within {
+  background-color: rgba(30, 28, 5, 0.9);
+}
+
+.navbarSearchInput {
   border: none;
   background: transparent;
   color: var(--foreground);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   width: 100%;
 }
 
-.searchInput:focus {
+.navbarSearchInput:focus {
   outline: none;
 }
 
-.searchIcon {
+.navbarSearchInput::placeholder {
   color: var(--color-olive-gray);
+  opacity: 0.85;
+}
+
+.searchIcon {
+  color: var(--color-palm);
   display: flex;
   align-items: center;
 }
 
-.cartIconBtn {
+.searchClearBtn {
   background: none;
   border: none;
+  color: var(--color-olive-gray);
   cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 0.2rem;
+  transition: color 0.2s ease;
+}
+
+.searchClearBtn:hover {
+  color: var(--color-palm);
+}
+
+.searchShortcutHint {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-olive-gray);
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+:global([data-theme="dark"]) .searchShortcutHint {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Hero Advert Showcase Section (Border Radius All Round) */
+.heroAdvertSection {
   position: relative;
-  padding: 0.5rem;
-  color: var(--foreground);
+  width: 90%;
+  max-width: 1320px;
+  margin: 1.8rem auto 3rem auto;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  min-height: 450px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease;
 }
 
-.cartIconBtn:hover {
-  transform: scale(1.05);
+.advertTrack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 450px;
 }
 
-.cartBadge {
+.advertSlide {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.7s ease-in-out, transform 0.8s ease-in-out;
+  transform: scale(1.03);
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding: 3.5rem 5rem;
+}
+
+.advertSlideActive {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.advertSlideInner {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: center;
+  gap: 3rem;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.advertContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  color: #ffffff;
+  text-align: left;
+}
+
+.advertTagBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.4rem 1.1rem;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-lemonade);
+  align-self: flex-start;
+}
+
+.advertTitle {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1.15;
+  color: #ffffff;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.advertSubtitle {
+  font-size: 1.1rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 560px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* High-contrast styling for light slides (e.g. Free Shipping image with black shirt) */
+.lightAdvertSlide .advertContent {
+  color: #171600;
+}
+
+.lightAdvertSlide .advertTagBadge {
+  background: rgba(40, 48, 12, 0.12);
+  border: 1px solid rgba(40, 48, 12, 0.25);
+  color: #3b4510;
+}
+
+.lightAdvertSlide .advertTitle {
+  color: #171600;
+  text-shadow: none;
+}
+
+.lightAdvertSlide .advertSubtitle {
+  color: #2b2a04;
+  text-shadow: none;
+}
+
+.advertActions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.advertCtaBtn {
   background-color: var(--color-palm);
   color: var(--color-coconut);
-  font-size: 0.75rem;
   font-weight: 700;
-  min-width: 18px;
-  height: 18px;
+  font-size: 0.95rem;
+  padding: 0.9rem 2.2rem;
+  border-radius: 99px;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 15px rgba(99, 109, 33, 0.4);
+  display: inline-flex;
+  align-items: center;
+}
+
+.advertCtaBtn:hover {
+  background-color: #ffffff;
+  color: var(--color-papyrus);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+}
+
+.lightAdvertSlide .advertCtaBtn {
+  background-color: #171600;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(23, 22, 0, 0.25);
+}
+
+.lightAdvertSlide .advertCtaBtn:hover {
+  background-color: var(--color-palm);
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(99, 109, 33, 0.35);
+}
+
+.advertPriceBadge {
+  display: flex;
+  flex-direction: column;
+}
+
+.advertCurrentPrice {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--color-lemonade);
+}
+
+.advertOriginalPrice {
+  font-size: 0.85rem;
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.advertVisual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.advertImageContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.2;
+  max-width: 380px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.transparentImgContainer {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  aspect-ratio: 1.2;
+  overflow: visible;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.cardAdImg {
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.transparentAdImg {
+  object-fit: contain;
+  filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.5));
+  transform: scale(1.1);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.advertSlide:hover .transparentAdImg {
+  transform: scale(1.15);
+}
+
+.carouselNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
-  border: 2px solid var(--background);
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* Hero Section */
-.hero {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+.carouselNavBtn:hover {
+  background: var(--color-palm);
+  border-color: var(--color-palm);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carouselNavLeft {
+  left: 1.2rem;
+}
+
+.carouselNavRight {
+  right: 1.2rem;
+}
+
+.carouselDots {
+  position: absolute;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  gap: 0.6rem;
   align-items: center;
-  padding: 6rem 5%;
-  gap: 4rem;
-  background: linear-gradient(135deg, var(--color-sand) 0%, var(--background) 100%);
-  overflow: hidden;
+}
+
+.carouselDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.carouselDotActive {
+  width: 28px;
+  background: var(--color-palm);
 }
 
 @media (max-width: 992px) {
-  .hero {
+  .advertSlideInner {
     grid-template-columns: 1fr;
-    padding: 4rem 5%;
-    gap: 2.5rem;
+    gap: 2rem;
+  }
+  .advertSlide {
+    padding: 3rem 2.5rem;
+  }
+  .heroAdvertSection {
+    width: 94%;
+    border-radius: 24px;
   }
 }
 
-.heroContent {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.heroTag {
-  color: var(--color-palm);
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 0.15em;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.heroTagLine {
-  width: 24px;
-  height: 2px;
-  background-color: var(--color-palm);
-}
-
-.heroTitle {
-  font-size: 3.8rem;
-  font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  color: var(--color-papyrus);
-}
-
-:global([data-theme="dark"]) .heroTitle {
-    color: var(--color-coconut);
+@media (max-width: 768px) {
+  .navbarSearchBar {
+    min-width: 180px;
+    padding: 0.35rem 0.8rem;
   }
-
-@media (max-width: 576px) {
-  .heroTitle {
-    font-size: 2.5rem;
+  .searchShortcutHint {
+    display: none;
   }
-}
-
-.heroDescription {
-  font-size: 1.15rem;
-  line-height: 1.6;
-  color: var(--color-olive-gray);
-  max-width: 540px;
-}
-
-.heroActions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-@media (max-width: 480px) {
-  .heroActions {
-    flex-direction: column;
+  .heroAdvertSection {
+    width: 95%;
+    margin: 1rem auto 2rem auto;
+    border-radius: 20px;
+    min-height: 420px;
   }
-}
-
-.btnPrimary {
-  background-color: var(--color-papyrus);
-  color: var(--color-coconut);
-  font-weight: 600;
-  padding: 0.9rem 2.2rem;
-  border-radius: 99px;
-  border: 1px solid var(--color-papyrus);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.btnPrimary:hover {
-  background-color: var(--color-palm);
-  border-color: var(--color-palm);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 109, 33, 0.2);
-}
-
-:global([data-theme="dark"]) .btnPrimary {
-    background-color: var(--color-coconut);
-    color: var(--color-papyrus);
-    border-color: var(--color-coconut);
+  .advertSlide {
+    padding: 2rem 1.2rem;
   }
-
-:global([data-theme="dark"]) .btnPrimary:hover {
-    background-color: var(--color-palm);
-    border-color: var(--color-palm);
-    color: var(--color-coconut);
-    box-shadow: 0 4px 12px rgba(127, 139, 45, 0.2);
+  .advertTitle {
+    font-size: 2rem;
   }
-
-.btnSecondary {
-  background-color: transparent;
-  color: var(--foreground);
-  font-weight: 600;
-  padding: 0.9rem 2.2rem;
-  border-radius: 99px;
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btnSecondary:hover {
-  background-color: var(--color-sand);
-  border-color: var(--color-palm);
-  transform: translateY(-2px);
-}
-
-.heroVisual {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.heroImageContainer {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  max-width: 440px;
-  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-  background: linear-gradient(45deg, var(--color-palm), var(--color-lemonade));
-  animation: morph 8s ease-in-out infinite;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 15px;
-  box-shadow: 0 20px 40px rgba(40, 38, 0, 0.15);
-}
-
-@keyframes morph {
-  0% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
-  50% { border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%; }
-  100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
-}
-
-.heroImageWrapper {
-  width: 92%;
-  height: 92%;
-  background-color: var(--color-cream);
-  border-radius: inherit;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
-}
-
-.heroImg {
-  object-fit: cover;
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.heroImageWrapper:hover .heroImg {
-  transform: scale(1.08);
-}
-
-.heroBadge {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  background-color: rgba(255, 248, 234, 0.9);
-  border: 1px solid var(--color-border);
-  color: var(--color-papyrus);
-  padding: 0.7rem 1.1rem;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  box-shadow: 0 10px 25px rgba(40, 38, 0, 0.08);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 10;
-}
-
-:global([data-theme="dark"]) .heroBadge {
-    background-color: rgba(23, 22, 0, 0.9);
-    border: 1px solid var(--color-border);
-    color: var(--color-coconut);
+  .advertSubtitle {
+    font-size: 0.95rem;
   }
-
-.heroBadgeText {
-  display: flex;
-  flex-direction: column;
-}
-
-.heroBadgeVal {
-  font-weight: 800;
-  font-size: 1.05rem;
-}
-
-.heroBadgeLbl {
-  font-size: 0.75rem;
-  color: var(--color-olive-gray);
-  text-transform: uppercase;
+  .carouselNavBtn {
+    width: 36px;
+    height: 36px;
+  }
+  .carouselNavLeft {
+    left: 0.5rem;
+  }
+  .carouselNavRight {
+    right: 0.5rem;
+  }
 }
 
 /* USPS section */
