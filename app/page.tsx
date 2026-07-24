@@ -31,13 +31,15 @@ const CartIcon = () => (
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth="2.2"
   >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+      d="M2 2h2.5l2.6 12.4a2 2 0 002 1.6h9.8a2 2 0 002-1.6l1.7-8.4H5.5"
     />
+    <circle cx="9" cy="20" r="1.5" fill="currentColor" />
+    <circle cx="18" cy="20" r="1.5" fill="currentColor" />
   </svg>
 );
 
@@ -529,11 +531,31 @@ export default function Home() {
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   const featuredRowRef = useRef<HTMLDivElement>(null);
+  const categoryRowRef = useRef<HTMLDivElement>(null);
 
   const scrollFeatured = (direction: "left" | "right") => {
-    if (featuredRowRef.current) {
-      const scrollAmount = direction === "left" ? -330 : 330;
-      featuredRowRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    if (!featuredRowRef.current) return;
+    const container = featuredRowRef.current;
+    const cardWidth = container.firstElementChild?.clientWidth || 280;
+    const scrollAmount =
+      direction === "left" ? -(cardWidth + 24) : cardWidth + 24;
+    try {
+      container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    } catch {
+      container.scrollLeft += scrollAmount;
+    }
+  };
+
+  const scrollCategory = (direction: "left" | "right") => {
+    if (!categoryRowRef.current) return;
+    const container = categoryRowRef.current;
+    const itemWidth = container.firstElementChild?.clientWidth || 95;
+    const scrollAmount =
+      direction === "left" ? -(itemWidth * 2 + 16) : itemWidth * 2 + 16;
+    try {
+      container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    } catch {
+      container.scrollLeft += scrollAmount;
     }
   };
 
@@ -579,7 +601,7 @@ export default function Home() {
     return PRODUCTS.filter(
       (product) =>
         featuredIds.includes(product.id) &&
-        product.title.toLowerCase().includes(searchQuery.toLowerCase())
+        product.title.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [searchQuery]);
 
@@ -589,7 +611,7 @@ export default function Home() {
     return PRODUCTS.filter(
       (product) =>
         newArrivalIds.includes(product.id) &&
-        product.title.toLowerCase().includes(searchQuery.toLowerCase())
+        product.title.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [searchQuery]);
 
@@ -744,53 +766,77 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Carousel Navigation Controls */}
-        <button
-          onClick={handlePrevSlide}
-          className={`${styles.carouselNavBtn} ${styles.carouselNavLeft}`}
-          aria-label="Previous Advert"
-        >
-          <ChevronLeftIcon />
-        </button>
-        <button
-          onClick={handleNextSlide}
-          className={`${styles.carouselNavBtn} ${styles.carouselNavRight}`}
-          aria-label="Next Advert"
-        >
-          <ChevronRightIcon />
-        </button>
+        {/* Banner Bottom Controls: Dots + Flex-End Next/Prev Navigation */}
+        <div className={styles.bannerBottomRow}>
+          <div className={styles.carouselDots}>
+            {ADVERT_SLIDES.map((slide, index) => (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setCurrentSlideIndex(index)}
+                className={`${styles.carouselDot} ${index === currentSlideIndex ? styles.carouselDotActive : ""}`}
+                aria-label={`Go to advert ${index + 1}`}
+              />
+            ))}
+          </div>
 
-        {/* Pagination Dots */}
-        <div className={styles.carouselDots}>
-          {ADVERT_SLIDES.map((slide, index) => (
+          <div className={styles.bannerEndNavControls}>
             <button
-              key={slide.id}
-              onClick={() => setCurrentSlideIndex(index)}
-              className={`${styles.carouselDot} ${index === currentSlideIndex ? styles.carouselDotActive : ""}`}
-              aria-label={`Go to advert ${index + 1}`}
-            />
-          ))}
+              type="button"
+              onClick={handlePrevSlide}
+              className={styles.bannerEndNavBtn}
+              aria-label="Previous Advert"
+            >
+              <ChevronLeftIcon />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextSlide}
+              className={styles.bannerEndNavBtn}
+              aria-label="Next Advert"
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
         </div>
       </section>
 
       {/* Explore Popular Categories Section - Single Line Circular Layout */}
       <section className={styles.popularCategoriesSection}>
         <div className={styles.popularCategoriesHeader}>
-          <span className={styles.popularCategoriesTag}>
-            Curated Categories
-          </span>
-          <h2 className={styles.popularCategoriesTitle}>
-            Explore Popular Categories
-          </h2>
+          <div className={styles.popularCategoriesTitleGroup}>
+            <span className={styles.popularCategoriesTag}>
+              Curated Categories
+            </span>
+            <h2 className={styles.popularCategoriesTitle}>
+              Explore Popular Categories
+            </h2>
+          </div>
+
+          {/* Snap Scroll Navigation Controls */}
+          <div className={styles.categoryNavControls}>
+            <button
+              type="button"
+              onClick={() => scrollCategory("left")}
+              className={styles.categoryNavBtn}
+              aria-label="Scroll Previous Categories"
+            >
+              <ChevronLeftIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollCategory("right")}
+              className={styles.categoryNavBtn}
+              aria-label="Scroll Next Categories"
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
         </div>
 
-        <div className={styles.circleCategoriesRow}>
+        <div ref={categoryRowRef} className={styles.circleCategoriesRow}>
           {POPULAR_CATEGORIES_DATA.map((cat) => (
-            <a
-              key={cat.id}
-              href="#"
-              className={styles.circleCategoryItem}
-            >
+            <a key={cat.id} href="#" className={styles.circleCategoryItem}>
               <div className={styles.circleImageWrapper}>
                 <Image
                   src={cat.image}
@@ -813,7 +859,8 @@ export default function Home() {
           <span className={styles.sectionTag}>Handpicked Showcase</span>
           <h2 className={styles.sectionTitle}>Featured Products</h2>
           <p className={styles.sectionSubtitle}>
-            Discover our most sought-after signature tech & workspace essentials.
+            Discover our most sought-after signature tech & workspace
+            essentials.
           </p>
         </div>
 
@@ -850,19 +897,6 @@ export default function Home() {
                 </span>
                 <h3 className={styles.productTitle}>{product.title}</h3>
 
-                <div className={styles.productRating}>
-                  {Array.from({ length: 5 }).map((_, i) =>
-                    i < product.rating ? (
-                      <StarFilledIcon key={i} />
-                    ) : (
-                      <StarEmptyIcon key={i} />
-                    ),
-                  )}
-                  <span className={styles.ratingCount}>
-                    ({product.reviews})
-                  </span>
-                </div>
-
                 <div className={styles.cardFooter}>
                   <div className={styles.priceWrapper}>
                     {product.originalPrice && (
@@ -877,7 +911,7 @@ export default function Home() {
                     className={styles.addToCartBtn}
                     aria-label={`Add ${product.title} to cart`}
                   >
-                    <PlusIcon />
+                    <CartIcon />
                   </button>
                 </div>
               </div>
@@ -888,6 +922,7 @@ export default function Home() {
         {/* Snap Scroll Navigation Controls */}
         <div className={styles.featuredNavControls}>
           <button
+            type="button"
             onClick={() => scrollFeatured("left")}
             className={styles.featuredNavBtn}
             aria-label="Scroll Previous Featured Products"
@@ -895,6 +930,7 @@ export default function Home() {
             <ChevronLeftIcon />
           </button>
           <button
+            type="button"
             onClick={() => scrollFeatured("right")}
             className={styles.featuredNavBtn}
             aria-label="Scroll Next Featured Products"
@@ -905,7 +941,11 @@ export default function Home() {
       </section>
 
       {/* New Arrivals Section (3x3 Grid) */}
-      <section id="shop" className={styles.section} style={{ paddingTop: "1rem" }}>
+      <section
+        id="shop"
+        className={styles.section}
+        style={{ paddingTop: "1rem" }}
+      >
         <div className={styles.sectionHeader}>
           <span className={styles.sectionTag}>Latest Drops</span>
           <h2 className={styles.sectionTitle}>New Arrivals</h2>
@@ -947,19 +987,6 @@ export default function Home() {
                 </span>
                 <h3 className={styles.productTitle}>{product.title}</h3>
 
-                <div className={styles.productRating}>
-                  {Array.from({ length: 5 }).map((_, i) =>
-                    i < product.rating ? (
-                      <StarFilledIcon key={i} />
-                    ) : (
-                      <StarEmptyIcon key={i} />
-                    ),
-                  )}
-                  <span className={styles.ratingCount}>
-                    ({product.reviews})
-                  </span>
-                </div>
-
                 <div className={styles.cardFooter}>
                   <div className={styles.priceWrapper}>
                     {product.originalPrice && (
@@ -974,7 +1001,7 @@ export default function Home() {
                     className={styles.addToCartBtn}
                     aria-label={`Add ${product.title} to cart`}
                   >
-                    <PlusIcon />
+                    <CartIcon />
                   </button>
                 </div>
               </div>
