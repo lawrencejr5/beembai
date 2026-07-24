@@ -617,44 +617,23 @@ export default function Home() {
 
         <nav className={styles.navLinks}>
           <a href="#shop" className={styles.navLink}>
-            Shop
+            New Arrivals
           </a>
           <a href="#featured" className={styles.navLink}>
             Featured
           </a>
-          <a href="#story" className={styles.navLink}>
-            Our Story
+          <a href="#stores" className={styles.navLink}>
+            Stores
           </a>
-          <a href="#journal" className={styles.navLink}>
-            Journal
+          <a href="#sell" className={styles.navLink}>
+            Sell
           </a>
         </nav>
 
         <div className={styles.navActions}>
-          {/* Prominent Navbar Search Bar */}
-          <div className={styles.navbarSearchBar}>
-            <span className={styles.searchIcon}>
-              <SearchIcon />
-            </span>
-            <input
-              type="text"
-              placeholder="Search products, brands, categories..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.navbarSearchInput}
-            />
-            {searchQuery ? (
-              <button
-                onClick={() => setSearchQuery("")}
-                className={styles.searchClearBtn}
-                aria-label="Clear search"
-              >
-                ✕
-              </button>
-            ) : (
-              <span className={styles.searchShortcutHint}>Search</span>
-            )}
-          </div>
+          <a href="#login" className={styles.authBtn}>
+            Login / Register
+          </a>
 
           <button
             onClick={toggleTheme}
@@ -672,6 +651,33 @@ export default function Home() {
           </button>
         </div>
       </header>
+
+      {/* Prominent Sub-Header Search Bar Row */}
+      <div className={styles.subHeaderSearchRow}>
+        <div className={styles.subHeaderSearchBar}>
+          <span className={styles.searchIcon}>
+            <SearchIcon />
+          </span>
+          <input
+            type="text"
+            placeholder="Search products, brands, categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.subHeaderSearchInput}
+          />
+          {searchQuery ? (
+            <button
+              onClick={() => setSearchQuery("")}
+              className={styles.searchClearBtn}
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          ) : (
+            <span className={styles.searchShortcutHint}>Search</span>
+          )}
+        </div>
+      </div>
 
       {/* Hero Advert Showcase Section (Border-Radius All Round) */}
       <section
