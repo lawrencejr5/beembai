@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 
@@ -528,6 +528,15 @@ export default function Home() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
+  const featuredRowRef = useRef<HTMLDivElement>(null);
+
+  const scrollFeatured = (direction: "left" | "right") => {
+    if (featuredRowRef.current) {
+      const scrollAmount = direction === "left" ? -330 : 330;
+      featuredRowRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
+
   const handleCategoryClick = (categoryName: string) => {
     setActiveCategory(categoryName);
     const shopElement = document.getElementById("shop");
@@ -564,17 +573,25 @@ export default function Home() {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
-  // Filtered products list
-  const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((product) => {
-      const matchesCategory =
-        activeCategory === "All" || product.category === activeCategory;
-      const matchesSearch = product.title
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategory, searchQuery]);
+  // Featured products (horizontal line)
+  const featuredProducts = useMemo(() => {
+    const featuredIds = ["1", "2", "4", "5", "7", "10"];
+    return PRODUCTS.filter(
+      (product) =>
+        featuredIds.includes(product.id) &&
+        product.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
+  // New arrivals (3x3 grid)
+  const newArrivalsProducts = useMemo(() => {
+    const newArrivalIds = ["4", "5", "6", "7", "8", "9", "10", "11", "12"];
+    return PRODUCTS.filter(
+      (product) =>
+        newArrivalIds.includes(product.id) &&
+        product.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
 
   const handleAddToCart = () => {
     setCartCount((prev) => prev + 1);
@@ -784,35 +801,115 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Shop Section */}
-      <section id="shop" className={styles.section}>
+      {/* Featured Products Section (Horizontal Line) */}
+      <section id="featured" className={styles.section}>
         <div className={styles.sectionHeader}>
-          <span className={styles.sectionTag}>E-store Showcase</span>
-          <h2 className={styles.sectionTitle}>Curated Collections</h2>
+          <span className={styles.sectionTag}>Handpicked Showcase</span>
+          <h2 className={styles.sectionTitle}>Featured Products</h2>
           <p className={styles.sectionSubtitle}>
-            Filter by your favorite categories or find items by name to preview
-            the high-contrast color scheme and typography.
+            Discover our most sought-after signature tech & workspace essentials.
           </p>
         </div>
 
-        {/* Category Filter Bar */}
-        <div className={styles.filterBar}>
-          {CATEGORIES.map((category) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`${styles.filterBtn} ${
-                activeCategory === category ? styles.filterBtnActive : ""
-              }`}
-            >
-              {category}
-            </button>
+        <div ref={featuredRowRef} className={styles.featuredHorizontalRow}>
+          {featuredProducts.map((product) => (
+            <div key={product.id} className={styles.featuredProductCard}>
+              <div className={styles.productImageWrapper}>
+                {product.tag && (
+                  <span className={styles.cardTag}>{product.tag}</span>
+                )}
+                {product.originalPrice && (
+                  <span className={styles.cardDiscountTag}>
+                    -
+                    {Math.round(
+                      ((product.originalPrice - product.price) /
+                        product.originalPrice) *
+                        100,
+                    )}
+                    %
+                  </span>
+                )}
+                <Image
+                  src={product.image}
+                  alt={product.title}
+                  fill
+                  className={styles.productImg}
+                  sizes="(max-width: 768px) 100vw, 320px"
+                />
+              </div>
+
+              <div className={styles.productDetails}>
+                <span className={styles.productCategory}>
+                  {product.category}
+                </span>
+                <h3 className={styles.productTitle}>{product.title}</h3>
+
+                <div className={styles.productRating}>
+                  {Array.from({ length: 5 }).map((_, i) =>
+                    i < product.rating ? (
+                      <StarFilledIcon key={i} />
+                    ) : (
+                      <StarEmptyIcon key={i} />
+                    ),
+                  )}
+                  <span className={styles.ratingCount}>
+                    ({product.reviews})
+                  </span>
+                </div>
+
+                <div className={styles.cardFooter}>
+                  <div className={styles.priceWrapper}>
+                    {product.originalPrice && (
+                      <span className={styles.originalPrice}>
+                        ${product.originalPrice}
+                      </span>
+                    )}
+                    <span className={styles.price}>${product.price}</span>
+                  </div>
+                  <button
+                    onClick={handleAddToCart}
+                    className={styles.addToCartBtn}
+                    aria-label={`Add ${product.title} to cart`}
+                  >
+                    <PlusIcon />
+                  </button>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Product Grid */}
-        <div className={styles.productGrid}>
-          {filteredProducts.map((product) => (
+        {/* Snap Scroll Navigation Controls */}
+        <div className={styles.featuredNavControls}>
+          <button
+            onClick={() => scrollFeatured("left")}
+            className={styles.featuredNavBtn}
+            aria-label="Scroll Previous Featured Products"
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            onClick={() => scrollFeatured("right")}
+            className={styles.featuredNavBtn}
+            aria-label="Scroll Next Featured Products"
+          >
+            <ChevronRightIcon />
+          </button>
+        </div>
+      </section>
+
+      {/* New Arrivals Section (3x3 Grid) */}
+      <section id="shop" className={styles.section} style={{ paddingTop: "1rem" }}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionTag}>Latest Drops</span>
+          <h2 className={styles.sectionTitle}>New Arrivals</h2>
+          <p className={styles.sectionSubtitle}>
+            Explore the newest additions to the beembai ecosystem.
+          </p>
+        </div>
+
+        <div className={styles.newArrivalsGrid}>
+          {newArrivalsProducts.map((product) => (
             <div key={product.id} className={styles.productCard}>
               <div className={styles.productImageWrapper}>
                 {product.tag && (
