@@ -8,6 +8,9 @@ export interface Product {
   image: string;
   tag?: string;
   description?: string;
+  brand?: string;
+  condition?: "New" | "Refurbished" | "Like New";
+  colors?: string[];
 }
 
 export interface Category {
@@ -89,6 +92,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1099,
     image: "/images/products/google-pixel-10-pro.jpg",
     tag: "Flagship",
+    brand: "Google",
+    condition: "New",
+    colors: ["Black", "Titanium", "Hazel"],
     description: "Tensor powered smartphone with pro camera system and Gemini AI integration.",
   },
   {
@@ -99,6 +105,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 499,
     originalPrice: 599,
     image: "/images/products/google-pixel-6.jpg",
+    brand: "Google",
+    condition: "Refurbished",
+    colors: ["Black", "Green"],
     description: "Sleek dual-camera Android phone with custom Tensor chip.",
   },
   {
@@ -110,6 +119,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 699,
     image: "/images/products/google-pixel-7.jpg",
     tag: "Popular",
+    brand: "Google",
+    condition: "New",
+    colors: ["White", "Hazel"],
     description: "Refined design with advanced photo unblur and fast performance.",
   },
   {
@@ -121,6 +133,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1199,
     image: "/images/products/ipad-pro-with-keyboard.jpg",
     tag: "Trending",
+    brand: "Apple",
+    condition: "New",
+    colors: ["Space Gray", "Silver"],
     description: "Liquid Retina XDR display tablet with M2 chip and floating Magic Keyboard.",
   },
   {
@@ -130,6 +145,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Phone & Tablets",
     price: 999,
     image: "/images/products/ipad-pro.jpg",
+    brand: "Apple",
+    condition: "Like New",
+    colors: ["Space Gray"],
     description: "Pro performance tablet for digital art, photo editing, and multitasking.",
   },
   {
@@ -140,6 +158,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 799,
     originalPrice: 899,
     image: "/images/products/iphone-12-pro-max.jpg",
+    brand: "Apple",
+    condition: "Refurbished",
+    colors: ["Gold", "Silver"],
     description: "Super Retina XDR OLED display with Ceramic Shield and LiDAR scanner.",
   },
   {
@@ -150,6 +171,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 549,
     originalPrice: 629,
     image: "/images/products/iphone-12.jpg",
+    brand: "Apple",
+    condition: "Like New",
+    colors: ["Blue", "Black", "White"],
     description: "5G speed, A14 Bionic chip, and dual 12MP Ultra Wide camera system.",
   },
   {
@@ -161,6 +185,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 999,
     image: "/images/products/iphone-13-pro-max.jpg",
     tag: "Best Seller",
+    brand: "Apple",
+    condition: "New",
+    colors: ["Sierra Blue", "Graphite"],
     description: "ProMotion 120Hz display with Cinematic mode video recording.",
   },
   {
@@ -171,6 +198,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 649,
     originalPrice: 729,
     image: "/images/products/iphone-13.jpg",
+    brand: "Apple",
+    condition: "New",
+    colors: ["Midnight", "Pink"],
     description: "Advanced dual-camera system with Sensor-shift OIS and long battery life.",
   },
   {
@@ -182,6 +212,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1299,
     image: "/images/products/iphone-16.jpg",
     tag: "New",
+    brand: "Apple",
+    condition: "New",
+    colors: ["Titanium", "Black", "White"],
     description: "Grade 5 titanium design with A18 Pro chip and dedicated Camera Control button.",
   },
   {
@@ -192,6 +225,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 249,
     originalPrice: 289,
     image: "/images/products/redmi-pad-2-pro.jpg",
+    brand: "Xiaomi",
+    condition: "New",
+    colors: ["Gray", "Green"],
     description: "High refresh rate display tablet with quad speakers and long-lasting battery.",
   },
   {
@@ -202,6 +238,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 429,
     originalPrice: 499,
     image: "/images/products/samsung-galaxy-s20.jpg",
+    brand: "Samsung",
+    condition: "Refurbished",
+    colors: ["Cosmic Gray", "Cloud Blue"],
     description: "Dynamic AMOLED 2X 120Hz display with 30x Space Zoom camera.",
   },
   {
@@ -213,6 +252,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 799,
     image: "/images/products/samsung-galaxy-s21-ultra.jpg",
     tag: "Pro",
+    brand: "Samsung",
+    condition: "Like New",
+    colors: ["Phantom Black", "Phantom Silver"],
     description: "108MP camera with S Pen support and 100x Space Zoom.",
   },
   {
@@ -224,6 +266,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1299,
     image: "/images/products/samsung-galaxy-s24.jpg",
     tag: "AI Powered",
+    brand: "Samsung",
+    condition: "New",
+    colors: ["Titanium Black", "Titanium Gray", "Yellow"],
     description: "Titanium armor frame with Circle to Search, Live Translate, and built-in S Pen.",
   },
   {
@@ -235,6 +280,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1399,
     image: "/images/products/samsung-galaxy-s25-ultra.jpg",
     tag: "Next Gen",
+    brand: "Samsung",
+    condition: "New",
+    colors: ["Titanium Blue", "Titanium Silver"],
     description: "Ultra-slim ergonomic titanium chassis with 200MP camera and Snapdragon 8 Elite.",
   },
   {
@@ -245,6 +293,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 1349,
     image: "/images/products/samsung-galaxy-s26-ultra.jpg",
     tag: "Concept",
+    brand: "Samsung",
+    condition: "New",
+    colors: ["Phantom Black"],
     description: "Futuristic smartphone with quad lens periscope zoom and zero-bezel display.",
   },
   {
@@ -255,6 +306,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 999,
     originalPrice: 1149,
     image: "/images/products/samsung-s9-tablet.jpg",
+    brand: "Samsung",
+    condition: "New",
+    colors: ["Graphite", "Beige"],
     description: "Massive 14.6-inch Dynamic AMOLED screen tablet with IP68 water resistance.",
   },
 
@@ -268,6 +322,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 279,
     image: "/images/products/airpod-pro.jpg",
     tag: "Best Seller",
+    brand: "Apple",
+    condition: "New",
+    colors: ["White"],
     description: "Active Noise Cancellation, Transparency mode, and Personalized Spatial Audio.",
   },
   {
@@ -277,6 +334,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Gadgets & Accessories",
     price: 29,
     image: "/images/products/apple-earpods.jpg",
+    brand: "Apple",
+    condition: "New",
+    colors: ["White"],
     description: "Classic in-ear headphones with built-in remote for volume and playback control.",
   },
   {
@@ -286,6 +346,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Gadgets & Accessories",
     price: 19,
     image: "/images/products/apple-wired-earpods.jpg",
+    brand: "Apple",
+    condition: "New",
+    colors: ["White"],
     description: "Ergonomic wired earphones designed to maximize sound output.",
   },
   {
@@ -296,6 +359,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 79,
     originalPrice: 89,
     image: "/images/products/apple-mouse.jpg",
+    brand: "Apple",
+    condition: "New",
+    colors: ["White", "Black"],
     description: "Rechargeable wireless mouse with Multi-Touch surface for smooth swiping.",
   },
   {
@@ -307,6 +373,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 149,
     image: "/images/products/apple-slim-keyboard.jpg",
     tag: "Sleek",
+    brand: "Apple",
+    condition: "New",
+    colors: ["Space Gray", "Silver"],
     description: "Ultra-thin wireless keyboard with scissor mechanism and long-lasting battery.",
   },
   {
@@ -318,6 +387,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1699,
     image: "/images/products/apple-monitot.jpg",
     tag: "Pro Display",
+    brand: "Apple",
+    condition: "New",
+    colors: ["Silver"],
     description: "27-inch 5K Retina display with 12MP Ultra Wide camera and six-speaker sound.",
   },
   {
@@ -329,6 +401,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 429,
     image: "/images/products/apple-watch.jpg",
     tag: "New",
+    brand: "Apple",
+    condition: "New",
+    colors: ["Midnight", "Starlight", "Red"],
     description: "Double tap gesture support, brighter display, and advanced health sensors.",
   },
   {
@@ -340,6 +415,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 699,
     image: "/images/products/samsung-s9-watch-ultra.jpg",
     tag: "Rugged",
+    brand: "Samsung",
+    condition: "New",
+    colors: ["Titanium Silver", "Titanium White"],
     description: "Rugged cushion frame smartwatch with dual-frequency GPS and 100m water resistance.",
   },
   {
@@ -350,6 +428,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 149,
     originalPrice: 179,
     image: "/images/products/d-link-router.jpg",
+    brand: "D-Link",
+    condition: "New",
+    colors: ["Black"],
     description: "Dual-band AX1800 Wi-Fi 6 router with MU-MIMO and WPA3 security.",
   },
   {
@@ -360,6 +441,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 699,
     originalPrice: 799,
     image: "/images/products/dell-32-inch-monitor.jpg",
+    brand: "Dell",
+    condition: "New",
+    colors: ["Black", "Silver"],
     description: "4K UHD IPS display with USB-C hub connectivity and 99% sRGB color.",
   },
   {
@@ -369,6 +453,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Gadgets & Accessories",
     price: 389,
     image: "/images/products/dell-vertical-monitor.jpg",
+    brand: "Dell",
+    condition: "Refurbished",
+    colors: ["Black"],
     description: "Height-adjustable rotatable monitor optimized for programming and document editing.",
   },
   {
@@ -380,6 +467,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1899,
     image: "/images/products/fujifilm-camera.jpg",
     tag: "Best Seller",
+    brand: "Fujifilm",
+    condition: "New",
+    colors: ["Black", "Silver"],
     description: "40.2MP X-Trans CMOS 5 HR sensor with 7-stop in-body image stabilization.",
   },
   {
@@ -390,6 +480,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 249,
     image: "/images/products/konica-camera.jpg",
     tag: "Vintage",
+    brand: "Konica",
+    condition: "Like New",
+    colors: ["Silver", "Black"],
     description: "Classic 35mm rangefinder film camera with Hexanon 38mm f/2.8 lens.",
   },
   {
@@ -400,6 +493,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 199,
     originalPrice: 229,
     image: "/images/products/jbl-headset.jpg",
+    brand: "JBL",
+    condition: "New",
+    colors: ["Black"],
     description: "Lossless 2.4GHz wireless headset with active noise cancellation and JBL QuantumSURROUND.",
   },
   {
@@ -411,6 +507,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 349,
     image: "/images/products/shure-headset.jpg",
     tag: "Premium",
+    brand: "Shure",
+    condition: "New",
+    colors: ["Black", "Brown"],
     description: "Studio-quality wireless sound with adjustable noise cancellation and Environment mode.",
   },
   {
@@ -422,6 +521,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 429,
     image: "/images/products/sony-headphone.jpg",
     tag: "Top Rated",
+    brand: "Sony",
+    condition: "New",
+    colors: ["Black", "Silver", "Blue"],
     description: "Industry-leading noise canceling headphones with two processors and 8 microphones.",
   },
   {
@@ -431,6 +533,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Gadgets & Accessories",
     price: 79,
     image: "/images/products/logitech-keyboard-mouse.jpg",
+    brand: "Logitech",
+    condition: "New",
+    colors: ["Black"],
     description: "Full-size quiet wireless keyboard and contoured ambidextrous mouse.",
   },
   {
@@ -440,6 +545,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Gadgets & Accessories",
     price: 119,
     image: "/images/products/logitech-long-keyboard.jpg",
+    brand: "Logitech",
+    condition: "New",
+    colors: ["Graphite"],
     description: "Tactile key switches with smart backlighting and multi-device Bluetooth switching.",
   },
   {
@@ -449,6 +557,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Gadgets & Accessories",
     price: 99,
     image: "/images/products/logitech-mouse.jpg",
+    brand: "Logitech",
+    condition: "New",
+    colors: ["Black", "Pale Gray"],
     description: "8K DPI track-anywhere sensor with quiet click buttons and MagSpeed electromagnetic wheel.",
   },
   {
@@ -459,6 +570,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 129,
     image: "/images/products/my-techmanis-keyboard.jpg",
     tag: "Crafted",
+    brand: "Techmanis",
+    condition: "New",
+    colors: ["Black", "White"],
     description: "Hot-swappable mechanical keyboard with RGB backlighting and custom PBT keycaps.",
   },
 
@@ -471,6 +585,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 35,
     originalPrice: 45,
     image: "/images/products/adidas-red-shirt.jpg",
+    brand: "Adidas",
+    condition: "New",
+    colors: ["Red"],
     description: "Breathable AEROREADY athletic t-shirt for daily workouts.",
   },
   {
@@ -481,6 +598,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 49,
     originalPrice: 59,
     image: "/images/products/adidas-white-polo.jpg",
+    brand: "Adidas",
+    condition: "New",
+    colors: ["White"],
     description: "Soft cotton blend polo shirt with three-stripe sleeve accent.",
   },
   {
@@ -490,6 +610,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Apparel & Fashion",
     price: 18,
     image: "/images/products/adidas-white-socks.jpg",
+    brand: "Adidas",
+    condition: "New",
+    colors: ["White"],
     description: "Arch support athletic crew socks with ribbed cuffs.",
   },
   {
@@ -501,6 +624,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 850,
     image: "/images/products/balenciaga-hoodie.jpg",
     tag: "Luxury",
+    brand: "Balenciaga",
+    condition: "New",
+    colors: ["Black"],
     description: "Heavyweight French terry cotton hoodie with dropped shoulders and logo chest print.",
   },
   {
@@ -510,6 +636,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Apparel & Fashion",
     price: 28,
     image: "/images/products/brown-baseball-cap.jpg",
+    brand: "Heritage",
+    condition: "New",
+    colors: ["Brown"],
     description: "Unstructured 6-panel strapback hat in washed brown twill.",
   },
   {
@@ -519,6 +648,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Apparel & Fashion",
     price: 28,
     image: "/images/products/green-baseball-cap.jpg",
+    brand: "Heritage",
+    condition: "New",
+    colors: ["Green"],
     description: "Durable cotton canvas cap with metal buckle closure.",
   },
   {
@@ -529,6 +661,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 32,
     image: "/images/products/nike-red-cap.jpg",
     tag: "Popular",
+    brand: "Nike",
+    condition: "New",
+    colors: ["Red"],
     description: "Adjustable athletic cap with embroidered Nike Swoosh logo.",
   },
   {
@@ -539,6 +674,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 42,
     originalPrice: 49,
     image: "/images/products/nike-air-blue-shirt.jpg",
+    brand: "Nike",
+    condition: "New",
+    colors: ["Blue"],
     description: "Lightweight cotton activewear t-shirt featuring bold Nike Air chest graphic.",
   },
   {
@@ -548,6 +686,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Apparel & Fashion",
     price: 45,
     image: "/images/products/nike-track-shirt.jpg",
+    brand: "Nike",
+    condition: "New",
+    colors: ["Black", "Blue"],
     description: "Moisture-wicking mesh performance top for runners.",
   },
   {
@@ -559,6 +700,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 159,
     image: "/images/products/nike-red-shoe.jpg",
     tag: "Best Seller",
+    brand: "Nike",
+    condition: "New",
+    colors: ["Red", "White"],
     description: "Responsive Zoom Air cushioning with breathable Flyknit upper.",
   },
   {
@@ -569,15 +713,21 @@ export const PRODUCTS_DATA: Product[] = [
     price: 115,
     image: "/images/products/nike-white-sneakers.jpg",
     tag: "Iconic",
+    brand: "Nike",
+    condition: "New",
+    colors: ["White"],
     description: "Classic low-top leather sneakers with encapsulated Nike Air cushioning.",
   },
   {
     id: "nike-socks",
-    title: "Nike Everyday Everyday Ankle Socks 6-Pack",
+    title: "Nike Everyday Ankle Socks 6-Pack",
     categorySlug: "fashion",
     categoryName: "Apparel & Fashion",
     price: 22,
     image: "/images/products/nike-socks.jpg",
+    brand: "Nike",
+    condition: "New",
+    colors: ["White", "Black"],
     description: "Dri-FIT technology ankle socks with targeted cushioning.",
   },
 
@@ -591,6 +741,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 999,
     image: "/images/products/dining-chair-and-table.jpg",
     tag: "Featured",
+    brand: "Lawjun",
+    condition: "New",
+    colors: ["Natural Wood", "Brown"],
     description: "Solid oak dining table paired with four ergonomic upholstered dining chairs.",
   },
   {
@@ -602,6 +755,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 389,
     image: "/images/products/flower-chair.jpg",
     tag: "Design",
+    brand: "Lawjun",
+    condition: "New",
+    colors: ["Pink", "Gold"],
     description: "Luxurious scalloped petal backrest arm chair with gold stainless steel legs.",
   },
   {
@@ -611,6 +767,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Furniture & Living",
     price: 189,
     image: "/images/products/ikea-table.jpg",
+    brand: "IKEA",
+    condition: "New",
+    colors: ["Birch", "White"],
     description: "Clean birch wood workstation table suitable for home offices.",
   },
   {
@@ -622,6 +781,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 1499,
     image: "/images/products/lawjun-king-size-bed.jpg",
     tag: "Premium",
+    brand: "Lawjun",
+    condition: "New",
+    colors: ["Gray", "Beige"],
     description: "Tufted linen headboard bed frame with reinforced slat support system.",
   },
   {
@@ -632,6 +794,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 399,
     originalPrice: 459,
     image: "/images/products/lawjun-soft-chair.jpg",
+    brand: "Lawjun",
+    condition: "New",
+    colors: ["Cream", "Gray"],
     description: "Deep plush cushion lounge chair upholstered in stain-resistant fabric.",
   },
   {
@@ -642,6 +807,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 1099,
     originalPrice: 1249,
     image: "/images/products/palangolo-bed.jpg",
+    brand: "Palangolo",
+    condition: "New",
+    colors: ["Brown", "Charcoal"],
     description: "Architectural padded platform bed frame with integrated side ledges.",
   },
   {
@@ -651,6 +819,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Furniture & Living",
     price: 499,
     image: "/images/products/restaurant-chair-and-table.jpg",
+    brand: "Lawjun",
+    condition: "Like New",
+    colors: ["Brown", "Black"],
     description: "Compact dining table set perfect for apartments and breakfast nooks.",
   },
 
@@ -663,6 +834,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 28,
     image: "/images/products/necessaire-body-lotion.jpg",
     tag: "Clean Beauty",
+    brand: "Nécessaire",
+    condition: "New",
+    colors: ["White"],
     description: "Multivitamin body moisturizer infused with niacinamide, marula oil, and peptides.",
   },
   {
@@ -672,6 +846,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Beauty & Care",
     price: 14,
     image: "/images/products/nivea-body-milk.jpg",
+    brand: "Nivea",
+    condition: "New",
+    colors: ["Blue"],
     description: "Intense 48-hour moisture lotion enriched with Deep Moisture Serum and Almond Oil.",
   },
   {
@@ -681,6 +858,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Beauty & Care",
     price: 9,
     image: "/images/products/nivea-body-spray.jpg",
+    brand: "Nivea",
+    condition: "New",
+    colors: ["White", "Blue"],
     description: "48-hour anti-perspirant protection with refreshing ocean extracts.",
   },
   {
@@ -690,6 +870,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Beauty & Care",
     price: 12,
     image: "/images/products/nivea-chap-sticks.jpg",
+    brand: "Nivea",
+    condition: "New",
+    colors: ["Blue", "Red"],
     description: "Moisturizing lip balms formulated with Shea Butter and natural jojoba oils.",
   },
   {
@@ -701,6 +884,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 45,
     image: "/images/products/ordinaru-care-set.jpg",
     tag: "Trending",
+    brand: "The Ordinary",
+    condition: "New",
+    colors: ["Clear", "White"],
     description: "Complete facial routine featuring Squalane Cleanser, Hyaluronic Acid, and Niacinamide.",
   },
   {
@@ -710,6 +896,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Beauty & Care",
     price: 11,
     image: "/images/products/vaseline-mosturizer.jpg",
+    brand: "Vaseline",
+    condition: "New",
+    colors: ["Brown", "Gold"],
     description: "100% pure cocoa butter lotion for glowing, deeply hydrated skin.",
   },
 
@@ -722,6 +911,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 6,
     image: "/images/products/fresh-farm-organic-tomatoes.jpg",
     tag: "Organic",
+    brand: "Fresh Farm",
+    condition: "New",
+    colors: ["Red"],
     description: "Vine-ripened organic red tomatoes harvested daily from local farms.",
   },
   {
@@ -731,6 +923,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Groceries",
     price: 8,
     image: "/images/products/lawjun-cereal.jpg",
+    brand: "Lawjun",
+    condition: "New",
+    colors: ["Brown"],
     description: "Crispy toasted whole grain cereal enriched with essential vitamins and fiber.",
   },
   {
@@ -741,6 +936,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 15,
     image: "/images/products/milo-beverage.avif",
     tag: "Pantry",
+    brand: "Nestle",
+    condition: "New",
+    colors: ["Green"],
     description: "Iconic energy chocolate malt drink mix packed with Activ-Go nutrients.",
   },
 
@@ -754,6 +952,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 649,
     image: "/images/products/google-android-television.jpg",
     tag: "Smart Home",
+    brand: "Google",
+    condition: "New",
+    colors: ["Black"],
     description: "HDR10+ Android TV with Google Assistant voice control and Chromecast built-in.",
   },
   {
@@ -765,6 +966,9 @@ export const PRODUCTS_DATA: Product[] = [
     originalPrice: 899,
     image: "/images/products/samsung-slim-tv.jpg",
     tag: "Top Rated",
+    brand: "Samsung",
+    condition: "New",
+    colors: ["Black"],
     description: "Ultra-slim AirSlim design 4K processor TV with Smart Hub streaming.",
   },
   {
@@ -775,6 +979,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 499,
     originalPrice: 579,
     image: "/images/products/horizon-air-conditioner.jpg",
+    brand: "Horizon",
+    condition: "New",
+    colors: ["White"],
     description: "Rapid cooling eco inverter AC unit with anti-bacterial air filtration.",
   },
   {
@@ -785,6 +992,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 449,
     originalPrice: 519,
     image: "/images/products/lawjun-washing-machine.jpg",
+    brand: "Lawjun",
+    condition: "New",
+    colors: ["White", "Silver"],
     description: "Direct drive inverter washer with 14 wash programs and steam hygiene cycle.",
   },
   {
@@ -795,6 +1005,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 529,
     image: "/images/products/planetcare-washing-machine.jpg",
     tag: "Eco Friendly",
+    brand: "PlanetCare",
+    condition: "New",
+    colors: ["White"],
     description: "Energy-efficient washing machine equipped with microfibre filtration system.",
   },
   {
@@ -805,6 +1018,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 119,
     originalPrice: 139,
     image: "/images/products/microwave.jpg",
+    brand: "Lawjun",
+    condition: "New",
+    colors: ["Silver", "Black"],
     description: "700W countertop microwave with touch control panel and 8 auto cooking menus.",
   },
   {
@@ -815,6 +1031,9 @@ export const PRODUCTS_DATA: Product[] = [
     price: 189,
     originalPrice: 219,
     image: "/images/products/mini-fridge.jpg",
+    brand: "Heritage",
+    condition: "New",
+    colors: ["Red", "Cream"],
     description: "Vintage style compact refrigerator with chiller compartment and adjustable thermostat.",
   },
   {
@@ -824,6 +1043,9 @@ export const PRODUCTS_DATA: Product[] = [
     categoryName: "Home Appliances",
     price: 159,
     image: "/images/products/stuggart-mercedes.jpg",
+    brand: "Mercedes",
+    condition: "New",
+    colors: ["Silver", "Black"],
     description: "Precision engineered die-cast collector scale model with working doors and interior details.",
   },
 ];
