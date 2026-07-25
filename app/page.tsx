@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import styles from "./page.module.css";
 
 // SVG Components
@@ -470,6 +471,7 @@ const CATEGORIES = [
 
 interface PopularCategory {
   id: string;
+  slug: string;
   name: string;
   image: string;
   filterValue: string;
@@ -478,42 +480,49 @@ interface PopularCategory {
 const POPULAR_CATEGORIES_DATA: PopularCategory[] = [
   {
     id: "gadgets",
+    slug: "phones-tablets",
     name: "Phone & Tablets",
     image: "/images/categories/gadgets.jpg",
     filterValue: "Electronics",
   },
   {
     id: "audio",
+    slug: "gadgets-accessories",
     name: "Gadget & Accessories",
     image: "/images/categories/gadgets3.jpg",
     filterValue: "Audio",
   },
   {
     id: "fashion",
+    slug: "fashion",
     name: "Apparel & Fashion",
     image: "/images/categories/shirt.jpg",
     filterValue: "All",
   },
   {
     id: "furniture",
+    slug: "furniture",
     name: "Furniture & Living",
     image: "/images/categories/furniture.jpg",
     filterValue: "Accessories",
   },
   {
     id: "beauty",
+    slug: "beauty-care",
     name: "Beauty & Care",
     image: "/images/categories/beauty-care.jpg",
     filterValue: "All",
   },
   {
     id: "wearables",
+    slug: "groceries",
     name: "Groceries",
     image: "/images/categories/groceries.jpg",
     filterValue: "Wearables",
   },
   {
     id: "appliances",
+    slug: "appliances",
     name: "Home Appliances",
     image: "/images/categories/home.jpg",
     filterValue: "Appliances",
@@ -836,7 +845,11 @@ export default function Home() {
 
         <div ref={categoryRowRef} className={styles.circleCategoriesRow}>
           {POPULAR_CATEGORIES_DATA.map((cat) => (
-            <a key={cat.id} href="#" className={styles.circleCategoryItem}>
+            <Link
+              key={cat.id}
+              href={`/category/${cat.slug}`}
+              className={styles.circleCategoryItem}
+            >
               <div className={styles.circleImageWrapper}>
                 <Image
                   src={cat.image}
@@ -848,7 +861,7 @@ export default function Home() {
                 <div className={styles.circleHoverOverlay} />
               </div>
               <span className={styles.circleCategoryName}>{cat.name}</span>
-            </a>
+            </Link>
           ))}
         </div>
       </section>
