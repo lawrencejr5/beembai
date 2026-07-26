@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import styles from "./product.module.css";
 import { getProductById, getProductsByCategory, getCategoryBySlug } from "@/app/data/products";
+import { useCart } from "@/app/context/CartContext";
 
 // SVG Components
 const CartIcon = () => (
@@ -107,6 +108,7 @@ interface ProductPageProps {
 
 export default function ProductPage({ params }: ProductPageProps) {
   const router = useRouter();
+  const { addToCart } = useCart();
   // Unwrap params if promise
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const productId = resolvedParams?.id;
@@ -124,6 +126,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     product?.colors && product.colors.length > 0 ? product.colors[0] : ""
   );
   const [quantity, setQuantity] = useState<number>(1);
+  const [addedToast, setAddedToast] = useState(false);
 
   if (!product) {
     return notFound();
@@ -148,6 +151,17 @@ export default function ProductPage({ params }: ProductPageProps) {
     } else {
       router.push(category ? `/category/${category.slug}` : "/");
     }
+  };
+
+  const handleAddToCartMain = () => {
+    addToCart(product, quantity, selectedColor || undefined);
+    setAddedToast(true);
+    setTimeout(() => setAddedToast(false), 2500);
+  };
+
+  const handleBuyNow = () => {
+    addToCart(product, quantity, selectedColor || undefined);
+    router.push("/cart");
   };
 
   return (
@@ -281,11 +295,19 @@ export default function ProductPage({ params }: ProductPageProps) {
             </div>
 
             <div className={styles.buttonGroup}>
-              <button type="button" className={styles.addToCartMainBtn}>
+              <button
+                type="button"
+                onClick={handleAddToCartMain}
+                className={styles.addToCartMainBtn}
+              >
                 <CartIcon />
-                <span>Add to Cart</span>
+                <span>{addedToast ? "Added to Cart! ✓" : "Add to Cart"}</span>
               </button>
-              <button type="button" className={styles.buyNowBtn}>
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                className={styles.buyNowBtn}
+              >
                 <span>Buy Now</span>
               </button>
             </div>
@@ -398,7 +420,11 @@ export default function ProductPage({ params }: ProductPageProps) {
                     </div>
                     <button
                       type="button"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        addToCart(item);
+                      }}
                       className={styles.addToCartBtn}
                       aria-label={`Add ${item.title} to cart`}
                     >

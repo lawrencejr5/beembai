@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import styles from "./category.module.css";
 import { getCategoryBySlug, getProductsByCategory, Product } from "@/app/data/products";
+import { useCart } from "@/app/context/CartContext";
 
 // SVG Components
 const SearchIcon = () => (
@@ -95,6 +96,7 @@ interface CategoryPageProps {
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
+  const { addToCart } = useCart();
   // Unwrap params if promise
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const slug = resolvedParams?.slug;
@@ -480,7 +482,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          handleAddToCart();
+                          addToCart(product);
                         }}
                         className={styles.addToCartBtn}
                         aria-label={`Add ${product.title} to cart`}

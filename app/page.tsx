@@ -4,7 +4,8 @@ import React, { useState, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
-import { getFeaturedProducts, getNewArrivalsProducts } from "@/app/data/products";
+import { getFeaturedProducts, getNewArrivalsProducts, Product } from "@/app/data/products";
+import { useCart } from "@/app/context/CartContext";
 
 // SVG Components
 const SearchIcon = () => (
@@ -326,140 +327,7 @@ const ADVERT_SLIDES: AdvertSlide[] = [
   },
 ];
 
-interface Product {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  originalPrice?: number;
-  rating: number;
-  reviews: number;
-  image: string;
-  tag?: string;
-}
 
-const PRODUCTS: Product[] = [
-  {
-    id: "1",
-    title: "Fujifilm X-T5 Mirrorless Camera",
-    category: "Electronics",
-    price: 1699,
-    originalPrice: 1899,
-    rating: 5,
-    reviews: 124,
-    image: "/images/products/fujifilm-camera.jpg",
-    tag: "Best Seller",
-  },
-  {
-    id: "2",
-    title: "Shure Aonic 50 Wireless Headset",
-    category: "Audio",
-    price: 299,
-    originalPrice: 349,
-    rating: 5,
-    reviews: 86,
-    image: "/images/products/shure-headset.jpg",
-    tag: "Premium",
-  },
-  {
-    id: "3",
-    title: "Logitech MX Master 3S Mouse",
-    category: "Accessories",
-    price: 99,
-    rating: 4,
-    reviews: 210,
-    image: "/images/products/logitech-mouse.jpg",
-  },
-  {
-    id: "4",
-    title: "Apple Watch Series 9 (GPS)",
-    category: "Wearables",
-    price: 399,
-    originalPrice: 429,
-    rating: 4,
-    reviews: 180,
-    image: "/images/products/apple-watch.jpg",
-    tag: "New",
-  },
-  {
-    id: "5",
-    title: "iPad Pro M2 with Magic Keyboard",
-    category: "Electronics",
-    price: 1099,
-    originalPrice: 1199,
-    rating: 5,
-    reviews: 95,
-    image: "/images/products/ipad-pro-with-keyboard.jpg",
-    tag: "Trending",
-  },
-  {
-    id: "6",
-    title: "iPhone 12 Pro Max Gold Edition",
-    category: "Electronics",
-    price: 799,
-    originalPrice: 899,
-    rating: 4,
-    reviews: 320,
-    image: "/images/products/iphone-12-pro-max.jpg",
-  },
-  {
-    id: "7",
-    title: "AirPods Pro (2nd Generation)",
-    category: "Audio",
-    price: 249,
-    rating: 5,
-    reviews: 430,
-    image: "/images/products/airpod-pro.jpg",
-  },
-  {
-    id: "8",
-    title: "D-Link Smart Wi-Fi 6 Router",
-    category: "Electronics",
-    price: 149,
-    rating: 4,
-    reviews: 64,
-    image: "/images/products/d-link-router.jpg",
-  },
-  {
-    id: "9",
-    title: "Konica C35 Vintage Film Camera",
-    category: "Electronics",
-    price: 249,
-    rating: 4,
-    reviews: 48,
-    image: "/images/products/konica-camera.jpg",
-    tag: "Vintage",
-  },
-  {
-    id: "10",
-    title: "Techmanis Custom Mechanical Keyboard",
-    category: "Accessories",
-    price: 129,
-    rating: 5,
-    reviews: 112,
-    image: "/images/products/my-techmanis-keyboard.jpg",
-    tag: "Crafted",
-  },
-  {
-    id: "11",
-    title: "Retro Countertop Mini Fridge",
-    category: "Appliances",
-    price: 189,
-    originalPrice: 219,
-    rating: 4,
-    reviews: 72,
-    image: "/images/products/mini-fridge.jpg",
-  },
-  {
-    id: "12",
-    title: "Compact Digital Microwave Oven",
-    category: "Appliances",
-    price: 119,
-    rating: 4,
-    reviews: 55,
-    image: "/images/products/microwave.jpg",
-  },
-];
 
 const CATEGORIES = [
   "All",
@@ -531,8 +399,8 @@ const POPULAR_CATEGORIES_DATA: PopularCategory[] = [
 ];
 
 export default function Home() {
+  const { totalItemsCount, addToCart } = useCart();
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [cartCount, setCartCount] = useState(0);
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [subscribeEmail, setSubscribeEmail] = useState("");
@@ -629,8 +497,8 @@ export default function Home() {
     );
   }, [searchQuery]);
 
-  const handleAddToCart = () => {
-    setCartCount((prev) => prev + 1);
+  const handleAddToCart = (product: Product) => {
+    addToCart(product, 1);
   };
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -679,12 +547,12 @@ export default function Home() {
             {theme === "light" ? <MoonIcon /> : <SunIcon />}
           </button>
 
-          <button className={styles.cartIconBtn} aria-label="Shopping Cart">
+          <Link href="/cart" className={styles.cartIconBtn} aria-label="Shopping Cart">
             <CartIcon />
-            {cartCount > 0 && (
-              <span className={styles.cartBadge}>{cartCount}</span>
+            {totalItemsCount > 0 && (
+              <span className={styles.cartBadge}>{totalItemsCount}</span>
             )}
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -933,7 +801,7 @@ export default function Home() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleAddToCart();
+                      handleAddToCart(product);
                     }}
                     className={styles.addToCartBtn}
                     aria-label={`Add ${product.title} to cart`}
@@ -1032,7 +900,7 @@ export default function Home() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleAddToCart();
+                      handleAddToCart(product);
                     }}
                     className={styles.addToCartBtn}
                     aria-label={`Add ${product.title} to cart`}

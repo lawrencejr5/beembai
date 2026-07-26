@@ -125,6 +125,45 @@
   box-shadow: 0 4px 14px rgba(99, 109, 33, 0.25);
 }
 
+.cartIconBtn {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
+  text-decoration: none;
+  border-radius: 50%;
+}
+
+.cartIconBtn:hover {
+  color: var(--color-palm);
+  transform: scale(1.08);
+}
+
+.cartBadge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: var(--color-palm);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  line-height: 1;
+}
+
 /* Sub-Header Dedicated Search Bar Row */
 .subHeaderSearchRow {
   display: flex;
