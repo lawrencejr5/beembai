@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
-import { getFeaturedProducts, getNewArrivalsProducts, Product } from "@/app/data/products";
+import { getFeaturedProducts, getNewArrivalsProducts, Product, PRODUCTS_DATA, CATEGORIES_DATA } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
 
@@ -404,6 +404,8 @@ export default function Home() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [subscribeEmail, setSubscribeEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -411,6 +413,56 @@ export default function Home() {
 
   const featuredRowRef = useRef<HTMLDivElement>(null);
   const categoryRowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("beembai_recent_searches");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setRecentSearches(parsed);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const saveRecentSearch = (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
+      const updated = [trimmed, ...filtered].slice(0, 6);
+      try {
+        localStorage.setItem("beembai_recent_searches", JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem("beembai_recent_searches");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const trendingKeywords = ["Pixel 10", "AirPods", "Sony", "Vintage Camera", "Balenciaga", "OLED"];
+
+  const searchMatchingProducts = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase().trim();
+    return PRODUCTS_DATA.filter(
+      (p) =>
+        p.title.toLowerCase().includes(query) ||
+        p.categoryName.toLowerCase().includes(query) ||
+        (p.brand && p.brand.toLowerCase().includes(query)) ||
+        (p.tag && p.tag.toLowerCase().includes(query))
+    ).slice(0, 5);
+  }, [searchQuery]);
 
   const scrollFeatured = (direction: "left" | "right") => {
     if (!featuredRowRef.current) return;
@@ -476,27 +528,13 @@ export default function Home() {
 
   // Featured products (horizontal line fetched from app/data/products.tsx)
   const featuredProducts = useMemo(() => {
-    const list = getFeaturedProducts();
-    if (!searchQuery.trim()) return list;
-    const query = searchQuery.toLowerCase().trim();
-    return list.filter(
-      (product) =>
-        product.title.toLowerCase().includes(query) ||
-        product.categoryName.toLowerCase().includes(query)
-    );
-  }, [searchQuery]);
+    return getFeaturedProducts();
+  }, []);
 
   // New arrivals (fetched from app/data/products.tsx)
   const newArrivalsProducts = useMemo(() => {
-    const list = getNewArrivalsProducts();
-    if (!searchQuery.trim()) return list;
-    const query = searchQuery.toLowerCase().trim();
-    return list.filter(
-      (product) =>
-        product.title.toLowerCase().includes(query) ||
-        product.categoryName.toLowerCase().includes(query)
-    );
-  }, [searchQuery]);
+    return getNewArrivalsProducts();
+  }, []);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product, 1);
@@ -563,29 +601,187 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Dark Transparent Backdrop Overlay */}
+      <div
+        className={`${styles.searchOverlay} ${isSearchFocused ? styles.searchOverlayActive : ""}`}
+        onClick={() => setIsSearchFocused(false)}
+      />
+
       {/* Prominent Sub-Header Search Bar Row */}
-      <div className={styles.subHeaderSearchRow}>
-        <div className={styles.subHeaderSearchBar}>
-          <span className={styles.searchIcon}>
-            <SearchIcon />
-          </span>
-          <input
-            type="text"
-            placeholder="Search products, brands, categories..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.subHeaderSearchInput}
-          />
-          {searchQuery ? (
-            <button
-              onClick={() => setSearchQuery("")}
-              className={styles.searchClearBtn}
-              aria-label="Clear search"
-            >
-              ✕
-            </button>
-          ) : (
-            <span className={styles.searchShortcutHint}>Search</span>
+      <div
+        className={`${styles.subHeaderSearchRow} ${
+          isSearchFocused ? styles.subHeaderSearchRowActive : ""
+        }`}
+      >
+        <div className={styles.subHeaderSearchBarWrapper}>
+          <div
+            className={`${styles.subHeaderSearchBar} ${
+              isSearchFocused ? styles.subHeaderSearchBarActive : ""
+            }`}
+          >
+            <span className={styles.searchIcon}>
+              <SearchIcon />
+            </span>
+            <input
+              type="text"
+              placeholder="Search products, brands, categories..."
+              value={searchQuery}
+              onFocus={() => setIsSearchFocused(true)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (!isSearchFocused) setIsSearchFocused(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setIsSearchFocused(false);
+                } else if (e.key === "Enter" && searchQuery.trim()) {
+                  saveRecentSearch(searchQuery);
+                  setIsSearchFocused(false);
+                }
+              }}
+              className={styles.subHeaderSearchInput}
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className={styles.searchClearBtn}
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            ) : (
+              <span className={styles.searchShortcutHint}>Search</span>
+            )}
+          </div>
+
+          {/* Live On-Type Suggestions Dropdown Modal */}
+          {isSearchFocused && (
+            <div className={styles.searchSuggestionsDropdown}>
+              {searchQuery.trim() === "" ? (
+                <>
+                  {/* Recent Searches */}
+                  {recentSearches.length > 0 && (
+                    <div className={styles.suggestionGroup}>
+                      <div className={styles.suggestionSectionTitle}>
+                        <span>Recent Searches</span>
+                        <button
+                          type="button"
+                          onClick={clearRecentSearches}
+                          className={styles.clearRecentBtn}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <div className={styles.chipsRow}>
+                        {recentSearches.map((term) => (
+                          <button
+                            type="button"
+                            key={term}
+                            onClick={() => {
+                              setSearchQuery(term);
+                              saveRecentSearch(term);
+                            }}
+                            className={styles.keywordChip}
+                          >
+                            <span>🕒</span>
+                            <span>{term}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Trending Searches */}
+                  <div className={styles.suggestionGroup}>
+                    <div className={styles.suggestionSectionTitle}>
+                      <span>🔥 Trending Searches</span>
+                    </div>
+                    <div className={styles.chipsRow}>
+                      {trendingKeywords.map((kw) => (
+                        <button
+                          type="button"
+                          key={kw}
+                          onClick={() => {
+                            setSearchQuery(kw);
+                            saveRecentSearch(kw);
+                          }}
+                          className={styles.keywordChip}
+                        >
+                          <span>{kw}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Popular Categories */}
+                  <div className={styles.suggestionGroup}>
+                    <div className={styles.suggestionSectionTitle}>
+                      <span>Browse Categories</span>
+                    </div>
+                    <div className={styles.chipsRow}>
+                      {CATEGORIES_DATA.map((cat) => (
+                        <Link
+                          key={cat.id}
+                          href={`/category/${cat.slug}`}
+                          onClick={() => setIsSearchFocused(false)}
+                          className={styles.keywordChip}
+                        >
+                          <span>{cat.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Active Live Matching Suggestions */
+                <div className={styles.suggestionGroup}>
+                  <div className={styles.suggestionSectionTitle}>
+                    <span>Matching Products ({searchMatchingProducts.length})</span>
+                  </div>
+
+                  {searchMatchingProducts.length > 0 ? (
+                    <div className={styles.productSuggestionList}>
+                      {searchMatchingProducts.map((product) => (
+                        <Link
+                          key={product.id}
+                          href={`/product/${product.id}`}
+                          onClick={() => {
+                            saveRecentSearch(product.title);
+                            setIsSearchFocused(false);
+                          }}
+                          className={styles.productSuggestionRow}
+                        >
+                          <div className={styles.suggestionImgWrapper}>
+                            <Image
+                              src={product.image}
+                              alt={product.title}
+                              fill
+                              className={styles.suggestionImg}
+                              sizes="44px"
+                            />
+                          </div>
+
+                          <div className={styles.suggestionInfo}>
+                            <span className={styles.suggestionTitle}>{product.title}</span>
+                            <span className={styles.suggestionMeta}>
+                              {product.brand ? `${product.brand} • ` : ""}
+                              {product.categoryName}
+                            </span>
+                          </div>
+
+                          <span className={styles.suggestionPrice}>${product.price}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={styles.noMatchesText}>
+                      No products found for "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
