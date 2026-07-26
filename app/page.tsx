@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
-import { getFeaturedProducts, getNewArrivalsProducts, Product, PRODUCTS_DATA, CATEGORIES_DATA } from "@/app/data/products";
+import { getFeaturedProducts, getNewArrivalsProducts, Product, PRODUCTS_DATA, CATEGORIES_DATA, formatPrice, formatNumber } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
 
@@ -594,7 +594,7 @@ export default function Home() {
             <CartIcon />
             {totalItemsCount > 0 && (
               <span className={`${styles.cartBadge} ${cartBounce ? styles.badgePop : ""}`}>
-                {totalItemsCount}
+                {formatNumber(totalItemsCount)}
               </span>
             )}
           </Link>
@@ -770,7 +770,7 @@ export default function Home() {
                             </span>
                           </div>
 
-                          <span className={styles.suggestionPrice}>${product.price}</span>
+                          <span className={styles.suggestionPrice}>${formatPrice(product.price)}</span>
                         </Link>
                       ))}
                     </div>

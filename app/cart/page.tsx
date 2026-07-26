@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./cart.module.css";
 import { useCart } from "@/app/context/CartContext";
+import { formatPrice, formatNumber } from "@/app/data/products";
 
 // SVG Icons
 const ArrowLeftIcon = () => (
@@ -145,7 +146,7 @@ export default function CartPage() {
           <div className={styles.titleGroup}>
             <h1 className={styles.pageTitle}>Shopping Cart</h1>
             {totalItemsCount > 0 && (
-              <span className={styles.itemCountBadge}>{totalItemsCount} items</span>
+              <span className={styles.itemCountBadge}>{formatNumber(totalItemsCount)} items</span>
             )}
           </div>
         </div>
@@ -205,7 +206,7 @@ export default function CartPage() {
                       {item.selectedColor && (
                         <span className={styles.colorBadge}>{item.selectedColor}</span>
                       )}
-                      <span className={styles.unitPrice}>${item.product.price} each</span>
+                      <span className={styles.unitPrice}>${formatPrice(item.product.price)} each</span>
                     </div>
                   </div>
 
@@ -221,7 +222,7 @@ export default function CartPage() {
                     >
                       -
                     </button>
-                    <span className={styles.qtyValue}>{item.quantity}</span>
+                    <span className={styles.qtyValue}>{formatNumber(item.quantity)}</span>
                     <button
                       type="button"
                       onClick={() =>
@@ -237,7 +238,7 @@ export default function CartPage() {
 
                   {/* Subtotal & Trash Remove Button */}
                   <div className={styles.itemActionGroup}>
-                    <span className={styles.subtotalPrice}>${itemTotal}</span>
+                    <span className={styles.subtotalPrice}>${formatPrice(itemTotal)}</span>
                     <button
                       type="button"
                       onClick={() => removeFromCart(item.product.id, item.selectedColor)}
@@ -259,7 +260,7 @@ export default function CartPage() {
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Subtotal</span>
-                <span>${subtotalPrice}</span>
+                <span>${formatPrice(subtotalPrice)}</span>
               </div>
 
               <div className={styles.summaryRow}>
@@ -267,13 +268,13 @@ export default function CartPage() {
                 {shippingFee === 0 ? (
                   <span className={styles.freeShippingTag}>FREE</span>
                 ) : (
-                  <span>${shippingFee}</span>
+                  <span>${formatPrice(shippingFee)}</span>
                 )}
               </div>
 
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Estimated Tax (5%)</span>
-                <span>${estimatedTax}</span>
+                <span>${formatPrice(estimatedTax)}</span>
               </div>
 
               {discountAmount > 0 && (
@@ -281,13 +282,13 @@ export default function CartPage() {
                   <span className={styles.summaryRowLabel} style={{ color: "var(--color-palm)" }}>
                     Promo Discount
                   </span>
-                  <span>-${discountAmount}</span>
+                  <span>-${formatPrice(discountAmount)}</span>
                 </div>
               )}
 
               <div className={styles.totalRow}>
                 <span className={styles.totalLabel}>Total</span>
-                <span className={styles.totalValue}>${finalTotal}</span>
+                <span className={styles.totalValue}>${formatPrice(finalTotal)}</span>
               </div>
             </div>
 
@@ -319,7 +320,7 @@ export default function CartPage() {
             )}
 
             <button type="button" className={styles.checkoutBtn}>
-              Proceed to Checkout (${finalTotal})
+              Proceed to Checkout (${formatPrice(finalTotal)})
             </button>
 
             <div className={styles.trustFooter}>

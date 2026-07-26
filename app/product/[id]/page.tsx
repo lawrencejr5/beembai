@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import styles from "./product.module.css";
-import { getProductById, getProductsByCategory, getCategoryBySlug } from "@/app/data/products";
+import { getProductById, getProductsByCategory, getCategoryBySlug, formatPrice } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
 
@@ -208,9 +208,9 @@ export default function ProductPage({ params }: ProductPageProps) {
           <h1 className={styles.productTitle}>{product.title}</h1>
 
           <div className={styles.priceRow}>
-            <span className={styles.currentPrice}>${product.price}</span>
+            <span className={styles.currentPrice}>${formatPrice(product.price)}</span>
             {product.originalPrice && (
-              <span className={styles.originalPrice}>${product.originalPrice}</span>
+              <span className={styles.originalPrice}>${formatPrice(product.originalPrice)}</span>
             )}
             {discountPercent > 0 && (
               <span className={styles.discountPill}>Save {discountPercent}%</span>
@@ -382,7 +382,7 @@ export default function ProductPage({ params }: ProductPageProps) {
           )}
           <div className={styles.specItem}>
             <span className={styles.specLabel}>Price</span>
-            <span className={styles.specValue}>${product.price}</span>
+            <span className={styles.specValue}>${formatPrice(product.price)}</span>
           </div>
         </div>
       </section>

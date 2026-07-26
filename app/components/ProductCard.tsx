@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
-import { Product } from "@/app/data/products";
+import { Product, formatPrice } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
 
 const CartIcon = () => (
@@ -99,9 +99,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className={styles.cardFooter}>
           <div className={styles.priceWrapper}>
             {product.originalPrice && (
-              <span className={styles.originalPrice}>${product.originalPrice}</span>
+              <span className={styles.originalPrice}>${formatPrice(product.originalPrice)}</span>
             )}
-            <span className={styles.price}>${product.price}</span>
+            <span className={styles.price}>${formatPrice(product.price)}</span>
           </div>
 
           {totalQtyInCart === 0 ? (

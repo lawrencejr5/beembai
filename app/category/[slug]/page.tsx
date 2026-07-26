@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import styles from "./category.module.css";
-import { getCategoryBySlug, getProductsByCategory, Product } from "@/app/data/products";
+import { getCategoryBySlug, getProductsByCategory, Product, formatPrice, formatNumber } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
 
@@ -250,12 +250,12 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         <div className={styles.priceRangeInputs}>
           <div className={styles.priceInputWrapper}>
             <span>$</span>
-            <span>{categoryPrices.min}</span>
+            <span>{formatPrice(categoryPrices.min)}</span>
           </div>
           <span style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}>to</span>
           <div className={styles.priceInputWrapper}>
             <span>$</span>
-            <span>{maxPriceFilter}</span>
+            <span>{formatPrice(maxPriceFilter)}</span>
           </div>
         </div>
         <input
@@ -413,7 +413,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <span className={styles.productsCountTag}>
-                Showing {filteredProducts.length} of {rawProducts.length} Products
+                Showing {formatNumber(filteredProducts.length)} of {formatNumber(rawProducts.length)} Products
               </span>
 
               {/* Mobile Filter Button */}

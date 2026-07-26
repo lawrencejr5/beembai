@@ -17,6 +17,14 @@ export interface Product {
   stock?: number;
 }
 
+export const formatNumber = (num: number): string => {
+  return num.toLocaleString("en-US");
+};
+
+export const formatPrice = (price: number): string => {
+  return price.toLocaleString("en-US");
+};
+
 export interface Category {
   id: string;
   slug: string;
