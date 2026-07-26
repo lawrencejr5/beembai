@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
+import { getFeaturedProducts, getNewArrivalsProducts } from "@/app/data/products";
 
 // SVG Components
 const SearchIcon = () => (
@@ -604,23 +605,27 @@ export default function Home() {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
-  // Featured products (horizontal line)
+  // Featured products (horizontal line fetched from app/data/products.tsx)
   const featuredProducts = useMemo(() => {
-    const featuredIds = ["1", "2", "4", "5", "7", "10"];
-    return PRODUCTS.filter(
+    const list = getFeaturedProducts();
+    if (!searchQuery.trim()) return list;
+    const query = searchQuery.toLowerCase().trim();
+    return list.filter(
       (product) =>
-        featuredIds.includes(product.id) &&
-        product.title.toLowerCase().includes(searchQuery.toLowerCase()),
+        product.title.toLowerCase().includes(query) ||
+        product.categoryName.toLowerCase().includes(query)
     );
   }, [searchQuery]);
 
-  // New arrivals (3x3 grid)
+  // New arrivals (fetched from app/data/products.tsx)
   const newArrivalsProducts = useMemo(() => {
-    const newArrivalIds = ["4", "5", "6", "7", "8", "9", "10", "11", "12"];
-    return PRODUCTS.filter(
+    const list = getNewArrivalsProducts();
+    if (!searchQuery.trim()) return list;
+    const query = searchQuery.toLowerCase().trim();
+    return list.filter(
       (product) =>
-        newArrivalIds.includes(product.id) &&
-        product.title.toLowerCase().includes(searchQuery.toLowerCase()),
+        product.title.toLowerCase().includes(query) ||
+        product.categoryName.toLowerCase().includes(query)
     );
   }, [searchQuery]);
 
@@ -879,7 +884,12 @@ export default function Home() {
 
         <div ref={featuredRowRef} className={styles.featuredHorizontalRow}>
           {featuredProducts.map((product) => (
-            <div key={product.id} className={styles.featuredProductCard}>
+            <Link
+              key={product.id}
+              href={`/product/${product.id}`}
+              className={styles.featuredProductCard}
+              style={{ textDecoration: "none" }}
+            >
               <div className={styles.productImageWrapper}>
                 {product.tag && (
                   <span className={styles.cardTag}>{product.tag}</span>
@@ -906,7 +916,7 @@ export default function Home() {
 
               <div className={styles.productDetails}>
                 <span className={styles.productCategory}>
-                  {product.category}
+                  {product.categoryName}
                 </span>
                 <h3 className={styles.productTitle}>{product.title}</h3>
 
@@ -920,7 +930,11 @@ export default function Home() {
                     <span className={styles.price}>${product.price}</span>
                   </div>
                   <button
-                    onClick={handleAddToCart}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddToCart();
+                    }}
                     className={styles.addToCartBtn}
                     aria-label={`Add ${product.title} to cart`}
                   >
@@ -928,7 +942,7 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -969,7 +983,12 @@ export default function Home() {
 
         <div className={styles.newArrivalsGrid}>
           {newArrivalsProducts.map((product) => (
-            <div key={product.id} className={styles.productCard}>
+            <Link
+              key={product.id}
+              href={`/product/${product.id}`}
+              className={styles.productCard}
+              style={{ textDecoration: "none" }}
+            >
               <div className={styles.productImageWrapper}>
                 {product.tag && (
                   <span className={styles.cardTag}>{product.tag}</span>
@@ -996,7 +1015,7 @@ export default function Home() {
 
               <div className={styles.productDetails}>
                 <span className={styles.productCategory}>
-                  {product.category}
+                  {product.categoryName}
                 </span>
                 <h3 className={styles.productTitle}>{product.title}</h3>
 
@@ -1010,7 +1029,11 @@ export default function Home() {
                     <span className={styles.price}>${product.price}</span>
                   </div>
                   <button
-                    onClick={handleAddToCart}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddToCart();
+                    }}
                     className={styles.addToCartBtn}
                     aria-label={`Add ${product.title} to cart`}
                   >
@@ -1018,7 +1041,7 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

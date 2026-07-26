@@ -431,7 +431,12 @@ export default function CategoryPage({ params }: CategoryPageProps) {
           {filteredProducts.length > 0 ? (
             <div className={styles.productsGrid}>
               {filteredProducts.map((product) => (
-                <div key={product.id} className={styles.productCard}>
+                <Link
+                  key={product.id}
+                  href={`/product/${product.id}`}
+                  className={styles.productCard}
+                  style={{ textDecoration: "none" }}
+                >
                   <div className={styles.productImageWrapper}>
                     {product.tag && (
                       <span className={styles.cardTag}>{product.tag}</span>
@@ -472,7 +477,11 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                         <span className={styles.price}>${product.price}</span>
                       </div>
                       <button
-                        onClick={handleAddToCart}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddToCart();
+                        }}
                         className={styles.addToCartBtn}
                         aria-label={`Add ${product.title} to cart`}
                       >
@@ -480,7 +489,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                       </button>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

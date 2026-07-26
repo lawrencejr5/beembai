@@ -11,6 +11,9 @@ export interface Product {
   brand?: string;
   condition?: "New" | "Refurbished" | "Like New";
   colors?: string[];
+  productDetails?: string[];
+  isFeatured?: boolean;
+  isNewArrival?: boolean;
 }
 
 export interface Category {
@@ -27,7 +30,8 @@ export const CATEGORIES_DATA: Category[] = [
     id: "phones-tablets",
     slug: "phones-tablets",
     name: "Phone & Tablets",
-    description: "Explore cutting-edge smartphones, flagship tablets, and mobile technology.",
+    description:
+      "Explore cutting-edge smartphones, flagship tablets, and mobile technology.",
     bannerImage: "/images/categories/gadgets.jpg",
     filterValue: "Electronics",
   },
@@ -35,7 +39,8 @@ export const CATEGORIES_DATA: Category[] = [
     id: "gadgets-accessories",
     slug: "gadgets-accessories",
     name: "Gadgets & Accessories",
-    description: "Premium headphones, smartwatches, cameras, displays, and desktop gear.",
+    description:
+      "Premium headphones, smartwatches, cameras, displays, and desktop gear.",
     bannerImage: "/images/categories/gadgets3.jpg",
     filterValue: "Audio",
   },
@@ -43,7 +48,8 @@ export const CATEGORIES_DATA: Category[] = [
     id: "fashion",
     slug: "fashion",
     name: "Apparel & Fashion",
-    description: "Trendy sportswear, luxury streetwear, footwear, caps, and everyday apparel.",
+    description:
+      "Trendy sportswear, luxury streetwear, footwear, caps, and everyday apparel.",
     bannerImage: "/images/categories/shirt.jpg",
     filterValue: "All",
   },
@@ -51,7 +57,8 @@ export const CATEGORIES_DATA: Category[] = [
     id: "furniture",
     slug: "furniture",
     name: "Furniture & Living",
-    description: "Scandinavian dining tables, luxury upholstered beds, accent chairs, and living decor.",
+    description:
+      "Scandinavian dining tables, luxury upholstered beds, accent chairs, and living decor.",
     bannerImage: "/images/categories/furniture.jpg",
     filterValue: "Accessories",
   },
@@ -59,7 +66,8 @@ export const CATEGORIES_DATA: Category[] = [
     id: "beauty-care",
     slug: "beauty-care",
     name: "Beauty & Care",
-    description: "Nourishing body lotions, skincare serums, lip treatments, and personal care.",
+    description:
+      "Nourishing body lotions, skincare serums, lip treatments, and personal care.",
     bannerImage: "/images/categories/beauty-care.jpg",
     filterValue: "All",
   },
@@ -67,7 +75,8 @@ export const CATEGORIES_DATA: Category[] = [
     id: "groceries",
     slug: "groceries",
     name: "Groceries",
-    description: "Fresh farm produce, pantry cereals, beverages, and daily household staples.",
+    description:
+      "Fresh farm produce, pantry cereals, beverages, and daily household staples.",
     bannerImage: "/images/categories/groceries.jpg",
     filterValue: "Wearables",
   },
@@ -75,7 +84,8 @@ export const CATEGORIES_DATA: Category[] = [
     id: "appliances",
     slug: "appliances",
     name: "Home Appliances",
-    description: "Smart TVs, inverter split AC units, washers, countertop microwave ovens, and fridges.",
+    description:
+      "Smart TVs, inverter split AC units, washers, countertop microwave ovens, and fridges.",
     bannerImage: "/images/categories/home.jpg",
     filterValue: "Appliances",
   },
@@ -95,7 +105,16 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Google",
     condition: "New",
     colors: ["Black", "Titanium", "Hazel"],
-    description: "Tensor powered smartphone with pro camera system and Gemini AI integration.",
+    description:
+      "Tensor powered smartphone with pro camera system and Gemini AI integration.",
+    productDetails: [
+      "Next-generation Google Tensor G4 processor with integrated Titan M2 security coprocessor.",
+      "6.7-inch Super Actua LTPO OLED display with 1-120Hz adaptive refresh rate and 3000 nits peak brightness.",
+      "Triple pro rear camera system: 50MP main sensor, 48MP ultrawide with Macro Focus, and 48MP 5x telephoto lens.",
+      "All-day battery life (5000 mAh) with 45W fast wired charging and fast Qi-certified wireless charging.",
+      "Deep Gemini Nano AI features including Magic Cue, Live Translate, and Add Me photo synthesis.",
+      "IP68 dust and water resistance with Corning Gorilla Glass Victus 2 front and back cover glass.",
+    ],
   },
   {
     id: "pixel-6",
@@ -109,6 +128,13 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "Refurbished",
     colors: ["Black", "Green"],
     description: "Sleek dual-camera Android phone with custom Tensor chip.",
+    productDetails: [
+      "First-generation custom Google Tensor SoC designed for AI and computational photography.",
+      "6.4-inch Smooth Display (90Hz refresh rate) with FHD+ OLED resolution.",
+      "50MP wide camera capturing 150% more light than previous generations.",
+      "Factory refurbished and multi-point tested for guaranteed functional excellence.",
+      "Real Tone skin tone technology for authentic representation in photography.",
+    ],
   },
   {
     id: "pixel-7",
@@ -122,7 +148,14 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Google",
     condition: "New",
     colors: ["White", "Hazel"],
-    description: "Refined design with advanced photo unblur and fast performance.",
+    description:
+      "Refined design with advanced photo unblur and fast performance.",
+    productDetails: [
+      "Google Tensor G2 processor for faster speech recognition and cinematic blur video.",
+      "6.3-inch FHD+ OLED display with up to 90Hz refresh rate and 25% brighter outdoor viewing.",
+      "Photo Unblur feature in Google Photos to restore blurry vintage or recent images.",
+      "Built-in VPN powered by Google One for encrypted public network browsing.",
+    ],
   },
   {
     id: "ipad-pro-keyboard",
@@ -136,7 +169,17 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Space Gray", "Silver"],
-    description: "Liquid Retina XDR display tablet with M2 chip and floating Magic Keyboard.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "Liquid Retina XDR display tablet with M2 chip and floating Magic Keyboard.",
+    productDetails: [
+      "Apple M2 chip with 8-core CPU, 10-core GPU, and 16-core Neural Engine.",
+      "12.9-inch Liquid Retina XDR display featuring Mini-LED backlight with 1,000,000:1 contrast ratio.",
+      "Includes detachable Magic Keyboard with floating cantilever design, backlit keys, and built-in trackpad.",
+      "Supports Apple Pencil hover detection up to 12mm above the display.",
+      "Thunderbolt / USB 4 port with support for external displays up to 6K resolution.",
+    ],
   },
   {
     id: "ipad-pro-standalone",
@@ -148,7 +191,14 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "Like New",
     colors: ["Space Gray"],
-    description: "Pro performance tablet for digital art, photo editing, and multitasking.",
+    description:
+      "Pro performance tablet for digital art, photo editing, and multitasking.",
+    productDetails: [
+      "Ultra-responsive 12.9-inch Liquid Retina XDR display with ProMotion 120Hz technology.",
+      "12MP Ultra Wide front camera with Center Stage automatic framing.",
+      "Quad speaker audio array and studio-quality five-microphone setup.",
+      "Like New condition certified through rigorous quality diagnostics.",
+    ],
   },
   {
     id: "iphone-12-pro-max",
@@ -161,7 +211,16 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "Refurbished",
     colors: ["Gold", "Silver"],
-    description: "Super Retina XDR OLED display with Ceramic Shield and LiDAR scanner.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "Super Retina XDR OLED display with Ceramic Shield and LiDAR scanner.",
+    productDetails: [
+      "6.7-inch Super Retina XDR OLED display with Ceramic Shield front glass.",
+      "A14 Bionic chip with 16-core Neural Engine for high-speed computing.",
+      "Pro 12MP camera system (Ultra Wide, Wide, Telephoto) with 5x optical zoom range.",
+      "LiDAR Scanner for enhanced Night mode portraits and AR experiences.",
+    ],
   },
   {
     id: "iphone-12",
@@ -174,7 +233,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "Like New",
     colors: ["Blue", "Black", "White"],
-    description: "5G speed, A14 Bionic chip, and dual 12MP Ultra Wide camera system.",
+    description:
+      "5G speed, A14 Bionic chip, and dual 12MP Ultra Wide camera system.",
+    productDetails: [
+      "6.1-inch Super Retina XDR OLED display with HDR10 and Dolby Vision.",
+      "Advanced dual-camera system with 12MP Ultra Wide and Wide lenses.",
+      "MagSafe wireless charging compatibility up to 15W.",
+    ],
   },
   {
     id: "iphone-13-pro-max",
@@ -189,6 +254,12 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["Sierra Blue", "Graphite"],
     description: "ProMotion 120Hz display with Cinematic mode video recording.",
+    productDetails: [
+      "Super Retina XDR display with ProMotion (adaptive refresh up to 120Hz).",
+      "Cinematic mode in 1080p at 30 fps with automatic shallow depth-of-field focus transitions.",
+      "A15 Bionic chip with 5-core GPU for ultra-fast graphics performance.",
+      "Up to 28 hours of video playback battery endurance.",
+    ],
   },
   {
     id: "iphone-13",
@@ -201,7 +272,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Midnight", "Pink"],
-    description: "Advanced dual-camera system with Sensor-shift OIS and long battery life.",
+    description:
+      "Advanced dual-camera system with Sensor-shift OIS and long battery life.",
+    productDetails: [
+      "Diagonal dual 12MP camera layout with sensor-shift optical image stabilization.",
+      "Smart HDR 4 optimizes contrast, lighting, and skin tones for up to four people in a shot.",
+      "IP68 rating under IEC standard 60529.",
+    ],
   },
   {
     id: "iphone-16",
@@ -215,7 +292,15 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Titanium", "Black", "White"],
-    description: "Grade 5 titanium design with A18 Pro chip and dedicated Camera Control button.",
+    isFeatured: true,
+    description:
+      "Grade 5 titanium design with A18 Pro chip and dedicated Camera Control button.",
+    productDetails: [
+      "Grade 5 titanium design with new refined micro-blasted finish.",
+      "A18 Pro chip with 6-core GPU delivering breakthrough thermal efficiency and performance.",
+      "48MP Fusion camera with 2nd-gen quad-pixel sensor and 4K 120 fps Dolby Vision video.",
+      "Dedicated capacitive Camera Control button with haptic feedback for instant camera launch and zoom adjustment.",
+    ],
   },
   {
     id: "redmi-pad-2-pro",
@@ -228,7 +313,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Xiaomi",
     condition: "New",
     colors: ["Gray", "Green"],
-    description: "High refresh rate display tablet with quad speakers and long-lasting battery.",
+    description:
+      "High refresh rate display tablet with quad speakers and long-lasting battery.",
+    productDetails: [
+      "11-inch 2.5K high resolution display with 120Hz AdaptiveSync refresh rate.",
+      "Quad speakers supporting Dolby Atmos for immersive audio experience.",
+      "8000 mAh large capacity battery with 33W fast charging support.",
+    ],
   },
   {
     id: "samsung-s20",
@@ -242,6 +333,11 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "Refurbished",
     colors: ["Cosmic Gray", "Cloud Blue"],
     description: "Dynamic AMOLED 2X 120Hz display with 30x Space Zoom camera.",
+    productDetails: [
+      "6.2-inch Quad HD+ Dynamic AMOLED 2X Infinity-O Display.",
+      "Single Take AI mode captures multiple photos and video formats in one tap.",
+      "4000 mAh battery with Super Fast Charging and Wireless PowerShare.",
+    ],
   },
   {
     id: "samsung-s21-ultra",
@@ -256,6 +352,11 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "Like New",
     colors: ["Phantom Black", "Phantom Silver"],
     description: "108MP camera with S Pen support and 100x Space Zoom.",
+    productDetails: [
+      "6.8-inch Quad HD+ Dynamic AMOLED 2X display with 120Hz adaptive refresh rate.",
+      "Dual telephoto lens system (3x and 10x optical zoom) with 100x Space Zoom.",
+      "First Galaxy S Series smartphone compatible with S Pen technology.",
+    ],
   },
   {
     id: "samsung-s24",
@@ -269,7 +370,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Titanium Black", "Titanium Gray", "Yellow"],
-    description: "Titanium armor frame with Circle to Search, Live Translate, and built-in S Pen.",
+    description:
+      "Titanium armor frame with Circle to Search, Live Translate, and built-in S Pen.",
+    productDetails: [
+      "Galaxy AI features: Live Translate phone calls, Circle to Search with Google, and Note Assist.",
+      "Titanium frame construction with Corning Gorilla Armor anti-reflective glass.",
+      "200MP quad-telephoto camera with 5x optical zoom and ProVisual Engine.",
+    ],
   },
   {
     id: "samsung-s25-ultra",
@@ -283,7 +390,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Titanium Blue", "Titanium Silver"],
-    description: "Ultra-slim ergonomic titanium chassis with 200MP camera and Snapdragon 8 Elite.",
+    description:
+      "Ultra-slim ergonomic titanium chassis with 200MP camera and Snapdragon 8 Elite.",
+    productDetails: [
+      "Powered by Snapdragon 8 Elite for Galaxy with customized NPU for on-device AI model processing.",
+      "Redesigned rounded-edge titanium body for superior ergonomic palm comfort.",
+      "Upgraded 50MP ultrawide sensor alongside 200MP main camera with 8K 60fps video capture.",
+    ],
   },
   {
     id: "samsung-s26-ultra",
@@ -296,7 +409,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Phantom Black"],
-    description: "Futuristic smartphone with quad lens periscope zoom and zero-bezel display.",
+    description:
+      "Futuristic smartphone with quad lens periscope zoom and zero-bezel display.",
+    productDetails: [
+      "Zero-bezel edge-to-edge futuristic AMOLED panel.",
+      "Quad lens periscope optical zoom with AI frame interpolation.",
+      "Graphene cooling chamber for peak continuous gaming workloads.",
+    ],
   },
   {
     id: "samsung-s9-tab",
@@ -309,7 +428,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Graphite", "Beige"],
-    description: "Massive 14.6-inch Dynamic AMOLED screen tablet with IP68 water resistance.",
+    description:
+      "Massive 14.6-inch Dynamic AMOLED screen tablet with IP68 water resistance.",
+    productDetails: [
+      "Massive 14.6-inch Dynamic AMOLED 2X display with Vision Booster.",
+      "IP68 dust and water resistant rating for both tablet body and bundled S Pen.",
+      "Quad speakers tuned by AKG with Dolby Atmos audio technology.",
+    ],
   },
 
   // 2. Gadgets & Accessories
@@ -325,7 +450,16 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["White"],
-    description: "Active Noise Cancellation, Transparency mode, and Personalized Spatial Audio.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "Active Noise Cancellation, Transparency mode, and Personalized Spatial Audio.",
+    productDetails: [
+      "H2 chip powered Active Noise Cancellation cancels up to 2x more background noise.",
+      "MagSafe Charging Case (USB-C) with Precision Finding speaker and lanyard loop.",
+      "Adaptive Audio dynamically blends Transparency mode and Active Noise Cancellation.",
+      "Up to 6 hours of listening time with ANC enabled on a single charge.",
+    ],
   },
   {
     id: "apple-earpods-lightning",
@@ -337,7 +471,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["White"],
-    description: "Classic in-ear headphones with built-in remote for volume and playback control.",
+    description:
+      "Classic in-ear headphones with built-in remote for volume and playback control.",
+    productDetails: [
+      "Designed by Apple to geometry-fit the contour of human ears.",
+      "Built-in in-line remote to adjust volume, control music playback, and answer calls.",
+      "Direct Lightning digital audio output without needing an adapter.",
+    ],
   },
   {
     id: "apple-wired-earpods",
@@ -350,6 +490,10 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["White"],
     description: "Ergonomic wired earphones designed to maximize sound output.",
+    productDetails: [
+      "Universal 3.5mm headphone jack compatible with laptops, audio interfaces, and legacy devices.",
+      "Durable strain-relief cable construction.",
+    ],
   },
   {
     id: "apple-magic-mouse",
@@ -362,7 +506,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["White", "Black"],
-    description: "Rechargeable wireless mouse with Multi-Touch surface for smooth swiping.",
+    description:
+      "Rechargeable wireless mouse with Multi-Touch surface for smooth swiping.",
+    productDetails: [
+      "Seamless Multi-Touch surface lets you perform gestures such as swiping between web pages and scrolling through documents.",
+      "Internal rechargeable battery powers mouse for a month or more between charges.",
+      "Pairs automatically with Mac computers out of the box via Bluetooth.",
+    ],
   },
   {
     id: "apple-slim-keyboard",
@@ -376,7 +526,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Space Gray", "Silver"],
-    description: "Ultra-thin wireless keyboard with scissor mechanism and long-lasting battery.",
+    description:
+      "Ultra-thin wireless keyboard with scissor mechanism and long-lasting battery.",
+    productDetails: [
+      "Refined low-profile scissor mechanism beneath each key for enhanced stability and tactile key travel.",
+      "Compact sleek aluminum enclosure matching Mac aesthetics.",
+    ],
   },
   {
     id: "apple-studio-display",
@@ -390,7 +545,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Silver"],
-    description: "27-inch 5K Retina display with 12MP Ultra Wide camera and six-speaker sound.",
+    description:
+      "27-inch 5K Retina display with 12MP Ultra Wide camera and six-speaker sound.",
+    productDetails: [
+      "27-inch 5K Retina display with 600 nits brightness, P3 wide color gamut, and 14.7 million pixels.",
+      "12MP Ultra Wide camera with Center Stage for automatic framing during video conference calls.",
+      "High-fidelity six-speaker sound system with force-cancelling woofers and Spatial Audio support.",
+    ],
   },
   {
     id: "apple-watch-s9",
@@ -404,7 +565,15 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Midnight", "Starlight", "Red"],
-    description: "Double tap gesture support, brighter display, and advanced health sensors.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "Double tap gesture support, brighter display, and advanced health sensors.",
+    productDetails: [
+      "S9 SiP enables double tap gesture control without touching the screen.",
+      "Always-On Retina display with up to 2000 nits brightness (2x brighter than Series 8).",
+      "ECG app, blood oxygen tracking, and temperature sensing for cycle tracking.",
+    ],
   },
   {
     id: "samsung-watch-ultra",
@@ -418,7 +587,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Titanium Silver", "Titanium White"],
-    description: "Rugged cushion frame smartwatch with dual-frequency GPS and 100m water resistance.",
+    description:
+      "Rugged cushion frame smartwatch with dual-frequency GPS and 100m water resistance.",
+    productDetails: [
+      "Grade 4 titanium cushion frame built to withstand extreme temperatures and 10 ATM ocean diving.",
+      "Dual-frequency GPS (L1+L5) for accurate outdoor tracking in dense urban areas or trail routes.",
+      "BioActive Sensor monitoring heart rate, sleep apnea risk, and Vascular Age.",
+    ],
   },
   {
     id: "d-link-router",
@@ -431,7 +606,15 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "D-Link",
     condition: "New",
     colors: ["Black"],
-    description: "Dual-band AX1800 Wi-Fi 6 router with MU-MIMO and WPA3 security.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "Dual-band AX1800 Wi-Fi 6 router with MU-MIMO and WPA3 security.",
+    productDetails: [
+      "Wi-Fi 6 (802.11ax) technology delivers speeds up to 1.8 Gbps (1200 Mbps on 5GHz + 574 Mbps on 2.4GHz).",
+      "OFDMA and MU-MIMO technology reduces latency for heavy smart home device networks.",
+      "WPA3 wireless encryption for enhanced network security.",
+    ],
   },
   {
     id: "dell-32-monitor",
@@ -444,7 +627,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Dell",
     condition: "New",
     colors: ["Black", "Silver"],
-    description: "4K UHD IPS display with USB-C hub connectivity and 99% sRGB color.",
+    description:
+      "4K UHD IPS display with USB-C hub connectivity and 99% sRGB color.",
+    productDetails: [
+      "31.5-inch 4K UHD (3840 x 2160) IPS panel with 99% sRGB color gamut coverage.",
+      "Built-in USB-C hub providing up to 90W power delivery, Ethernet RJ45, and USB ports.",
+      "ComfortView Plus built-in low blue light filter screen technology.",
+    ],
   },
   {
     id: "dell-vertical-monitor",
@@ -456,7 +645,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Dell",
     condition: "Refurbished",
     colors: ["Black"],
-    description: "Height-adjustable rotatable monitor optimized for programming and document editing.",
+    description:
+      "Height-adjustable rotatable monitor optimized for programming and document editing.",
+    productDetails: [
+      "Fully ergonomic stand featuring 90-degree pivot rotatable orientation for vertical coding and reader view.",
+      "Flicker-free anti-glare screen panel.",
+    ],
   },
   {
     id: "fujifilm-xt5",
@@ -470,7 +664,16 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Fujifilm",
     condition: "New",
     colors: ["Black", "Silver"],
-    description: "40.2MP X-Trans CMOS 5 HR sensor with 7-stop in-body image stabilization.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "40.2MP X-Trans CMOS 5 HR sensor with 7-stop in-body image stabilization.",
+    productDetails: [
+      "40.2-megapixel back-illuminated X-Trans CMOS 5 HR sensor paired with X-Processor 5.",
+      "5-axis in-body image stabilization (IBIS) providing up to 7.0 stops of compensation.",
+      "Dedicated physical control dials for ISO, shutter speed, and exposure compensation.",
+      "19 Film Simulation modes reproducing classic Fujifilm analog film stocks.",
+    ],
   },
   {
     id: "konica-c35",
@@ -483,7 +686,14 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Konica",
     condition: "Like New",
     colors: ["Silver", "Black"],
-    description: "Classic 35mm rangefinder film camera with Hexanon 38mm f/2.8 lens.",
+    isNewArrival: true,
+    description:
+      "Classic 35mm rangefinder film camera with Hexanon 38mm f/2.8 lens.",
+    productDetails: [
+      "Sharp Hexanon 38mm f/2.8 4-element in 3-group optical lens.",
+      "Automatic CD-cell light meter coupled exposure control.",
+      "Compact lightweight mechanical body for street photography.",
+    ],
   },
   {
     id: "jbl-quantum",
@@ -496,7 +706,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "JBL",
     condition: "New",
     colors: ["Black"],
-    description: "Lossless 2.4GHz wireless headset with active noise cancellation and JBL QuantumSURROUND.",
+    description:
+      "Lossless 2.4GHz wireless headset with active noise cancellation and JBL QuantumSURROUND.",
+    productDetails: [
+      "JBL QuantumSURROUND audio engine creates multi-channel 3D spatial soundscapes.",
+      "Lossless 2.4GHz wireless plus Bluetooth 5.2 dual wireless connection options.",
+      "Voice-focus boom microphone with flip-up mute feature.",
+    ],
   },
   {
     id: "shure-aonic-50",
@@ -510,7 +726,16 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Shure",
     condition: "New",
     colors: ["Black", "Brown"],
-    description: "Studio-quality wireless sound with adjustable noise cancellation and Environment mode.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "Studio-quality wireless sound with adjustable noise cancellation and Environment mode.",
+    productDetails: [
+      "Custom 50mm dynamic drivers engineered from decades of professional stage heritage.",
+      "Adjustable Active Noise Cancellation eliminates distractions for true listening immersion.",
+      "Environment Mode lets you hear the outside world with the flip of a switch.",
+      "Up to 20 hours battery life with quick charge capability.",
+    ],
   },
   {
     id: "sony-wh1000xm5",
@@ -524,7 +749,15 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Sony",
     condition: "New",
     colors: ["Black", "Silver", "Blue"],
-    description: "Industry-leading noise canceling headphones with two processors and 8 microphones.",
+    isFeatured: true,
+    isNewArrival: false,
+    description:
+      "Industry-leading noise canceling headphones with two processors and 8 microphones.",
+    productDetails: [
+      "Integrated Processor V1 and HD Noise Canceling Processor QN1 controlling 8 microphones.",
+      "Ultra-clear hands-free calling with 4 beamforming microphones and AI noise reduction.",
+      "Up to 30-hour battery life with quick charging (3 min charge = 3 hours playback).",
+    ],
   },
   {
     id: "logitech-combo",
@@ -536,7 +769,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Logitech",
     condition: "New",
     colors: ["Black"],
-    description: "Full-size quiet wireless keyboard and contoured ambidextrous mouse.",
+    description:
+      "Full-size quiet wireless keyboard and contoured ambidextrous mouse.",
+    productDetails: [
+      "Logitech Unifying USB receiver connects both keyboard and mouse wirelessly.",
+      "Spill-resistant keyboard design with palm rest and adjustable tilt legs.",
+    ],
   },
   {
     id: "logitech-mx-keys",
@@ -548,7 +786,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Logitech",
     condition: "New",
     colors: ["Graphite"],
-    description: "Tactile key switches with smart backlighting and multi-device Bluetooth switching.",
+    description:
+      "Tactile key switches with smart backlighting and multi-device Bluetooth switching.",
+    productDetails: [
+      "Perfect Stroke keys shaped for fingertips for fluid keypresses.",
+      "Smart backlighting proximity sensors illuminate keys the moment your hands approach.",
+      "Pair up to 3 devices and switch between them with Easy-Switch buttons.",
+    ],
   },
   {
     id: "logitech-mx-master-3s",
@@ -560,7 +804,15 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Logitech",
     condition: "New",
     colors: ["Black", "Pale Gray"],
-    description: "8K DPI track-anywhere sensor with quiet click buttons and MagSpeed electromagnetic wheel.",
+    isFeatured: false,
+    isNewArrival: true,
+    description:
+      "8K DPI track-anywhere sensor with quiet click buttons and MagSpeed electromagnetic wheel.",
+    productDetails: [
+      "8000 DPI optical sensor tracks anywhere — even on glass surfaces.",
+      "MagSpeed electromagnetic scrolling scrolls 1000 lines per second in near silence.",
+      "Quiet Clicks technology eliminates 90% of click noise.",
+    ],
   },
   {
     id: "techmanis-keyboard",
@@ -573,7 +825,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Techmanis",
     condition: "New",
     colors: ["Black", "White"],
-    description: "Hot-swappable mechanical keyboard with RGB backlighting and custom PBT keycaps.",
+    description:
+      "Hot-swappable mechanical keyboard with RGB backlighting and custom PBT keycaps.",
+    productDetails: [
+      "Hot-swappable PCB supporting 3-pin and 5-pin mechanical switches.",
+      "Durable double-shot PBT keycaps with per-key RGB backlighting effects.",
+    ],
   },
 
   // 3. Apparel & Fashion
@@ -589,6 +846,10 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["Red"],
     description: "Breathable AEROREADY athletic t-shirt for daily workouts.",
+    productDetails: [
+      "100% recycled polyester interlock with moisture-wicking AEROREADY technology.",
+      "Regular athletic fit with crewneck collar design.",
+    ],
   },
   {
     id: "adidas-white-polo",
@@ -601,7 +862,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Adidas",
     condition: "New",
     colors: ["White"],
-    description: "Soft cotton blend polo shirt with three-stripe sleeve accent.",
+    description:
+      "Soft cotton blend polo shirt with three-stripe sleeve accent.",
+    productDetails: [
+      "70% cotton, 30% recycled polyester pique fabric.",
+      "Three-button polo collar with ribbed cuffs.",
+    ],
   },
   {
     id: "adidas-white-socks",
@@ -614,6 +880,10 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["White"],
     description: "Arch support athletic crew socks with ribbed cuffs.",
+    productDetails: [
+      "Heel-to-toe cushioning for high-impact comfort.",
+      "Linked toe seam for reduced friction.",
+    ],
   },
   {
     id: "balenciaga-hoodie",
@@ -627,7 +897,14 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Balenciaga",
     condition: "New",
     colors: ["Black"],
-    description: "Heavyweight French terry cotton hoodie with dropped shoulders and logo chest print.",
+    description:
+      "Heavyweight French terry cotton hoodie with dropped shoulders and logo chest print.",
+    productDetails: [
+      "100% organic French terry cotton construction.",
+      "Signature streetwear oversized drop-shoulder silhouette.",
+      "Embroidered Balenciaga logo motif across chest and hood.",
+      "Made in Portugal.",
+    ],
   },
   {
     id: "brown-baseball-cap",
@@ -640,6 +917,10 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["Brown"],
     description: "Unstructured 6-panel strapback hat in washed brown twill.",
+    productDetails: [
+      "Washed vintage cotton twill fabric.",
+      "Adjustable brass buckle strapback enclosure.",
+    ],
   },
   {
     id: "green-baseball-cap",
@@ -652,6 +933,9 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["Green"],
     description: "Durable cotton canvas cap with metal buckle closure.",
+    productDetails: [
+      "Heavyweight green canvas fabric with embroidered ventilation eyelets.",
+    ],
   },
   {
     id: "nike-red-cap",
@@ -665,6 +949,10 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["Red"],
     description: "Adjustable athletic cap with embroidered Nike Swoosh logo.",
+    productDetails: [
+      "Dri-FIT moisture wicking interior sweatband.",
+      "Embroidered metallic Nike Swoosh logo on front panel.",
+    ],
   },
   {
     id: "nike-air-blue-shirt",
@@ -677,7 +965,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nike",
     condition: "New",
     colors: ["Blue"],
-    description: "Lightweight cotton activewear t-shirt featuring bold Nike Air chest graphic.",
+    description:
+      "Lightweight cotton activewear t-shirt featuring bold Nike Air chest graphic.",
+    productDetails: [
+      "Everyday cotton fabric soft and lightweight.",
+      "Printed Nike Air chest graphic.",
+    ],
   },
   {
     id: "nike-track-shirt",
@@ -690,6 +983,10 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["Black", "Blue"],
     description: "Moisture-wicking mesh performance top for runners.",
+    productDetails: [
+      "Dri-FIT technology moves sweat away from your skin for faster evaporation.",
+      "Reflective design elements for low-light visibility.",
+    ],
   },
   {
     id: "nike-red-shoe",
@@ -703,7 +1000,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nike",
     condition: "New",
     colors: ["Red", "White"],
-    description: "Responsive Zoom Air cushioning with breathable Flyknit upper.",
+    description:
+      "Responsive Zoom Air cushioning with breathable Flyknit upper.",
+    productDetails: [
+      "Forefoot Air Zoom unit delivers responsive energy return with every stride.",
+      "Breathable engineered mesh upper with Flywire cables for midfoot containment.",
+      "Rubber waffle outsole for traction and longevity.",
+    ],
   },
   {
     id: "nike-white-sneakers",
@@ -716,7 +1019,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nike",
     condition: "New",
     colors: ["White"],
-    description: "Classic low-top leather sneakers with encapsulated Nike Air cushioning.",
+    description:
+      "Classic low-top leather sneakers with encapsulated Nike Air cushioning.",
+    productDetails: [
+      "Stitched leather overlays on the upper add heritage style and durability.",
+      "Originally designed for performance hoops, Nike Air cushioning adds lightweight all-day comfort.",
+      "Padded, low-cut collar looks sleek and feels comfortable.",
+    ],
   },
   {
     id: "nike-socks",
@@ -729,12 +1038,16 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["White", "Black"],
     description: "Dri-FIT technology ankle socks with targeted cushioning.",
+    productDetails: [
+      "Dri-FIT technology helps your feet stay dry and comfortable.",
+      "Thick terry sole provides comfort and impact absorption.",
+    ],
   },
 
   // 4. Furniture & Living
   {
-    id: "dining-chair-table",
-    title: "Modern 4-Seater Dining Table & Chair Set",
+    id: "scandinavian-dining-set",
+    title: "Scandinavian Oak Dining Table & Chair Set",
     categorySlug: "furniture",
     categoryName: "Furniture & Living",
     price: 849,
@@ -744,7 +1057,15 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Natural Wood", "Brown"],
-    description: "Solid oak dining table paired with four ergonomic upholstered dining chairs.",
+    isFeatured: true,
+    isNewArrival: false,
+    description:
+      "Solid oak dining table paired with four ergonomic upholstered dining chairs.",
+    productDetails: [
+      "Crafted from 100% solid white oak with natural protective lacquer coating.",
+      "Set includes 1 rectangular dining table and 4 padded ergonomic chairs.",
+      "Stain-resistant upholstery fabric designed for easy cleaning.",
+    ],
   },
   {
     id: "flower-chair",
@@ -758,7 +1079,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Pink", "Gold"],
-    description: "Luxurious scalloped petal backrest arm chair with gold stainless steel legs.",
+    description:
+      "Luxurious scalloped petal backrest arm chair with gold stainless steel legs.",
+    productDetails: [
+      "High-density foam padded scalloped backrest mimicking blooming flower petals.",
+      "Soft velvet upholstery with electroplated gold stainless steel leg frame.",
+    ],
   },
   {
     id: "ikea-table",
@@ -770,7 +1096,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "IKEA",
     condition: "New",
     colors: ["Birch", "White"],
-    description: "Clean birch wood workstation table suitable for home offices.",
+    description:
+      "Clean birch wood workstation table suitable for home offices.",
+    productDetails: [
+      "Durable solid birch wood surface with clear protective varnish finish.",
+      "Pre-drilled leg holes for easy setup and wire management channel.",
+    ],
   },
   {
     id: "lawjun-king-bed",
@@ -784,7 +1115,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Gray", "Beige"],
-    description: "Tufted linen headboard bed frame with reinforced slat support system.",
+    description:
+      "Tufted linen headboard bed frame with reinforced slat support system.",
+    productDetails: [
+      "Button-tufted padded headboard upholstered in premium breathable linen fabric.",
+      "Heavy-duty steel center support beam and noise-free wooden slats.",
+    ],
   },
   {
     id: "lawjun-soft-chair",
@@ -797,7 +1133,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Cream", "Gray"],
-    description: "Deep plush cushion lounge chair upholstered in stain-resistant fabric.",
+    description:
+      "Deep plush cushion lounge chair upholstered in stain-resistant fabric.",
+    productDetails: [
+      "Extra deep seating cushion filled with down-feather blend overlay.",
+      "Solid hardwood internal frame built to last.",
+    ],
   },
   {
     id: "palangolo-bed",
@@ -810,7 +1151,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Palangolo",
     condition: "New",
     colors: ["Brown", "Charcoal"],
-    description: "Architectural padded platform bed frame with integrated side ledges.",
+    description:
+      "Architectural padded platform bed frame with integrated side ledges.",
+    productDetails: [
+      "Low-profile platform structure featuring floating side shelf ledges.",
+      "Integrated warm LED underbed ambient lighting strips.",
+    ],
   },
   {
     id: "bistro-dining-set",
@@ -822,7 +1168,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "Like New",
     colors: ["Brown", "Black"],
-    description: "Compact dining table set perfect for apartments and breakfast nooks.",
+    description:
+      "Compact dining table set perfect for apartments and breakfast nooks.",
+    productDetails: [
+      "Space-saving 3-piece dining set with tuck-in curved chairs.",
+      "Waterproof heat-resistant tabletop finish.",
+    ],
   },
 
   // 5. Beauty & Care
@@ -837,7 +1188,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nécessaire",
     condition: "New",
     colors: ["White"],
-    description: "Multivitamin body moisturizer infused with niacinamide, marula oil, and peptides.",
+    description:
+      "Multivitamin body moisturizer infused with niacinamide, marula oil, and peptides.",
+    productDetails: [
+      "Formulated with Niacinamide (Vitamin B3), Vitamin C, Vitamin E, and Omega-6/9.",
+      "Fragrance-free formula ideal for sensitive skin.",
+      "100% Climate Neutral Certified packaging.",
+    ],
   },
   {
     id: "nivea-body-milk",
@@ -849,7 +1206,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nivea",
     condition: "New",
     colors: ["Blue"],
-    description: "Intense 48-hour moisture lotion enriched with Deep Moisture Serum and Almond Oil.",
+    description:
+      "Intense 48-hour moisture lotion enriched with Deep Moisture Serum and Almond Oil.",
+    productDetails: [
+      "Enriched with 2x natural Almond Oil to intensely nourish dry skin.",
+      "Provides 48 hours of continuous deep hydration.",
+    ],
   },
   {
     id: "nivea-body-spray",
@@ -861,7 +1223,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nivea",
     condition: "New",
     colors: ["White", "Blue"],
-    description: "48-hour anti-perspirant protection with refreshing ocean extracts.",
+    description:
+      "48-hour anti-perspirant protection with refreshing ocean extracts.",
+    productDetails: [
+      "48-hour effective antiperspirant protection.",
+      "Formulated with refreshing ocean extracts.",
+    ],
   },
   {
     id: "nivea-chapsticks",
@@ -873,7 +1240,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nivea",
     condition: "New",
     colors: ["Blue", "Red"],
-    description: "Moisturizing lip balms formulated with Shea Butter and natural jojoba oils.",
+    description:
+      "Moisturizing lip balms formulated with Shea Butter and natural jojoba oils.",
+    productDetails: [
+      "Contains 100% natural ingredients including Shea Butter and organic Jojoba Oil.",
+      "Prevents chapped lips in cold or dry conditions.",
+    ],
   },
   {
     id: "ordinary-care-set",
@@ -887,7 +1259,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "The Ordinary",
     condition: "New",
     colors: ["Clear", "White"],
-    description: "Complete facial routine featuring Squalane Cleanser, Hyaluronic Acid, and Niacinamide.",
+    isFeatured: true,
+    description:
+      "Complete facial routine featuring Squalane Cleanser, Hyaluronic Acid, and Niacinamide.",
+    productDetails: [
+      "Includes 3 full-size products: Squalane Cleanser 50ml, Hyaluronic Acid 2% + B5 30ml, and Niacinamide 10% + Zinc 1% 30ml.",
+      "Vegan, cruelty-free, silicone-free, and oil-free daily facial regimen.",
+    ],
   },
   {
     id: "vaseline-moisturizer",
@@ -899,7 +1277,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Vaseline",
     condition: "New",
     colors: ["Brown", "Gold"],
-    description: "100% pure cocoa butter lotion for glowing, deeply hydrated skin.",
+    description:
+      "100% pure cocoa butter lotion for glowing, deeply hydrated skin.",
+    productDetails: [
+      "Infused with 100% pure Cocoa Butter and Ultra-Hydrating Lipids.",
+      "Restores dry skin for radiant, glowing skin without greasy residue.",
+    ],
   },
 
   // 6. Groceries
@@ -914,7 +1297,14 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Fresh Farm",
     condition: "New",
     colors: ["Red"],
-    description: "Vine-ripened organic red tomatoes harvested daily from local farms.",
+    isFeatured: true,
+    isNewArrival: false,
+    description:
+      "Vine-ripened organic red tomatoes harvested daily from local farms.",
+    productDetails: [
+      "Certified 100% organic pesticide-free tomatoes.",
+      "Harvested daily for maximum freshness and flavor.",
+    ],
   },
   {
     id: "lawjun-cereal",
@@ -926,7 +1316,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Brown"],
-    description: "Crispy toasted whole grain cereal enriched with essential vitamins and fiber.",
+    description:
+      "Crispy toasted whole grain cereal enriched with essential vitamins and fiber.",
+    productDetails: [
+      "Made with 100% whole grain oats and wheat flakes.",
+      "Fortified with Iron, B-Vitamins, and Zinc.",
+    ],
   },
   {
     id: "nestle-milo",
@@ -939,7 +1334,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nestle",
     condition: "New",
     colors: ["Green"],
-    description: "Iconic energy chocolate malt drink mix packed with Activ-Go nutrients.",
+    description:
+      "Iconic energy chocolate malt drink mix packed with Activ-Go nutrients.",
+    productDetails: [
+      "Formulated with Activ-Go: 6 vitamins and 3 minerals for sustained energy release.",
+      "Made from malted barley, milk, and cocoa.",
+    ],
   },
 
   // 7. Home Appliances
@@ -955,7 +1355,15 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Google",
     condition: "New",
     colors: ["Black"],
-    description: "HDR10+ Android TV with Google Assistant voice control and Chromecast built-in.",
+    isFeatured: true,
+    isNewArrival: false,
+    description:
+      "HDR10+ Android TV with Google Assistant voice control and Chromecast built-in.",
+    productDetails: [
+      "55-inch 4K UHD (3840 x 2160) LED display panel supporting HDR10+ and HLG.",
+      "Google TV OS with personalized recommendations and Google Assistant voice remote.",
+      "Built-in Chromecast allows seamless casting from iOS and Android devices.",
+    ],
   },
   {
     id: "samsung-slim-tv",
@@ -969,7 +1377,13 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Black"],
-    description: "Ultra-slim AirSlim design 4K processor TV with Smart Hub streaming.",
+    description:
+      "Ultra-slim AirSlim design 4K processor TV with Smart Hub streaming.",
+    productDetails: [
+      "AirSlim profile with virtually bezel-less 3-side aesthetic.",
+      "Crystal Processor 4K upscales non-4K content to near-4K picture quality.",
+      "Object Tracking Sound Lite (OTS Lite) for dynamic 3D audio.",
+    ],
   },
   {
     id: "horizon-ac",
@@ -982,7 +1396,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Horizon",
     condition: "New",
     colors: ["White"],
-    description: "Rapid cooling eco inverter AC unit with anti-bacterial air filtration.",
+    description:
+      "Rapid cooling eco inverter AC unit with anti-bacterial air filtration.",
+    productDetails: [
+      "Full DC Inverter technology saving up to 60% energy compared to standard compressor units.",
+      "Triple action anti-bacterial and HD dust air filtration system.",
+    ],
   },
   {
     id: "lawjun-washer",
@@ -995,7 +1414,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["White", "Silver"],
-    description: "Direct drive inverter washer with 14 wash programs and steam hygiene cycle.",
+    description:
+      "Direct drive inverter washer with 14 wash programs and steam hygiene cycle.",
+    productDetails: [
+      "8kg capacity drum equipped with Inverter Direct Drive motor for quiet operation.",
+      "Steam Hygiene cycle kills 99.9% of bacteria and allergens.",
+    ],
   },
   {
     id: "planetcare-washer",
@@ -1008,7 +1432,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "PlanetCare",
     condition: "New",
     colors: ["White"],
-    description: "Energy-efficient washing machine equipped with microfibre filtration system.",
+    description:
+      "Energy-efficient washing machine equipped with microfibre filtration system.",
+    productDetails: [
+      "Integrated microfibre filter captures synthetic microplastics before water discharge.",
+      "A+++ energy efficiency rating.",
+    ],
   },
   {
     id: "compact-microwave",
@@ -1021,7 +1450,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Silver", "Black"],
-    description: "700W countertop microwave with touch control panel and 8 auto cooking menus.",
+    description:
+      "700W countertop microwave with touch control panel and 8 auto cooking menus.",
+    productDetails: [
+      "20L interior capacity with glass turntable tray.",
+      "700W power output with 5 power levels and defrost settings.",
+    ],
   },
   {
     id: "retro-mini-fridge",
@@ -1034,7 +1468,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Heritage",
     condition: "New",
     colors: ["Red", "Cream"],
-    description: "Vintage style compact refrigerator with chiller compartment and adjustable thermostat.",
+    description:
+      "Vintage style compact refrigerator with chiller compartment and adjustable thermostat.",
+    productDetails: [
+      "45L total capacity featuring retro chrome door handle accent.",
+      "Includes 5L top freezer/chiller compartment for ice trays.",
+    ],
   },
   {
     id: "mercedes-collector-scale",
@@ -1046,7 +1485,12 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Mercedes",
     condition: "New",
     colors: ["Silver", "Black"],
-    description: "Precision engineered die-cast collector scale model with working doors and interior details.",
+    description:
+      "Precision engineered die-cast collector scale model with working doors and interior details.",
+    productDetails: [
+      "1:18 scale die-cast zinc alloy metal replica body.",
+      "Functional steering wheel, opening doors, hood, and trunk with plush lined interior.",
+    ],
   },
 ];
 
@@ -1058,5 +1502,19 @@ export const getCategoryBySlug = (slug: string): Category | undefined => {
 };
 
 export const getProductsByCategory = (categorySlug: string): Product[] => {
-  return PRODUCTS_DATA.filter((product) => product.categorySlug === categorySlug);
+  return PRODUCTS_DATA.filter(
+    (product) => product.categorySlug === categorySlug,
+  );
+};
+
+export const getProductById = (id: string): Product | undefined => {
+  return PRODUCTS_DATA.find((product) => product.id === id);
+};
+
+export const getFeaturedProducts = (): Product[] => {
+  return PRODUCTS_DATA.filter((product) => product.isFeatured);
+};
+
+export const getNewArrivalsProducts = (): Product[] => {
+  return PRODUCTS_DATA.filter((product) => product.isNewArrival);
 };
