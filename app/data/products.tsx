@@ -14,6 +14,7 @@ export interface Product {
   productDetails?: string[];
   isFeatured?: boolean;
   isNewArrival?: boolean;
+  stock?: number;
 }
 
 export interface Category {
@@ -105,6 +106,9 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Google",
     condition: "New",
     colors: ["Black", "Titanium", "Hazel"],
+    isFeatured: true,
+    isNewArrival: false,
+    stock: 8,
     description:
       "Tensor powered smartphone with pro camera system and Gemini AI integration.",
     productDetails: [
@@ -751,6 +755,7 @@ export const PRODUCTS_DATA: Product[] = [
     colors: ["Black", "Silver", "Blue"],
     isFeatured: true,
     isNewArrival: false,
+    stock: 5,
     description:
       "Industry-leading noise canceling headphones with two processors and 8 microphones.",
     productDetails: [

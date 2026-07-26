@@ -639,6 +639,92 @@
   }
 }
 
+/* Dynamic Inline Cart Quantity Pill */
+.inCartQuantityPill {
+  flex: 1;
+  height: 52px;
+  border-radius: 99px;
+  background-color: var(--color-sand);
+  border: 2px solid var(--color-palm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.6rem;
+  box-shadow: 0 4px 16px rgba(99, 109, 33, 0.12);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:global([data-theme="dark"]) .inCartQuantityPill {
+  background-color: rgba(30, 28, 5, 0.9);
+}
+
+.pillQtyBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--color-papyrus);
+  color: var(--color-coconut);
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+:global([data-theme="dark"]) .pillQtyBtn {
+  background-color: var(--color-coconut);
+  color: var(--color-papyrus);
+}
+
+.pillQtyBtn:hover:not(:disabled) {
+  background-color: var(--color-palm);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.pillQtyBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pillQtyValue {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--color-papyrus);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+:global([data-theme="dark"]) .pillQtyValue {
+  color: var(--color-coconut);
+}
+
+/* Stock Status Badges */
+.stockBadge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--color-palm);
+  background-color: rgba(99, 109, 33, 0.12);
+  padding: 0.3rem 0.8rem;
+  border-radius: 99px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(99, 109, 33, 0.2);
+}
+
+.lowStockBadge {
+  color: #e53e3e;
+  background-color: rgba(229, 62, 62, 0.1);
+  border-color: rgba(229, 62, 62, 0.25);
+}
+
 @media (max-width: 480px) {
   .productPage {
     padding: 1.5rem 3% 3rem 3%;

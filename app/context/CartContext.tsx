@@ -56,6 +56,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (product: Product, quantity: number = 1, selectedColor?: string) => {
     const colorToUse = selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : undefined);
+    const maxStock = product.stock ?? 15;
     
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
@@ -64,14 +65,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (existingIndex > -1) {
         const updated = [...prevCart];
+        const newQty = Math.min(maxStock, updated[existingIndex].quantity + quantity);
         updated[existingIndex] = {
           ...updated[existingIndex],
-          quantity: updated[existingIndex].quantity + quantity,
+          quantity: newQty,
         };
         return updated;
       }
 
-      return [...prevCart, { product, selectedColor: colorToUse, quantity }];
+      const initialQty = Math.min(maxStock, Math.max(1, quantity));
+      return [...prevCart, { product, selectedColor: colorToUse, quantity: initialQty }];
     });
   };
 
@@ -92,7 +95,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart((prevCart) =>
       prevCart.map((item) => {
         if (item.product.id === productId && item.selectedColor === selectedColor) {
-          return { ...item, quantity: newQuantity };
+          const maxStock = item.product.stock ?? 15;
+          return { ...item, quantity: Math.min(maxStock, newQuantity) };
         }
         return item;
       })

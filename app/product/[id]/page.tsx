@@ -7,6 +7,7 @@ import { notFound, useRouter } from "next/navigation";
 import styles from "./product.module.css";
 import { getProductById, getProductsByCategory, getCategoryBySlug } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
+import ProductCard from "@/app/components/ProductCard";
 
 // SVG Components
 const CartIcon = () => (
@@ -108,7 +109,7 @@ interface ProductPageProps {
 
 export default function ProductPage({ params }: ProductPageProps) {
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateQuantity } = useCart();
   // Unwrap params if promise
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const productId = resolvedParams?.id;
@@ -125,24 +126,21 @@ export default function ProductPage({ params }: ProductPageProps) {
   const [selectedColor, setSelectedColor] = useState<string>(
     product?.colors && product.colors.length > 0 ? product.colors[0] : ""
   );
-  const [quantity, setQuantity] = useState<number>(1);
-  const [addedToast, setAddedToast] = useState(false);
 
   if (!product) {
     return notFound();
   }
 
+  const activeColor = selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : undefined);
+  const currentCartItem = cart.find(
+    (item) => item.product.id === product.id && item.selectedColor === activeColor
+  );
+  const cartQty = currentCartItem?.quantity || 0;
+  const maxStock = product.stock ?? 15;
+
   const discountPercent = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
-
-  const handleDecreaseQuantity = () => {
-    if (quantity > 1) setQuantity((prev) => prev - 1);
-  };
-
-  const handleIncreaseQuantity = () => {
-    setQuantity((prev) => prev + 1);
-  };
 
   const handleGoBack = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -151,17 +149,6 @@ export default function ProductPage({ params }: ProductPageProps) {
     } else {
       router.push(category ? `/category/${category.slug}` : "/");
     }
-  };
-
-  const handleAddToCartMain = () => {
-    addToCart(product, quantity, selectedColor || undefined);
-    setAddedToast(true);
-    setTimeout(() => setAddedToast(false), 2500);
-  };
-
-  const handleBuyNow = () => {
-    addToCart(product, quantity, selectedColor || undefined);
-    router.push("/cart");
   };
 
   return (
@@ -234,8 +221,15 @@ export default function ProductPage({ params }: ProductPageProps) {
             <p className={styles.shortDescription}>{product.description}</p>
           )}
 
-          {/* Condition & Color Selection Options */}
+          {/* Condition, Color & Stock Availability Options */}
           <div className={styles.optionsContainer}>
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Stock Status</span>
+              <span className={maxStock <= 5 ? `${styles.stockBadge} ${styles.lowStockBadge}` : styles.stockBadge}>
+                {maxStock <= 5 ? `🔥 Only ${maxStock} left in stock!` : `✓ In Stock (${maxStock} available)`}
+              </span>
+            </div>
+
             {product.condition && (
               <div className={styles.optionGroup}>
                 <span className={styles.optionLabel}>Condition</span>
@@ -269,43 +263,52 @@ export default function ProductPage({ params }: ProductPageProps) {
             )}
           </div>
 
-          {/* Purchase Actions & Quantity Selector */}
+          {/* Dynamic Purchase Actions & Inline Quantity Control */}
           <div className={styles.actionsContainer}>
-            <div className={styles.quantityRow}>
-              <span className={styles.optionLabel}>Quantity</span>
-              <div className={styles.quantitySelector}>
-                <button
-                  type="button"
-                  onClick={handleDecreaseQuantity}
-                  className={styles.quantityBtn}
-                  aria-label="Decrease quantity"
-                >
-                  -
-                </button>
-                <span className={styles.quantityValue}>{quantity}</span>
-                <button
-                  type="button"
-                  onClick={handleIncreaseQuantity}
-                  className={styles.quantityBtn}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
             <div className={styles.buttonGroup}>
+              {cartQty === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => addToCart(product, 1, activeColor)}
+                  className={styles.addToCartMainBtn}
+                >
+                  <CartIcon />
+                  <span>Add to Cart</span>
+                </button>
+              ) : (
+                <div className={styles.inCartQuantityPill}>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(product.id, cartQty - 1, activeColor)}
+                    className={styles.pillQtyBtn}
+                    aria-label="Decrease quantity in cart"
+                  >
+                    -
+                  </button>
+                  <span className={styles.pillQtyValue}>
+                    <span>{cartQty}</span>
+                    <span style={{ fontSize: "0.78rem", opacity: 0.8, fontWeight: 700 }}>in Cart</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(product.id, cartQty + 1, activeColor)}
+                    disabled={cartQty >= maxStock}
+                    className={styles.pillQtyBtn}
+                    aria-label="Increase quantity in cart"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={handleAddToCartMain}
-                className={styles.addToCartMainBtn}
-              >
-                <CartIcon />
-                <span>{addedToast ? "Added to Cart! ✓" : "Add to Cart"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleBuyNow}
+                onClick={() => {
+                  if (cartQty === 0) {
+                    addToCart(product, 1, activeColor);
+                  }
+                  router.push("/cart");
+                }}
                 className={styles.buyNowBtn}
               >
                 <span>Buy Now</span>
@@ -390,49 +393,11 @@ export default function ProductPage({ params }: ProductPageProps) {
           <h2 className={styles.relatedTitle}>More from {product.categoryName}</h2>
           <div className={styles.relatedGrid}>
             {relatedProducts.map((item) => (
-              <Link key={item.id} href={`/product/${item.id}`} className={styles.productCard}>
-                <div className={styles.productImageWrapper}>
-                  {item.tag && <span className={styles.cardTagSmall}>{item.tag}</span>}
-                  {item.originalPrice && (
-                    <span className={styles.cardDiscountTagSmall}>
-                      -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
-                    </span>
-                  )}
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    className={styles.productImg}
-                    sizes="(max-width: 768px) 100vw, 320px"
-                  />
-                </div>
-
-                <div className={styles.productDetails}>
-                  <span className={styles.productCategory}>{item.categoryName}</span>
-                  <h3 className={styles.cardTitle}>{item.title}</h3>
-
-                  <div className={styles.cardFooter}>
-                    <div className={styles.priceWrapper}>
-                      {item.originalPrice && (
-                        <span className={styles.cardOriginalPrice}>${item.originalPrice}</span>
-                      )}
-                      <span className={styles.cardPrice}>${item.price}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        addToCart(item);
-                      }}
-                      className={styles.addToCartBtn}
-                      aria-label={`Add ${item.title} to cart`}
-                    >
-                      <CartIcon />
-                    </button>
-                  </div>
-                </div>
-              </Link>
+              <ProductCard
+                key={item.id}
+                product={item}
+                imageSizes="(max-width: 768px) 100vw, 320px"
+              />
             ))}
           </div>
         </section>

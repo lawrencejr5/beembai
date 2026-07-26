@@ -6,6 +6,7 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import { getFeaturedProducts, getNewArrivalsProducts, Product } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
+import ProductCard from "@/app/components/ProductCard";
 
 // SVG Components
 const SearchIcon = () => (
@@ -752,65 +753,12 @@ export default function Home() {
 
         <div ref={featuredRowRef} className={styles.featuredHorizontalRow}>
           {featuredProducts.map((product) => (
-            <Link
+            <ProductCard
               key={product.id}
-              href={`/product/${product.id}`}
-              className={styles.featuredProductCard}
-              style={{ textDecoration: "none" }}
-            >
-              <div className={styles.productImageWrapper}>
-                {product.tag && (
-                  <span className={styles.cardTag}>{product.tag}</span>
-                )}
-                {product.originalPrice && (
-                  <span className={styles.cardDiscountTag}>
-                    -
-                    {Math.round(
-                      ((product.originalPrice - product.price) /
-                        product.originalPrice) *
-                        100,
-                    )}
-                    %
-                  </span>
-                )}
-                <Image
-                  src={product.image}
-                  alt={product.title}
-                  fill
-                  className={styles.productImg}
-                  sizes="(max-width: 768px) 100vw, 320px"
-                />
-              </div>
-
-              <div className={styles.productDetails}>
-                <span className={styles.productCategory}>
-                  {product.categoryName}
-                </span>
-                <h3 className={styles.productTitle}>{product.title}</h3>
-
-                <div className={styles.cardFooter}>
-                  <div className={styles.priceWrapper}>
-                    {product.originalPrice && (
-                      <span className={styles.originalPrice}>
-                        ${product.originalPrice}
-                      </span>
-                    )}
-                    <span className={styles.price}>${product.price}</span>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleAddToCart(product);
-                    }}
-                    className={styles.addToCartBtn}
-                    aria-label={`Add ${product.title} to cart`}
-                  >
-                    <CartIcon />
-                  </button>
-                </div>
-              </div>
-            </Link>
+              product={product}
+              cardStyle={{ minWidth: "280px", maxWidth: "280px" }}
+              imageSizes="(max-width: 768px) 100vw, 280px"
+            />
           ))}
         </div>
 
@@ -851,65 +799,7 @@ export default function Home() {
 
         <div className={styles.newArrivalsGrid}>
           {newArrivalsProducts.map((product) => (
-            <Link
-              key={product.id}
-              href={`/product/${product.id}`}
-              className={styles.productCard}
-              style={{ textDecoration: "none" }}
-            >
-              <div className={styles.productImageWrapper}>
-                {product.tag && (
-                  <span className={styles.cardTag}>{product.tag}</span>
-                )}
-                {product.originalPrice && (
-                  <span className={styles.cardDiscountTag}>
-                    -
-                    {Math.round(
-                      ((product.originalPrice - product.price) /
-                        product.originalPrice) *
-                        100,
-                    )}
-                    %
-                  </span>
-                )}
-                <Image
-                  src={product.image}
-                  alt={product.title}
-                  fill
-                  className={styles.productImg}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
-
-              <div className={styles.productDetails}>
-                <span className={styles.productCategory}>
-                  {product.categoryName}
-                </span>
-                <h3 className={styles.productTitle}>{product.title}</h3>
-
-                <div className={styles.cardFooter}>
-                  <div className={styles.priceWrapper}>
-                    {product.originalPrice && (
-                      <span className={styles.originalPrice}>
-                        ${product.originalPrice}
-                      </span>
-                    )}
-                    <span className={styles.price}>${product.price}</span>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleAddToCart(product);
-                    }}
-                    className={styles.addToCartBtn}
-                    aria-label={`Add ${product.title} to cart`}
-                  >
-                    <CartIcon />
-                  </button>
-                </div>
-              </div>
-            </Link>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>
