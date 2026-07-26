@@ -400,7 +400,7 @@ const POPULAR_CATEGORIES_DATA: PopularCategory[] = [
 ];
 
 export default function Home() {
-  const { totalItemsCount, addToCart } = useCart();
+  const { totalItemsCount, addToCart, cartBounce } = useCart();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -548,10 +548,16 @@ export default function Home() {
             {theme === "light" ? <MoonIcon /> : <SunIcon />}
           </button>
 
-          <Link href="/cart" className={styles.cartIconBtn} aria-label="Shopping Cart">
+          <Link
+            href="/cart"
+            className={`${styles.cartIconBtn} ${cartBounce ? styles.cartBounce : ""}`}
+            aria-label="Shopping Cart"
+          >
             <CartIcon />
             {totalItemsCount > 0 && (
-              <span className={styles.cartBadge}>{totalItemsCount}</span>
+              <span className={`${styles.cartBadge} ${cartBounce ? styles.badgePop : ""}`}>
+                {totalItemsCount}
+              </span>
             )}
           </Link>
         </div>

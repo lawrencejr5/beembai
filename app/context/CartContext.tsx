@@ -17,6 +17,7 @@ export interface CartContextType {
   clearCart: () => void;
   totalItemsCount: number;
   subtotalPrice: number;
+  cartBounce: boolean;
 }
 
 const CART_STORAGE_KEY = "beembai_cart_items_v1";
@@ -26,6 +27,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [cartBounce, setCartBounce] = useState(false);
+
+  const triggerBounce = () => {
+    setCartBounce(true);
+    setTimeout(() => setCartBounce(false), 650);
+  };
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -58,6 +65,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const colorToUse = selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : undefined);
     const maxStock = product.stock ?? 15;
     
+    triggerBounce();
+
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
         (item) => item.product.id === product.id && item.selectedColor === colorToUse
@@ -92,15 +101,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    setCart((prevCart) =>
-      prevCart.map((item) => {
+    setCart((prevCart) => {
+      const targetItem = prevCart.find(
+        (item) => item.product.id === productId && item.selectedColor === selectedColor
+      );
+      if (targetItem && newQuantity > targetItem.quantity) {
+        triggerBounce();
+      }
+
+      return prevCart.map((item) => {
         if (item.product.id === productId && item.selectedColor === selectedColor) {
           const maxStock = item.product.stock ?? 15;
           return { ...item, quantity: Math.min(maxStock, newQuantity) };
         }
         return item;
-      })
-    );
+      });
+    });
   };
 
   const clearCart = () => {
@@ -125,6 +141,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearCart,
         totalItemsCount,
         subtotalPrice,
+        cartBounce,
       }}
     >
       {children}

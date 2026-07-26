@@ -4,13 +4,17 @@
   flex-direction: column;
   background-color: var(--background);
   color: var(--foreground);
+  padding-top: 76px;
 }
 
 /* Navbar */
 .navbar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -162,6 +166,27 @@
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   line-height: 1;
+}
+
+@keyframes cartPulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.4) rotate(-12deg); color: var(--color-palm); }
+  65% { transform: scale(1.25) rotate(12deg); color: var(--color-palm); }
+  100% { transform: scale(1); }
+}
+
+@keyframes badgePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); background-color: var(--color-palm); }
+  100% { transform: scale(1); }
+}
+
+.cartBounce {
+  animation: cartPulse 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.badgePop {
+  animation: badgePop 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* Sub-Header Dedicated Search Bar Row */
