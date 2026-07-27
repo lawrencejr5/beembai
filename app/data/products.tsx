@@ -182,7 +182,7 @@ export const PRODUCTS_DATA: Product[] = [
     condition: "New",
     colors: ["Space Gray", "Silver"],
     isFeatured: false,
-    isNewArrival: true,
+    isNewArrival: false,
     description:
       "Liquid Retina XDR display tablet with M2 chip and floating Magic Keyboard.",
     productDetails: [
@@ -223,8 +223,6 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "Refurbished",
     colors: ["Gold", "Silver"],
-    isFeatured: false,
-    isNewArrival: true,
     description:
       "Super Retina XDR OLED display with Ceramic Shield and LiDAR scanner.",
     productDetails: [
@@ -304,7 +302,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Titanium", "Black", "White"],
-    isFeatured: true,
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Grade 5 titanium design with A18 Pro chip and dedicated Camera Control button.",
     productDetails: [
@@ -402,6 +401,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Titanium Blue", "Titanium Silver"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Ultra-slim ergonomic titanium chassis with 200MP camera and Snapdragon 8 Elite.",
     productDetails: [
@@ -462,8 +463,6 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["White"],
-    isFeatured: false,
-    isNewArrival: true,
     description:
       "Active Noise Cancellation, Transparency mode, and Personalized Spatial Audio.",
     productDetails: [
@@ -557,6 +556,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Silver"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "27-inch 5K Retina display with 12MP Ultra Wide camera and six-speaker sound.",
     productDetails: [
@@ -577,8 +578,6 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["Midnight", "Starlight", "Red"],
-    isFeatured: false,
-    isNewArrival: true,
     description:
       "Double tap gesture support, brighter display, and advanced health sensors.",
     productDetails: [
@@ -618,8 +617,6 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "D-Link",
     condition: "New",
     colors: ["Black"],
-    isFeatured: false,
-    isNewArrival: true,
     description:
       "Dual-band AX1800 Wi-Fi 6 router with MU-MIMO and WPA3 security.",
     productDetails: [
@@ -698,7 +695,6 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Konica",
     condition: "Like New",
     colors: ["Silver", "Black"],
-    isNewArrival: true,
     description:
       "Classic 35mm rangefinder film camera with Hexanon 38mm f/2.8 lens.",
     productDetails: [
@@ -817,8 +813,6 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Logitech",
     condition: "New",
     colors: ["Black", "Pale Gray"],
-    isFeatured: false,
-    isNewArrival: true,
     description:
       "8K DPI track-anywhere sensor with quiet click buttons and MagSpeed electromagnetic wheel.",
     productDetails: [
@@ -858,6 +852,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Adidas",
     condition: "New",
     colors: ["Red"],
+    isFeatured: false,
+    isNewArrival: true,
     description: "Breathable AEROREADY athletic t-shirt for daily workouts.",
     productDetails: [
       "100% recycled polyester interlock with moisture-wicking AEROREADY technology.",
@@ -910,6 +906,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Balenciaga",
     condition: "New",
     colors: ["Black"],
+    isFeatured: true,
+    isNewArrival: false,
     description:
       "Heavyweight French terry cotton hoodie with dropped shoulders and logo chest print.",
     productDetails: [
@@ -1013,6 +1011,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nike",
     condition: "New",
     colors: ["Red", "White"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Responsive Zoom Air cushioning with breathable Flyknit upper.",
     productDetails: [
@@ -1092,6 +1092,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Pink", "Gold"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Luxurious scalloped petal backrest arm chair with gold stainless steel legs.",
     productDetails: [
@@ -1128,6 +1130,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Lawjun",
     condition: "New",
     colors: ["Gray", "Beige"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Tufted linen headboard bed frame with reinforced slat support system.",
     productDetails: [
@@ -1201,6 +1205,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nécessaire",
     condition: "New",
     colors: ["White"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Multivitamin body moisturizer infused with niacinamide, marula oil, and peptides.",
     productDetails: [
@@ -1347,6 +1353,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Nestle",
     condition: "New",
     colors: ["Green"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Iconic energy chocolate malt drink mix packed with Activ-Go nutrients.",
     productDetails: [
@@ -1390,6 +1398,8 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Samsung",
     condition: "New",
     colors: ["Black"],
+    isFeatured: false,
+    isNewArrival: true,
     description:
       "Ultra-slim AirSlim design 4K processor TV with Smart Hub streaming.",
     productDetails: [
