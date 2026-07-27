@@ -1,0 +1,422 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+  padding-top: 110px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mainContent {
+  flex: 1;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 5% 4rem 5%;
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+}
+
+/* Sell Hero Banner */
+.heroBanner {
+  text-align: center;
+  padding: 4rem 2rem;
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--color-sand) 0%, var(--color-cream) 100%);
+  border: 1.5px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 4px 20px rgba(40, 38, 0, 0.02);
+}
+
+:global([data-theme="dark"]) .heroBanner {
+  background: linear-gradient(135deg, rgba(23, 22, 0, 0.4) 0%, rgba(30, 28, 5, 0.3) 100%);
+  border-color: var(--color-border);
+}
+
+.heroTag {
+  background-color: var(--color-palm);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.35rem 0.85rem;
+  border-radius: 99px;
+}
+
+.heroTitle {
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: var(--color-papyrus);
+  letter-spacing: -0.03em;
+  max-width: 700px;
+  line-height: 1.15;
+}
+
+:global([data-theme="dark"]) .heroTitle {
+  color: var(--color-coconut);
+}
+
+.heroSubtitle {
+  font-size: 1.1rem;
+  color: var(--color-olive-gray);
+  max-width: 600px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* Selling Onboarding Steps */
+.sectionHeader {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--color-papyrus);
+  letter-spacing: -0.02em;
+}
+
+:global([data-theme="dark"]) .sectionTitle {
+  color: var(--color-coconut);
+}
+
+.sectionSubtitle {
+  font-size: 0.95rem;
+  color: var(--color-olive-gray);
+  font-weight: 500;
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.stepCard {
+  background-color: var(--color-cream);
+  border: 1.5px solid var(--color-border);
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.2rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:global([data-theme="dark"]) .stepCard {
+  background-color: rgba(30, 28, 5, 0.4);
+}
+
+.stepCard:hover {
+  transform: translateY(-5px);
+  border-color: var(--color-palm);
+  box-shadow: 0 12px 28px rgba(40, 38, 0, 0.05);
+}
+
+.stepNumber {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--color-sand);
+  color: var(--color-palm);
+  font-weight: 900;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-border);
+}
+
+:global([data-theme="dark"]) .stepNumber {
+  background-color: rgba(23, 22, 0, 0.6);
+  border-color: var(--color-border);
+}
+
+.stepCardTitle {
+  font-size: 1.2rem;
+  font-weight: 850;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .stepCardTitle {
+  color: var(--color-coconut);
+}
+
+.stepCardText {
+  font-size: 0.9rem;
+  color: var(--color-olive-gray);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Seller Application Form Area */
+.formSection {
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+  background-color: var(--color-cream);
+  border: 1.5px solid var(--color-border);
+  border-radius: 28px;
+  padding: 3rem;
+  box-shadow: 0 10px 35px rgba(40, 38, 0, 0.03);
+}
+
+:global([data-theme="dark"]) .formSection {
+  background-color: rgba(30, 28, 5, 0.4);
+}
+
+.formHeader {
+  margin-bottom: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.formTitle {
+  font-size: 1.5rem;
+  font-weight: 850;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .formTitle {
+  color: var(--color-coconut);
+}
+
+.formSubtitle {
+  font-size: 0.9rem;
+  color: var(--color-olive-gray);
+}
+
+.applicationForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formLabel {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .formLabel {
+  color: var(--color-coconut);
+}
+
+.inputField,
+.selectField,
+.textAreaField {
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 0.8rem 1.2rem;
+  border-radius: 14px;
+  border: 1.5px solid var(--color-border);
+  background-color: var(--color-sand);
+  color: var(--foreground);
+  transition: all 0.25s ease;
+  width: 100%;
+}
+
+:global([data-theme="dark"]) .inputField,
+:global([data-theme="dark"]) .selectField,
+:global([data-theme="dark"]) .textAreaField {
+  background-color: rgba(23, 22, 0, 0.4);
+}
+
+.inputField:focus,
+.selectField:focus,
+.textAreaField:focus {
+  outline: none;
+  border-color: var(--color-palm);
+  background-color: var(--color-cream);
+  box-shadow: 0 0 0 4px rgba(99, 109, 33, 0.12);
+}
+
+:global([data-theme="dark"]) .inputField:focus,
+:global([data-theme="dark"]) .selectField:focus,
+:global([data-theme="dark"]) .textAreaField:focus {
+  background-color: rgba(30, 28, 5, 0.85);
+}
+
+.textAreaField {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.submitBtn {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  background-color: var(--color-palm);
+  color: #ffffff;
+  border: none;
+  padding: 0.95rem;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(99, 109, 33, 0.2);
+  margin-top: 1rem;
+}
+
+.submitBtn:hover {
+  background-color: var(--color-papyrus);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(40, 38, 0, 0.15);
+}
+
+.submitBtn:active {
+  transform: translateY(0);
+}
+
+/* Success Modal Overlay Animation */
+.successOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.successCard {
+  background-color: var(--color-cream);
+  border: 2px solid var(--color-palm);
+  border-radius: 28px;
+  padding: 3rem 2rem;
+  width: 90%;
+  max-width: 440px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  animation: scaleIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+:global([data-theme="dark"]) .successCard {
+  background-color: rgba(25, 23, 2, 0.98);
+}
+
+.successTickCircle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: rgba(99, 109, 33, 0.15);
+  color: var(--color-palm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseTick 1.5s infinite;
+}
+
+.successTitle {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--color-papyrus);
+  letter-spacing: -0.01em;
+}
+
+:global([data-theme="dark"]) .successTitle {
+  color: var(--color-coconut);
+}
+
+.successText {
+  font-size: 0.92rem;
+  color: var(--color-olive-gray);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.closeSuccessBtn {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  background-color: var(--color-palm);
+  color: #ffffff;
+  border: none;
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeSuccessBtn:hover {
+  background-color: var(--color-papyrus);
+}
+
+/* Animations keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pulseTick {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 109, 33, 0.4); }
+  70% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(99, 109, 33, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 109, 33, 0); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding-top: 110px;
+  }
+  .heroBanner {
+    padding: 3rem 1.5rem;
+  }
+  .heroTitle {
+    font-size: 2rem;
+  }
+  .stepsGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .formSection {
+    padding: 2rem 1.5rem;
+  }
+}

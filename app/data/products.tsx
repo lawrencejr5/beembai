@@ -15,6 +15,20 @@ export interface Product {
   isFeatured?: boolean;
   isNewArrival?: boolean;
   stock?: number;
+  storeId?: string;
+}
+
+export interface Store {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string;
+  banner: string;
+  rating: number;
+  verified: boolean;
+  category: string;
+  description: string;
+  bannerMessage?: string;
 }
 
 export const formatNumber = (num: number): string => {
@@ -1517,6 +1531,61 @@ export const PRODUCTS_DATA: Product[] = [
   },
 ];
 
+const BRAND_TO_STORE_MAP: Record<string, string> = {
+  "Google": "alex-tech",
+  "Xiaomi": "alex-tech",
+  "Samsung": "alex-tech",
+  "Apple": "alex-tech",
+  "Dell": "alex-tech",
+  "Logitech": "alex-tech",
+  "Techmanis": "alex-tech",
+  "D-Link": "alex-tech",
+  
+  "Sony": "alex-tech",
+  "JBL": "alex-tech",
+  "Shure": "alex-tech",
+  
+  "Balenciaga": "sophia-fashion",
+  "Adidas": "sophia-fashion",
+  "Nike": "sophia-fashion",
+  
+  "Lawjun": "sophia-fashion",
+  "IKEA": "emma-lifestyle",
+  "Palangolo": "sophia-fashion",
+  
+  "Nécessaire": "emma-lifestyle",
+  "Nivea": "emma-lifestyle",
+  "The Ordinary": "emma-lifestyle",
+  "Vaseline": "emma-lifestyle",
+  
+  "Fresh Farm": "greenhouse",
+  "Nestle": "greenhouse",
+  
+  "Fujifilm": "marcus-collective",
+  "Konica": "marcus-collective",
+  "Heritage": "marcus-collective",
+  
+  "Horizon": "greenhouse",
+  "PlanetCare": "emma-lifestyle",
+  "Mercedes": "greenhouse"
+};
+
+// Programmatic mapping of storeId to products
+PRODUCTS_DATA.forEach(product => {
+  if (!product.storeId && product.brand) {
+    product.storeId = BRAND_TO_STORE_MAP[product.brand] || "beembai-official";
+  }
+});
+
+// Assign first 2 products of each category slug to beembai-official to guarantee it sells items from all categories
+const CATEGORIES_LIST = ["phones-tablets", "gadgets-accessories", "fashion", "furniture", "beauty-care", "groceries", "appliances"];
+CATEGORIES_LIST.forEach((slug) => {
+  const matches = PRODUCTS_DATA.filter(p => p.categorySlug === slug);
+  matches.slice(0, 2).forEach(p => {
+    p.storeId = "beembai-official";
+  });
+});
+
 // Helper Functions
 export const getAllCategories = (): Category[] => CATEGORIES_DATA;
 
@@ -1540,4 +1609,93 @@ export const getFeaturedProducts = (): Product[] => {
 
 export const getNewArrivalsProducts = (): Product[] => {
   return PRODUCTS_DATA.filter((product) => product.isNewArrival);
+};
+
+export const STORES_DATA: Store[] = [
+  {
+    id: "beembai-official",
+    name: "Beembai Official Store",
+    slug: "beembai-official",
+    logo: "",
+    banner: "/images/stores/beembai-banner.jpg",
+    rating: 5.0,
+    verified: true,
+    category: "Gadgets & Accessories",
+    description: "The official Beembai marketplace outlet. Sourcing premium certified items directly from top global manufacturers across all lifestyle, technology, and home categories.",
+    bannerMessage: "Authentic global quality with official Beembai 1-Year replacement warranty."
+  },
+  {
+    id: "alex-tech",
+    name: "Alex's Tech Spot",
+    slug: "alex-tech-spot",
+    logo: "", // clear logos to test fallback initials
+    banner: "/images/stores/tech-banner.jpg",
+    rating: 4.9,
+    verified: true,
+    category: "Phone & Tablets",
+    description: "Curated premium gadgets and gear. I specialize in Pixel phones, iPads, active noise-canceling headphones, and custom mechanical keyboards.",
+    bannerMessage: "Top-rated personal setup essentials, backed by local seller warranty support."
+  },
+  {
+    id: "sophia-fashion",
+    name: "Sophia's Fashion & Design",
+    slug: "sophia-fashion-design",
+    logo: "",
+    banner: "/images/stores/fashion-banner.jpg",
+    rating: 4.8,
+    verified: true,
+    category: "Apparel & Fashion",
+    description: "Bespoke platform platform beds, scalloped velvet chairs, and high-fashion cotton hoodies curated to elevate your personal style and space.",
+    bannerMessage: "Elevate your look and your living space with my exclusive design imports."
+  },
+  {
+    id: "greenhouse",
+    name: "Greenhouse Market",
+    slug: "greenhouse-market",
+    logo: "",
+    banner: "/images/stores/market-banner.jpg",
+    rating: 4.7,
+    verified: false,
+    category: "Groceries",
+    description: "Sourcing certified organic farm-fresh tomatoes, milo beverage powders, and clean eco-friendly washing machines for a sustainable home.",
+    bannerMessage: "Farm-to-table groceries and green appliances for modern eco-friendly living."
+  },
+  {
+    id: "emma-lifestyle",
+    name: "Emma's Lifestyle Studio",
+    slug: "emma-lifestyle-studio",
+    logo: "",
+    banner: "/images/stores/lifestyle-banner.jpg",
+    rating: 4.8,
+    verified: true,
+    category: "Beauty & Care",
+    description: "Clean organic body lotions, multivitamin skincare sets, space-saving wooden work desks, and professional studio display monitors.",
+    bannerMessage: "Daily self-care, minimal office setups, and productivity tools all in one shop."
+  },
+  {
+    id: "marcus-collective",
+    name: "Marcus Collective",
+    slug: "marcus-collective",
+    logo: "",
+    banner: "/images/stores/collective-banner.jpg",
+    rating: 4.6,
+    verified: true,
+    category: "Gadgets & Accessories",
+    description: "A unique mix of vintage rangefinder film cameras, performance running shoes, smart split inverter ACs, and compact digital microwaves.",
+    bannerMessage: "Hand-selected vintage camera gear and everyday home utilities."
+  }
+];
+
+export const getAllStores = (): Store[] => STORES_DATA;
+
+export const getStoreById = (id: string): Store | undefined => {
+  return STORES_DATA.find((store) => store.id === id);
+};
+
+export const getStoreBySlug = (slug: string): Store | undefined => {
+  return STORES_DATA.find((store) => store.slug === slug);
+};
+
+export const getProductsByStore = (storeId: string): Product[] => {
+  return PRODUCTS_DATA.filter((product) => product.storeId === storeId);
 };

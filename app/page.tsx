@@ -559,18 +559,18 @@ export default function Home() {
         </div>
 
         <nav className={styles.navLinks}>
-          <a href="#shop" className={styles.navLink}>
+          <Link href="/#shop" className={styles.navLink}>
             New Arrivals
-          </a>
-          <a href="#featured" className={styles.navLink}>
+          </Link>
+          <Link href="/#featured" className={styles.navLink}>
             Featured
-          </a>
-          <a href="#stores" className={styles.navLink}>
+          </Link>
+          <Link href="/stores" className={styles.navLink}>
             Stores
-          </a>
-          <a href="#sell" className={styles.navLink}>
+          </Link>
+          <Link href="/sell" className={styles.navLink}>
             Sell
-          </a>
+          </Link>
         </nav>
 
         <div className={styles.navActions}>
