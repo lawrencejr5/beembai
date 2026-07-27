@@ -118,6 +118,9 @@ export default function StoresPage() {
         </nav>
 
         <div className={homeStyles.navActions}>
+          <Link href="/login" className={homeStyles.authBtn}>
+            Login / Register
+          </Link>
           <button
             onClick={toggleTheme}
             className={homeStyles.themeToggleBtn}

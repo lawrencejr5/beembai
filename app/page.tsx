@@ -574,9 +574,9 @@ export default function Home() {
         </nav>
 
         <div className={styles.navActions}>
-          <a href="#login" className={styles.authBtn}>
+          <Link href="/login" className={styles.authBtn}>
             Login / Register
-          </a>
+          </Link>
 
           <button
             onClick={toggleTheme}
