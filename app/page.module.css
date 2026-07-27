@@ -93,6 +93,16 @@
   width: 100%;
 }
 
+.activeNavLink {
+  color: var(--color-palm) !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+.activeNavLink::after {
+  width: 100% !important;
+}
+
 .navActions {
   display: flex;
   align-items: center;

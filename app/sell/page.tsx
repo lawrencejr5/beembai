@@ -41,7 +41,7 @@ export default function SellPage() {
 
   // Form States
   const [storeName, setStoreName] = useState("");
-  const [category, setCategory] = useState("Phone & Tablets");
+  const [category, setCategory] = useState("All Categories");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
@@ -69,7 +69,7 @@ export default function SellPage() {
 
   const handleResetForm = () => {
     setStoreName("");
-    setCategory("Phone & Tablets");
+    setCategory("All Categories");
     setEmail("");
     setPhone("");
     setBio("");
@@ -87,16 +87,16 @@ export default function SellPage() {
         </Link>
 
         <nav className={homeStyles.navLinks}>
-          <Link href="/#shop" className={homeStyles.navLink}>
-            New Arrivals
-          </Link>
           <Link href="/#featured" className={homeStyles.navLink}>
             Featured
+          </Link>
+          <Link href="/#shop" className={homeStyles.navLink}>
+            New Arrivals
           </Link>
           <Link href="/stores" className={homeStyles.navLink}>
             Stores
           </Link>
-          <Link href="/sell" className={homeStyles.navLink} style={{ color: "var(--color-palm)", fontWeight: 700 }}>
+          <Link href="/sell" className={`${homeStyles.navLink} ${homeStyles.activeNavLink}`}>
             Sell
           </Link>
         </nav>
@@ -198,7 +198,7 @@ export default function SellPage() {
 
                <div className={styles.formGroup} style={{ position: "relative" }}>
                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                   <label className={styles.formLabel}>Primary Category *</label>
+                   <label className={styles.formLabel}>Primary Category (Optional)</label>
                    <button
                      type="button"
                      onClick={() => setShowCategoryInfo(!showCategoryInfo)}
@@ -238,6 +238,7 @@ export default function SellPage() {
                    onChange={(e) => setCategory(e.target.value)}
                    className={styles.selectField}
                  >
+                   <option value="All Categories">All Categories</option>
                    <option value="Phone & Tablets">Phone & Tablets</option>
                    <option value="Gadgets & Accessories">Gadgets & Accessories</option>
                    <option value="Apparel & Fashion">Apparel & Fashion</option>

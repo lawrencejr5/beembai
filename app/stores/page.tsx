@@ -103,13 +103,13 @@ export default function StoresPage() {
         </Link>
 
         <nav className={homeStyles.navLinks}>
-          <Link href="/#shop" className={homeStyles.navLink}>
-            New Arrivals
-          </Link>
           <Link href="/#featured" className={homeStyles.navLink}>
             Featured
           </Link>
-          <Link href="/stores" className={homeStyles.navLink} style={{ color: "var(--color-palm)", fontWeight: 700 }}>
+          <Link href="/#shop" className={homeStyles.navLink}>
+            New Arrivals
+          </Link>
+          <Link href="/stores" className={`${homeStyles.navLink} ${homeStyles.activeNavLink}`}>
             Stores
           </Link>
           <Link href="/sell" className={homeStyles.navLink}>

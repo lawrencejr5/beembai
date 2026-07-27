@@ -1620,7 +1620,7 @@ export const STORES_DATA: Store[] = [
     banner: "/images/stores/beembai-banner.jpg",
     rating: 5.0,
     verified: true,
-    category: "Gadgets & Accessories",
+    category: "All Categories",
     description: "The official Beembai marketplace outlet. Sourcing premium certified items directly from top global manufacturers across all lifestyle, technology, and home categories.",
     bannerMessage: "Authentic global quality with official Beembai 1-Year replacement warranty."
   },

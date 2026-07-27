@@ -127,52 +127,6 @@ export default function StoreDetailPage({ params }: PageProps) {
 
   return (
     <div className={styles.container}>
-      {/* Fixed Header Navbar */}
-      <header className={homeStyles.navbar}>
-        <Link href="/" className={homeStyles.logo}>
-          <span>beembai</span>
-          <span className={homeStyles.logoDot} />
-        </Link>
-
-        <nav className={homeStyles.navLinks}>
-          <Link href="/#shop" className={homeStyles.navLink}>
-            New Arrivals
-          </Link>
-          <Link href="/#featured" className={homeStyles.navLink}>
-            Featured
-          </Link>
-          <Link href="/stores" className={homeStyles.navLink} style={{ color: "var(--color-palm)", fontWeight: 700 }}>
-            Stores
-          </Link>
-          <Link href="/sell" className={homeStyles.navLink}>
-            Sell
-          </Link>
-        </nav>
-
-        <div className={homeStyles.navActions}>
-          <button
-            onClick={toggleTheme}
-            className={homeStyles.themeToggleBtn}
-            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-          >
-            {theme === "light" ? <MoonIcon /> : <SunIcon />}
-          </button>
-
-          <Link
-            href="/cart"
-            className={`${homeStyles.cartIconBtn} ${cartBounce ? homeStyles.cartBounce : ""}`}
-            aria-label="Shopping Cart"
-          >
-            <CartIcon />
-            {totalItemsCount > 0 && (
-              <span className={`${homeStyles.cartBadge} ${cartBounce ? homeStyles.badgePop : ""}`}>
-                {formatNumber(totalItemsCount)}
-              </span>
-            )}
-          </Link>
-        </div>
-      </header>
-
       {/* Main Container */}
       <main className={styles.mainContent}>
         {/* Store Banner Hero */}

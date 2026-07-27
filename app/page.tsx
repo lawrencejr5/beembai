@@ -559,11 +559,11 @@ export default function Home() {
         </div>
 
         <nav className={styles.navLinks}>
-          <Link href="/#shop" className={styles.navLink}>
-            New Arrivals
-          </Link>
           <Link href="/#featured" className={styles.navLink}>
             Featured
+          </Link>
+          <Link href="/#shop" className={styles.navLink}>
+            New Arrivals
           </Link>
           <Link href="/stores" className={styles.navLink}>
             Stores

@@ -2,7 +2,7 @@
   min-height: 100vh;
   background-color: var(--background);
   color: var(--foreground);
-  padding-top: 110px;
+  padding-top: 0;
   display: flex;
   flex-direction: column;
 }
@@ -359,7 +359,7 @@
 
 @media (max-width: 768px) {
   .container {
-    padding-top: 110px;
+    padding-top: 0;
   }
   .storeHeader {
     flex-direction: column;
@@ -400,11 +400,19 @@
 /* Category Pill Tabs */
 .tabsContainer {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
   gap: 0.75rem;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.8rem;
+}
+
+.tabsContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .tabBtn {
@@ -418,6 +426,7 @@
   color: var(--color-papyrus);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
 }
 
 :global([data-theme="dark"]) .tabBtn {
