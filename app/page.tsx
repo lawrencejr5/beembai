@@ -4,7 +4,15 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
-import { getFeaturedProducts, getNewArrivalsProducts, Product, PRODUCTS_DATA, CATEGORIES_DATA, formatPrice, formatNumber } from "@/app/data/products";
+import {
+  getFeaturedProducts,
+  getNewArrivalsProducts,
+  Product,
+  PRODUCTS_DATA,
+  CATEGORIES_DATA,
+  formatPrice,
+  formatNumber,
+} from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
 
@@ -328,8 +336,6 @@ const ADVERT_SLIDES: AdvertSlide[] = [
   },
 ];
 
-
-
 const CATEGORIES = [
   "All",
   "Electronics",
@@ -430,10 +436,15 @@ export default function Home() {
     const trimmed = term.trim();
     if (!trimmed) return;
     setRecentSearches((prev) => {
-      const filtered = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
+      const filtered = prev.filter(
+        (s) => s.toLowerCase() !== trimmed.toLowerCase(),
+      );
       const updated = [trimmed, ...filtered].slice(0, 6);
       try {
-        localStorage.setItem("beembai_recent_searches", JSON.stringify(updated));
+        localStorage.setItem(
+          "beembai_recent_searches",
+          JSON.stringify(updated),
+        );
       } catch (e) {
         console.error(e);
       }
@@ -450,7 +461,14 @@ export default function Home() {
     }
   };
 
-  const trendingKeywords = ["Pixel 10", "AirPods", "Sony", "Vintage Camera", "Balenciaga", "OLED"];
+  const trendingKeywords = [
+    "Pixel 10",
+    "AirPods",
+    "Sony",
+    "Vintage Camera",
+    "Balenciaga",
+    "OLED",
+  ];
 
   const searchMatchingProducts = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -460,7 +478,7 @@ export default function Home() {
         p.title.toLowerCase().includes(query) ||
         p.categoryName.toLowerCase().includes(query) ||
         (p.brand && p.brand.toLowerCase().includes(query)) ||
-        (p.tag && p.tag.toLowerCase().includes(query))
+        (p.tag && p.tag.toLowerCase().includes(query)),
     ).slice(0, 5);
   }, [searchQuery]);
 
@@ -593,7 +611,9 @@ export default function Home() {
           >
             <CartIcon />
             {totalItemsCount > 0 && (
-              <span className={`${styles.cartBadge} ${cartBounce ? styles.badgePop : ""}`}>
+              <span
+                className={`${styles.cartBadge} ${cartBounce ? styles.badgePop : ""}`}
+              >
                 {formatNumber(totalItemsCount)}
               </span>
             )}
@@ -737,7 +757,9 @@ export default function Home() {
                 /* Active Live Matching Suggestions */
                 <div className={styles.suggestionGroup}>
                   <div className={styles.suggestionSectionTitle}>
-                    <span>Matching Products ({searchMatchingProducts.length})</span>
+                    <span>
+                      Matching Products ({searchMatchingProducts.length})
+                    </span>
                   </div>
 
                   {searchMatchingProducts.length > 0 ? (
@@ -763,14 +785,18 @@ export default function Home() {
                           </div>
 
                           <div className={styles.suggestionInfo}>
-                            <span className={styles.suggestionTitle}>{product.title}</span>
+                            <span className={styles.suggestionTitle}>
+                              {product.title}
+                            </span>
                             <span className={styles.suggestionMeta}>
                               {product.brand ? `${product.brand} • ` : ""}
                               {product.categoryName}
                             </span>
                           </div>
 
-                          <span className={styles.suggestionPrice}>${formatPrice(product.price)}</span>
+                          <span className={styles.suggestionPrice}>
+                            ${formatPrice(product.price)}
+                          </span>
                         </Link>
                       ))}
                     </div>
@@ -1006,26 +1032,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Brand Story / Showcase Banner */}
-      <section id="story" className={styles.promoSection}>
+      {/* Sell on Beembai / Showcase Banner */}
+      <section id="sell-promo" className={styles.promoSection}>
         <div className={styles.promoContent}>
-          <span className={styles.promoTag}>Premium Craftsmanship</span>
+          <span className={styles.promoTag}>Become a Seller</span>
           <h2 className={styles.promoTitle}>
-            Sustainable Workspace Essentials.
+            Start Selling Very Easily on Beembai.
           </h2>
           <p className={styles.promoDescription}>
-            Every beembai piece reflects a commitment to functional purity, raw
-            structural minimalism, and sustainable sourcing. We work closely
-            with designers to make spaces beautiful, warm, and highly
-            productive.
+            Reach thousands of shoppers looking for tech, lifestyle, groceries,
+            home appliances, and more. Set up your custom storefront account in
+            minutes, organize items into dynamic category tabs, and scale your
+            business with zero complex setups.
           </p>
-          <button className={styles.promoBtn}>Read Our Journey</button>
+          <Link href="/sell" className={styles.promoBtn}>
+            Open Your Store
+          </Link>
         </div>
         <div className={styles.promoVisual}>
           <div className={styles.promoImageWrapper}>
             <Image
-              src="/images/products/my-techmanis-keyboard.jpg"
-              alt="Custom Solid Wood Mechanical Keyboard"
+              src="/images/stores/sell-banner.jpg"
+              alt="Beembai Seller Marketplace"
               fill
               className={styles.promoImg}
               sizes="(max-width: 768px) 100vw, 50vw"
