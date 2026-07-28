@@ -836,7 +836,7 @@ export default function Home() {
                       src={slide.image}
                       alt={slide.imageAlt}
                       fill
-                      priority={index === 0}
+                      priority={true}
                       className={
                         slide.isTransparentImage
                           ? styles.transparentAdImg
