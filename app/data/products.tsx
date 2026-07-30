@@ -14,6 +14,7 @@ export interface Product {
   productDetails?: string[];
   isFeatured?: boolean;
   isNewArrival?: boolean;
+  isSponsored?: boolean;
   stock?: number;
   storeId?: string;
 }
@@ -130,6 +131,7 @@ export const PRODUCTS_DATA: Product[] = [
     colors: ["Black", "Titanium", "Hazel"],
     isFeatured: true,
     isNewArrival: false,
+    isSponsored: true,
     stock: 8,
     description:
       "Tensor powered smartphone with pro camera system and Gemini AI integration.",
@@ -477,6 +479,7 @@ export const PRODUCTS_DATA: Product[] = [
     brand: "Apple",
     condition: "New",
     colors: ["White"],
+    isSponsored: true,
     description:
       "Active Noise Cancellation, Transparency mode, and Personalized Spatial Audio.",
     productDetails: [
@@ -868,6 +871,7 @@ export const PRODUCTS_DATA: Product[] = [
     colors: ["Red"],
     isFeatured: false,
     isNewArrival: true,
+    isSponsored: true,
     description: "Breathable AEROREADY athletic t-shirt for daily workouts.",
     productDetails: [
       "100% recycled polyester interlock with moisture-wicking AEROREADY technology.",
@@ -1086,6 +1090,7 @@ export const PRODUCTS_DATA: Product[] = [
     colors: ["Natural Wood", "Brown"],
     isFeatured: true,
     isNewArrival: false,
+    isSponsored: true,
     description:
       "Solid oak dining table paired with four ergonomic upholstered dining chairs.",
     productDetails: [

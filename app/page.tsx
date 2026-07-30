@@ -269,72 +269,28 @@ interface AdvertSlide {
   bgGradient: string;
 }
 
-const ADVERT_SLIDES: AdvertSlide[] = [
-  {
-    id: "fujifilm-ad",
-    type: "product",
-    tag: "Sponsored Showcase • Fujifilm",
-    title: "Fujifilm X-T5 Mirrorless Camera",
-    subtitle:
-      "Capture life's richest details with vintage tactile controls, 40MP HR X-Trans sensor, and classic color science.",
-    image: "/images/products/fujifilm-camera.jpg",
-    imageAlt: "Fujifilm X-T5 Mirrorless Camera Showcase",
-    ctaText: "Shop Fujifilm X-T5",
-    ctaLink: "#shop",
-    price: 1699,
-    originalPrice: 1899,
-    bgGradient:
-      "linear-gradient(135deg, #241c0e 0%, #3d2f16 50%, #140f07 100%)",
-  },
-  {
-    id: "shure-ad",
-    type: "product",
-    tag: "Acoustic Showcase • Shure",
-    title: "Shure Aonic 50 Wireless Headset",
-    subtitle:
-      "Studio-quality noise cancelling audio engineered for audiophiles, immersive listening, and all-day acoustic comfort.",
-    image: "/images/products/shure-headset.jpg",
-    imageAlt: "Shure Aonic 50 Wireless Headset Showcase",
-    ctaText: "Get Shure Aonic 50",
-    ctaLink: "#shop",
-    price: 299,
-    originalPrice: 349,
-    bgGradient:
-      "linear-gradient(135deg, #160f26 0%, #2b1747 50%, #0c0716 100%)",
-  },
-  {
-    id: "ipad-ad",
-    type: "product",
-    tag: "Featured Merchant • Apple",
-    title: "iPad Pro M2 with Magic Keyboard",
-    subtitle:
-      "Transform your daily creative workflow into a portable powerhouse with Liquid Retina XDR and precision trackpad.",
-    image: "/images/products/ipad-pro-with-keyboard.jpg",
-    imageAlt: "iPad Pro M2 with Magic Keyboard Showcase",
-    ctaText: "Explore iPad Pro",
-    ctaLink: "#shop",
-    price: 1099,
-    originalPrice: 1199,
-    bgGradient:
-      "linear-gradient(135deg, #0e192b 0%, #1a2f4c 50%, #080f1a 100%)",
-  },
-  {
-    id: "apple-watch-ad",
-    type: "product",
-    tag: "Smart Wearables • Apple",
-    title: "Apple Watch Series 9 (GPS)",
-    subtitle:
-      "Smarter, brighter, and more powerful health tracking with double tap gestures and edge-to-edge Retina display.",
-    image: "/images/products/apple-watch.jpg",
-    imageAlt: "Apple Watch Series 9 Showcase",
-    ctaText: "Shop Apple Watch",
-    ctaLink: "#shop",
-    price: 399,
-    originalPrice: 429,
-    bgGradient:
-      "linear-gradient(135deg, #1c1813 0%, #332a1e 50%, #110e0a 100%)",
-  },
-];
+const ADVERT_SLIDES: AdvertSlide[] = PRODUCTS_DATA.filter((p) => p.isSponsored).map((product, index) => {
+  const gradients = [
+    "linear-gradient(135deg, #241c0e 0%, #3d2f16 50%, #140f07 100%)",
+    "linear-gradient(135deg, #160f26 0%, #2b1747 50%, #0c0716 100%)",
+    "linear-gradient(135deg, #0e192b 0%, #1a2f4c 50%, #080f1a 100%)",
+    "linear-gradient(135deg, #1c1813 0%, #332a1e 50%, #110e0a 100%)",
+  ];
+  return {
+    id: product.id,
+    type: "product" as const,
+    tag: "Sponsored",
+    title: product.title,
+    subtitle: product.description || "",
+    image: product.image,
+    imageAlt: `${product.title} Showcase`,
+    ctaText: `Shop ${product.brand || ""}`,
+    ctaLink: `/product/${product.id}`,
+    price: product.price,
+    originalPrice: product.originalPrice,
+    bgGradient: gradients[index % gradients.length],
+  };
+});
 
 const CATEGORIES = [
   "All",
@@ -820,7 +776,8 @@ export default function Home() {
       >
         <div className={styles.advertTrack}>
           {ADVERT_SLIDES.map((slide, index) => (
-            <div
+            <Link
+              href={slide.ctaLink}
               key={slide.id}
               className={`${styles.advertSlide} ${index === currentSlideIndex ? styles.advertSlideActive : ""} ${slide.isLightSlide ? styles.lightAdvertSlide : ""}`}
               style={{ background: slide.bgGradient }}
@@ -836,9 +793,9 @@ export default function Home() {
                   <p className={styles.advertSubtitle}>{slide.subtitle}</p>
 
                   <div className={styles.advertActions}>
-                    <a href={slide.ctaLink} className={styles.advertCtaBtn}>
+                    <span className={styles.advertCtaBtn}>
                       {slide.ctaText}
-                    </a>
+                    </span>
                     {slide.price && (
                       <div className={styles.advertPriceBadge}>
                         <span className={styles.advertCurrentPrice}>
@@ -873,7 +830,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
