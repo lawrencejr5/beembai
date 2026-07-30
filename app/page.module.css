@@ -1745,6 +1745,50 @@
   }
 }
 
+@media (max-width: 768px) {
+  .promoSection {
+    padding: 2.5rem 1.8rem;
+    margin: 0 2% 3rem 2%;
+    gap: 1.5rem;
+  }
+  .promoTitle {
+    font-size: 2rem;
+  }
+  .promoDescription {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .promoTag {
+    font-size: 0.75rem;
+  }
+  .promoBtn {
+    padding: 0.8rem 1.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .promoSection {
+    padding: 2rem 1.5rem;
+    margin: 0 2% 2.5rem 2%;
+    gap: 1.2rem;
+  }
+  .promoTitle {
+    font-size: 1.6rem;
+  }
+  .promoDescription {
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+  .promoTag {
+    font-size: 0.7rem;
+  }
+  .promoBtn {
+    padding: 0.7rem 1.5rem;
+    font-size: 0.85rem;
+  }
+}
+
 .promoContent {
   display: flex;
   flex-direction: column;
