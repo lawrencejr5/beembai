@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { CartProvider } from "@/app/context/CartContext";
+import AiShopper from "@/app/components/AiShopper";
 
 const figtree = localFont({
   src: [
@@ -63,7 +64,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={figtree.variable}>
       <body>
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          {children}
+          <AiShopper />
+        </CartProvider>
       </body>
     </html>
   );

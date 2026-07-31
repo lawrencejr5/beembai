@@ -531,7 +531,7 @@
   border-radius: 32px;
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-  min-height: 480px;
+  min-height: 400px;
   display: flex;
   align-items: center;
 }
@@ -540,7 +540,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 480px;
+  min-height: 400px;
 }
 
 .advertSlide {
@@ -558,7 +558,7 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  padding: 3.5rem 5rem;
+  padding: 2.2rem 4rem;
 }
 
 .advertSlideActive {
@@ -605,7 +605,7 @@
 }
 
 .advertTitle {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 900;
   line-height: 1.15;
   color: #ffffff;
@@ -613,7 +613,7 @@
 }
 
 .advertSubtitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1.55;
   color: rgba(255, 255, 255, 0.9);
   max-width: 560px;
@@ -711,7 +711,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1.2;
-  max-width: 440px;
+  max-width: 360px;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
