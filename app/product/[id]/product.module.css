@@ -582,62 +582,7 @@
 }
 
 /* Responsive Breakpoints */
-@media (max-width: 1200px) {
-  .relatedGrid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.8rem;
-  }
-}
-
-@media (max-width: 992px) {
-  .productPage {
-    padding: 2rem 4% 4rem 4%;
-  }
-  .heroShowcase {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-  .productTitle {
-    font-size: 1.8rem;
-  }
-  .currentPrice {
-    font-size: 1.8rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .breadcrumbs {
-    font-size: 0.8rem;
-    margin-bottom: 1.8rem;
-  }
-  .aboutSection {
-    padding: 2rem 1.5rem;
-    border-radius: 24px;
-  }
-  .sectionTitle {
-    font-size: 1.4rem;
-  }
-  .buttonGroup {
-    flex-direction: column;
-    gap: 0.85rem;
-    width: 100%;
-  }
-  .addToCartMainBtn,
-  .buyNowBtn {
-    width: 100%;
-    min-height: 48px;
-    height: auto;
-    padding: 0.9rem 1.25rem;
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .relatedGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-}
+/* Media query blocks moved to the bottom of the file */
 
 /* Dynamic Inline Cart Quantity Pill */
 .inCartQuantityPill {
@@ -725,24 +670,7 @@
   border-color: rgba(229, 62, 62, 0.25);
 }
 
-@media (max-width: 480px) {
-  .productPage {
-    padding: 1.5rem 3% 3rem 3%;
-  }
-  .productTitle {
-    font-size: 1.5rem;
-  }
-  .currentPrice {
-    font-size: 1.5rem;
-  }
-  .aboutSection {
-    padding: 1.5rem 1rem;
-  }
-  .relatedGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-  }
-}
+/* Media query blocks moved to the bottom of the file */
 
 /* Reused Product Card Styles for Related Items Grid */
 .productCard {
@@ -908,4 +836,80 @@
 :global([data-theme="dark"]) .addToCartBtn:hover {
   background-color: var(--color-palm);
   color: var(--color-coconut);
+}
+
+@media (max-width: 1200px) {
+  .relatedGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.8rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .productPage {
+    padding: 2rem 4% 4rem 4%;
+  }
+  .heroShowcase {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .productTitle {
+    font-size: 1.8rem;
+  }
+  .currentPrice {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .breadcrumbs {
+    font-size: 0.8rem;
+    margin-bottom: 1.8rem;
+  }
+  .aboutSection {
+    padding: 2rem 1.5rem;
+    border-radius: 24px;
+  }
+  .sectionTitle {
+    font-size: 1.4rem;
+  }
+  .buttonGroup {
+    flex-direction: column;
+    gap: 0.85rem;
+    width: 100%;
+  }
+  .addToCartMainBtn,
+  .buyNowBtn {
+    width: 100%;
+    min-height: 48px;
+    height: auto;
+    padding: 0.9rem 1.25rem;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .relatedGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .productPage {
+    padding: 1.5rem 3% 3rem 3%;
+  }
+  .productTitle {
+    font-size: 1.5rem;
+  }
+  .currentPrice {
+    font-size: 1.5rem;
+  }
+  .aboutSection {
+    padding: 1.5rem 1rem;
+  }
+  .relatedGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
 }

@@ -398,28 +398,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
-  .container {
-    padding-top: 110px;
-  }
-  .heroBanner {
-    padding: 3rem 1.5rem;
-  }
-  .heroTitle {
-    font-size: 2rem;
-  }
-  .stepsGrid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  .formRow {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  .formSection {
-    padding: 2rem 1.5rem;
-  }
-}
+/* Media query blocks moved to the bottom of the file */
 
 /* Progress and Onboarding Steps styles */
 .progressBarWrapper {
@@ -660,5 +639,28 @@
 
 :global([data-theme="dark"]) .verifiedBadge {
   background-color: rgba(99, 109, 33, 0.25);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-top: 110px;
+  }
+  .heroBanner {
+    padding: 3rem 1.5rem;
+  }
+  .heroTitle {
+    font-size: 2rem;
+  }
+  .stepsGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .formSection {
+    padding: 2rem 1.5rem;
+  }
 }
 

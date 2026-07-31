@@ -350,52 +350,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
-  .productsGrid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.8rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding-top: 0;
-  }
-  .storeHeader {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-top: -60px;
-    gap: 1rem;
-  }
-  .logoContainer {
-    width: 110px;
-    height: 110px;
-    border-radius: 24px;
-  }
-  .storeMetaBlock {
-    align-items: center;
-  }
-  .storeTitleName {
-    font-size: 1.6rem;
-  }
-  .storeBioSection {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  .inventoryHeader {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-  .inventorySearch {
-    max-width: 100%;
-  }
-  .productsGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-}
+/* Media query blocks moved to the bottom of the file */
 
 /* Category Pill Tabs */
 .tabsContainer {
@@ -453,4 +408,51 @@
 
 .activeTabBtn:hover {
   color: #ffffff;
+}
+
+@media (max-width: 1200px) {
+  .productsGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-top: 0;
+  }
+  .storeHeader {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -60px;
+    gap: 1rem;
+  }
+  .logoContainer {
+    width: 110px;
+    height: 110px;
+    border-radius: 24px;
+  }
+  .storeMetaBlock {
+    align-items: center;
+  }
+  .storeTitleName {
+    font-size: 1.6rem;
+  }
+  .storeBioSection {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .inventoryHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .inventorySearch {
+    max-width: 100%;
+  }
+  .productsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
 }
