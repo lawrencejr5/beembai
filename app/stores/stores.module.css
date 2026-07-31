@@ -225,6 +225,57 @@
   box-shadow: 0 15px 35px rgba(40, 38, 0, 0.08);
 }
 
+.officialStoreCard {
+  border: 2.5px solid var(--color-palm) !important;
+  box-shadow: 0 10px 25px rgba(99, 109, 33, 0.08) !important;
+  grid-column: 1 / -1; /* Span all columns in the grid */
+  display: flex;
+  flex-direction: row;
+  min-height: 240px;
+  align-items: stretch;
+  position: relative;
+}
+
+:global([data-theme="dark"]) .officialStoreCard {
+  border-color: var(--color-palm) !important;
+}
+
+.officialStoreCard:hover {
+  border-color: var(--color-papyrus) !important;
+}
+
+:global([data-theme="dark"]) .officialStoreCard:hover {
+  border-color: var(--color-coconut) !important;
+}
+
+.officialStoreCard .cardBanner {
+  width: 35%;
+  height: auto;
+  min-height: 240px;
+  border-radius: 22px 0 0 22px;
+}
+
+.officialStoreCard .cardBody {
+  width: 65%;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.officialStoreCard .logoContainer {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.officialStoreCard .badgeRow {
+  justify-content: flex-start;
+  margin-bottom: 0.5rem;
+}
+
 /* Card Header Banner */
 .cardBanner {
   height: 105px;
@@ -334,9 +385,16 @@
 }
 
 .verifiedBadge {
-  color: var(--color-palm);
   display: flex;
   align-items: center;
+}
+
+.officialVerifiedBadge {
+  color: var(--color-palm); /* Beembai stays palm color */
+}
+
+.otherVerifiedBadge {
+  color: var(--color-success);
 }
 
 .ratingRow {
@@ -477,6 +535,38 @@
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+  .officialStoreCard {
+    flex-direction: row !important;
+    min-height: 180px !important;
+  }
+  .officialStoreCard .cardBanner {
+    width: 35% !important;
+    min-height: 180px !important;
+  }
+  .officialStoreCard .cardBody {
+    width: 65% !important;
+    padding: 1rem 1.25rem !important;
+  }
+  .officialStoreCard .logoContainer {
+    top: 1rem !important;
+    left: 1rem !important;
+    width: 54px !important;
+    height: 54px !important;
+  }
+  .officialStoreCard .logoPlaceholder {
+    font-size: 1.1rem !important;
+  }
+  .officialStoreCard .storeCardName {
+    font-size: 1.05rem !important;
+  }
+  .officialStoreCard .storeCardDesc {
+    font-size: 0.78rem !important;
+    -webkit-line-clamp: 2 !important;
+    height: 2.4rem !important;
+  }
+  .officialStoreRating {
+    display: none !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -486,5 +576,37 @@
   }
   .heroTitle {
     font-size: 1.3rem;
+  }
+  .officialStoreCard {
+    min-height: 150px !important;
+  }
+  .officialStoreCard .cardBanner {
+    width: 40% !important;
+    min-height: 150px !important;
+  }
+  .officialStoreCard .cardBody {
+    width: 60% !important;
+    padding: 0.8rem 1rem !important;
+  }
+  .officialStoreCard .logoContainer {
+    top: 0.8rem !important;
+    left: 0.8rem !important;
+    width: 46px !important;
+    height: 46px !important;
+  }
+  .officialStoreCard .logoPlaceholder {
+    font-size: 0.95rem !important;
+  }
+  .officialStoreCard .storeCardName {
+    font-size: 0.95rem !important;
+  }
+  .officialStoreCard .storeCardDesc {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 0.72rem !important;
+    height: 2.2rem !important;
+    margin-bottom: 0.4rem !important;
   }
 }

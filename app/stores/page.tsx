@@ -294,7 +294,11 @@ export default function StoresPage() {
               <Link
                 key={store.id}
                 href={`/stores/${store.slug}`}
-                className={styles.storeCard}
+                className={`${styles.storeCard} ${
+                  store.id === "beembai-official"
+                    ? styles.officialStoreCard
+                    : ""
+                }`}
               >
                 {/* Banner Header Image */}
                 <div
@@ -305,29 +309,51 @@ export default function StoresPage() {
                   }}
                 >
                   <div className={styles.cardBannerOverlay} />
+                  {store.id === "beembai-official" && (
+                    <div className={styles.logoContainer}>
+                      {store.logo ? (
+                        <Image
+                          src={store.logo}
+                          alt={`${store.name} Logo`}
+                          width={64}
+                          height={64}
+                          className={styles.logoImage}
+                        />
+                      ) : (
+                        <span
+                          className={styles.logoPlaceholder}
+                          style={{ fontSize: "1.3rem" }}
+                        >
+                          {getStoreInitials(store.name)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Info Body */}
                 <div className={styles.cardBody}>
-                  {/* Floating Store Logo */}
-                  <div className={styles.logoContainer}>
-                    {store.logo ? (
-                      <Image
-                        src={store.logo}
-                        alt={`${store.name} Logo`}
-                        width={64}
-                        height={64}
-                        className={styles.logoImage}
-                      />
-                    ) : (
-                      <span
-                        className={styles.logoPlaceholder}
-                        style={{ fontSize: "1.3rem" }}
-                      >
-                        {getStoreInitials(store.name)}
-                      </span>
-                    )}
-                  </div>
+                  {/* Floating Store Logo for other stores */}
+                  {store.id !== "beembai-official" && (
+                    <div className={styles.logoContainer}>
+                      {store.logo ? (
+                        <Image
+                          src={store.logo}
+                          alt={`${store.name} Logo`}
+                          width={64}
+                          height={64}
+                          className={styles.logoImage}
+                        />
+                      ) : (
+                        <span
+                          className={styles.logoPlaceholder}
+                          style={{ fontSize: "1.3rem" }}
+                        >
+                          {getStoreInitials(store.name)}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Badge & Category Row */}
                   <div className={styles.badgeRow}>
@@ -340,7 +366,11 @@ export default function StoresPage() {
                       <h3 className={styles.storeCardName}>{store.name}</h3>
                       {store.verified && (
                         <span
-                          className={styles.verifiedBadge}
+                          className={`${styles.verifiedBadge} ${
+                            store.id === "beembai-official"
+                              ? styles.officialVerifiedBadge
+                              : styles.otherVerifiedBadge
+                          }`}
                           title="Verified Merchant"
                         >
                           <VerifiedIcon />
@@ -348,7 +378,13 @@ export default function StoresPage() {
                       )}
                     </div>
 
-                    <div className={styles.ratingRow}>
+                    <div
+                      className={`${styles.ratingRow} ${
+                        store.id === "beembai-official"
+                          ? styles.officialStoreRating
+                          : ""
+                      }`}
+                    >
                       <span className={styles.starIcon}>
                         <StarIcon />
                       </span>
@@ -364,7 +400,11 @@ export default function StoresPage() {
                   {/* Card Bottom CTA */}
                   <div className={styles.cardFooter}>
                     <span className={styles.visitText}>
-                      <span>Visit Store</span>
+                      <span>
+                        {store.id === "beembai-official"
+                          ? "Visit Official Store"
+                          : "Visit Store"}
+                      </span>
                       <ArrowRightIcon />
                     </span>
                   </div>
