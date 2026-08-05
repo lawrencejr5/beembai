@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./cart.module.css";
 import { useCart } from "@/app/context/CartContext";
-import { formatPrice, formatNumber } from "@/app/data/products";
+import { formatPrice, formatNumber } from "@/app/data/data";
 
 // SVG Icons
 const ArrowLeftIcon = () => (
@@ -19,7 +19,11 @@ const ArrowLeftIcon = () => (
     stroke="currentColor"
     strokeWidth="2.5"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+    />
   </svg>
 );
 
@@ -79,18 +83,28 @@ const ShieldCheckIcon = () => (
 
 export default function CartPage() {
   const router = useRouter();
-  const { cart, removeFromCart, updateQuantity, clearCart, totalItemsCount, subtotalPrice } =
-    useCart();
+  const {
+    cart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    totalItemsCount,
+    subtotalPrice,
+  } = useCart();
 
   const [promoCode, setPromoCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
-  const [promoMessage, setPromoMessage] = useState<{ text: string; isError: boolean } | null>(
-    null
-  );
+  const [promoMessage, setPromoMessage] = useState<{
+    text: string;
+    isError: boolean;
+  } | null>(null);
 
   const shippingFee = subtotalPrice > 100 || subtotalPrice === 0 ? 0 : 10;
   const estimatedTax = Math.round(subtotalPrice * 0.05);
-  const finalTotal = Math.max(0, subtotalPrice + shippingFee + estimatedTax - discountAmount);
+  const finalTotal = Math.max(
+    0,
+    subtotalPrice + shippingFee + estimatedTax - discountAmount,
+  );
 
   const handleGoBack = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -107,7 +121,10 @@ export default function CartPage() {
     if (code === "BEEMBAI10" || code === "WELCOME10") {
       const discount = Math.round(subtotalPrice * 0.1);
       setDiscountAmount(discount);
-      setPromoMessage({ text: "10% Discount applied successfully!", isError: false });
+      setPromoMessage({
+        text: "10% Discount applied successfully!",
+        isError: false,
+      });
     } else if (code === "") {
       setPromoMessage({ text: "Please enter a valid code", isError: true });
     } else {
@@ -119,7 +136,9 @@ export default function CartPage() {
     <main className={styles.cartPage}>
       {/* Header with Back Button & Title */}
       <div className={styles.headerRow}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+        >
           <button
             type="button"
             onClick={handleGoBack}
@@ -146,13 +165,19 @@ export default function CartPage() {
           <div className={styles.titleGroup}>
             <h1 className={styles.pageTitle}>Shopping Cart</h1>
             {totalItemsCount > 0 && (
-              <span className={styles.itemCountBadge}>{formatNumber(totalItemsCount)} items</span>
+              <span className={styles.itemCountBadge}>
+                {formatNumber(totalItemsCount)} items
+              </span>
             )}
           </div>
         </div>
 
         {cart.length > 0 && (
-          <button type="button" onClick={clearCart} className={styles.clearCartLinkBtn}>
+          <button
+            type="button"
+            onClick={clearCart}
+            className={styles.clearCartLinkBtn}
+          >
             Clear Cart
           </button>
         )}
@@ -166,7 +191,8 @@ export default function CartPage() {
           </div>
           <h2 className={styles.emptyTitle}>Your cart is empty</h2>
           <p className={styles.emptyText}>
-            Looks like you haven't added any items to your shopping cart yet. Discover our curated catalog of premium tech and lifestyle products.
+            Looks like you haven't added any items to your shopping cart yet.
+            Discover our curated catalog of premium tech and lifestyle products.
           </p>
           <Link href="/" className={styles.startShoppingBtn}>
             <span>Explore Products</span>
@@ -196,17 +222,26 @@ export default function CartPage() {
 
                   <div className={styles.itemInfo}>
                     {item.product.brand && (
-                      <span className={styles.brandLabel}>{item.product.brand}</span>
+                      <span className={styles.brandLabel}>
+                        {item.product.brand}
+                      </span>
                     )}
-                    <Link href={`/product/${item.product.id}`} className={styles.itemTitle}>
+                    <Link
+                      href={`/product/${item.product.id}`}
+                      className={styles.itemTitle}
+                    >
                       {item.product.title}
                     </Link>
 
                     <div className={styles.itemMetaRow}>
                       {item.selectedColor && (
-                        <span className={styles.colorBadge}>{item.selectedColor}</span>
+                        <span className={styles.colorBadge}>
+                          {item.selectedColor}
+                        </span>
                       )}
-                      <span className={styles.unitPrice}>${formatPrice(item.product.price)} each</span>
+                      <span className={styles.unitPrice}>
+                        ${formatPrice(item.product.price)} each
+                      </span>
                     </div>
                   </div>
 
@@ -215,18 +250,28 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        updateQuantity(item.product.id, item.quantity - 1, item.selectedColor)
+                        updateQuantity(
+                          item.product.id,
+                          item.quantity - 1,
+                          item.selectedColor,
+                        )
                       }
                       className={styles.qtyBtn}
                       aria-label="Decrease quantity"
                     >
                       -
                     </button>
-                    <span className={styles.qtyValue}>{formatNumber(item.quantity)}</span>
+                    <span className={styles.qtyValue}>
+                      {formatNumber(item.quantity)}
+                    </span>
                     <button
                       type="button"
                       onClick={() =>
-                        updateQuantity(item.product.id, item.quantity + 1, item.selectedColor)
+                        updateQuantity(
+                          item.product.id,
+                          item.quantity + 1,
+                          item.selectedColor,
+                        )
                       }
                       disabled={item.quantity >= (item.product.stock ?? 15)}
                       className={styles.qtyBtn}
@@ -238,10 +283,14 @@ export default function CartPage() {
 
                   {/* Subtotal & Trash Remove Button */}
                   <div className={styles.itemActionGroup}>
-                    <span className={styles.subtotalPrice}>${formatPrice(itemTotal)}</span>
+                    <span className={styles.subtotalPrice}>
+                      ${formatPrice(itemTotal)}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => removeFromCart(item.product.id, item.selectedColor)}
+                      onClick={() =>
+                        removeFromCart(item.product.id, item.selectedColor)
+                      }
                       className={styles.removeBtn}
                       aria-label={`Remove ${item.product.title}`}
                     >
@@ -264,7 +313,9 @@ export default function CartPage() {
               </div>
 
               <div className={styles.summaryRow}>
-                <span className={styles.summaryRowLabel}>Estimated Shipping</span>
+                <span className={styles.summaryRowLabel}>
+                  Estimated Shipping
+                </span>
                 {shippingFee === 0 ? (
                   <span className={styles.freeShippingTag}>FREE</span>
                 ) : (
@@ -273,13 +324,21 @@ export default function CartPage() {
               </div>
 
               <div className={styles.summaryRow}>
-                <span className={styles.summaryRowLabel}>Estimated Tax (5%)</span>
+                <span className={styles.summaryRowLabel}>
+                  Estimated Tax (5%)
+                </span>
                 <span>${formatPrice(estimatedTax)}</span>
               </div>
 
               {discountAmount > 0 && (
-                <div className={styles.summaryRow} style={{ color: "var(--color-palm)" }}>
-                  <span className={styles.summaryRowLabel} style={{ color: "var(--color-palm)" }}>
+                <div
+                  className={styles.summaryRow}
+                  style={{ color: "var(--color-palm)" }}
+                >
+                  <span
+                    className={styles.summaryRowLabel}
+                    style={{ color: "var(--color-palm)" }}
+                  >
                     Promo Discount
                   </span>
                   <span>-${formatPrice(discountAmount)}</span>
@@ -288,7 +347,9 @@ export default function CartPage() {
 
               <div className={styles.totalRow}>
                 <span className={styles.totalLabel}>Total</span>
-                <span className={styles.totalValue}>${formatPrice(finalTotal)}</span>
+                <span className={styles.totalValue}>
+                  ${formatPrice(finalTotal)}
+                </span>
               </div>
             </div>
 

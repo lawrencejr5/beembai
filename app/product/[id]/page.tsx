@@ -5,7 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import styles from "./product.module.css";
-import { getProductById, getProductsByCategory, getCategoryBySlug, formatPrice } from "@/app/data/products";
+import {
+  getProductById,
+  getProductsByCategory,
+  getCategoryBySlug,
+  formatPrice,
+} from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
 
@@ -99,7 +104,11 @@ const ArrowLeftIcon = () => (
     stroke="currentColor"
     strokeWidth="2.5"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+    />
   </svg>
 );
 
@@ -115,7 +124,10 @@ export default function ProductPage({ params }: ProductPageProps) {
   const productId = resolvedParams?.id;
 
   const product = getProductById(productId);
-  const category = useMemo(() => (product ? getCategoryBySlug(product.categorySlug) : undefined), [product]);
+  const category = useMemo(
+    () => (product ? getCategoryBySlug(product.categorySlug) : undefined),
+    [product],
+  );
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     return getProductsByCategory(product.categorySlug)
@@ -124,22 +136,29 @@ export default function ProductPage({ params }: ProductPageProps) {
   }, [product]);
 
   const [selectedColor, setSelectedColor] = useState<string>(
-    product?.colors && product.colors.length > 0 ? product.colors[0] : ""
+    product?.colors && product.colors.length > 0 ? product.colors[0] : "",
   );
 
   if (!product) {
     return notFound();
   }
 
-  const activeColor = selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : undefined);
+  const activeColor =
+    selectedColor ||
+    (product.colors && product.colors.length > 0
+      ? product.colors[0]
+      : undefined);
   const currentCartItem = cart.find(
-    (item) => item.product.id === product.id && item.selectedColor === activeColor
+    (item) =>
+      item.product.id === product.id && item.selectedColor === activeColor,
   );
   const cartQty = currentCartItem?.quantity || 0;
   const maxStock = product.stock ?? 15;
 
   const discountPercent = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    ? Math.round(
+        ((product.originalPrice - product.price) / product.originalPrice) * 100,
+      )
     : 0;
 
   const handleGoBack = (e: React.MouseEvent) => {
@@ -155,7 +174,11 @@ export default function ProductPage({ params }: ProductPageProps) {
     <main className={styles.productPage}>
       {/* Top Back Navigation Bar */}
       <div className={styles.topBackHeader}>
-        <button type="button" onClick={handleGoBack} className={styles.backButton}>
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className={styles.backButton}
+        >
           <ArrowLeftIcon />
           <span>Back</span>
         </button>
@@ -169,7 +192,10 @@ export default function ProductPage({ params }: ProductPageProps) {
         <span className={styles.breadcrumbSeparator}>/</span>
         {category && (
           <>
-            <Link href={`/category/${category.slug}`} className={styles.breadcrumbLink}>
+            <Link
+              href={`/category/${category.slug}`}
+              className={styles.breadcrumbLink}
+            >
               {category.name}
             </Link>
             <span className={styles.breadcrumbSeparator}>/</span>
@@ -184,7 +210,9 @@ export default function ProductPage({ params }: ProductPageProps) {
         <div className={styles.imageGalleryContainer}>
           {product.tag && <span className={styles.cardTag}>{product.tag}</span>}
           {product.originalPrice && (
-            <span className={styles.cardDiscountTag}>-{discountPercent}% OFF</span>
+            <span className={styles.cardDiscountTag}>
+              -{discountPercent}% OFF
+            </span>
           )}
           <Image
             src={product.image}
@@ -199,8 +227,13 @@ export default function ProductPage({ params }: ProductPageProps) {
         {/* Right Column: Product Details & Purchase Actions */}
         <div className={styles.productInfoContainer}>
           <div className={styles.metaHeader}>
-            {product.brand && <span className={styles.brandBadge}>{product.brand}</span>}
-            <Link href={`/category/${product.categorySlug}`} className={styles.categoryLink}>
+            {product.brand && (
+              <span className={styles.brandBadge}>{product.brand}</span>
+            )}
+            <Link
+              href={`/category/${product.categorySlug}`}
+              className={styles.categoryLink}
+            >
               {product.categoryName}
             </Link>
           </div>
@@ -208,12 +241,18 @@ export default function ProductPage({ params }: ProductPageProps) {
           <h1 className={styles.productTitle}>{product.title}</h1>
 
           <div className={styles.priceRow}>
-            <span className={styles.currentPrice}>${formatPrice(product.price)}</span>
+            <span className={styles.currentPrice}>
+              ${formatPrice(product.price)}
+            </span>
             {product.originalPrice && (
-              <span className={styles.originalPrice}>${formatPrice(product.originalPrice)}</span>
+              <span className={styles.originalPrice}>
+                ${formatPrice(product.originalPrice)}
+              </span>
             )}
             {discountPercent > 0 && (
-              <span className={styles.discountPill}>Save {discountPercent}%</span>
+              <span className={styles.discountPill}>
+                Save {discountPercent}%
+              </span>
             )}
           </div>
 
@@ -225,15 +264,25 @@ export default function ProductPage({ params }: ProductPageProps) {
           <div className={styles.optionsContainer}>
             <div className={styles.optionGroup}>
               <span className={styles.optionLabel}>Stock Status</span>
-              <span className={maxStock <= 5 ? `${styles.stockBadge} ${styles.lowStockBadge}` : styles.stockBadge}>
-                {maxStock <= 5 ? `🔥 Only ${maxStock} left in stock!` : `✓ In Stock (${maxStock} available)`}
+              <span
+                className={
+                  maxStock <= 5
+                    ? `${styles.stockBadge} ${styles.lowStockBadge}`
+                    : styles.stockBadge
+                }
+              >
+                {maxStock <= 5
+                  ? `🔥 Only ${maxStock} left in stock!`
+                  : `✓ In Stock (${maxStock} available)`}
               </span>
             </div>
 
             {product.condition && (
               <div className={styles.optionGroup}>
                 <span className={styles.optionLabel}>Condition</span>
-                <span className={styles.conditionBadge}>✨ {product.condition}</span>
+                <span className={styles.conditionBadge}>
+                  ✨ {product.condition}
+                </span>
               </div>
             )}
 
@@ -244,7 +293,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                 </span>
                 <div className={styles.colorList}>
                   {product.colors.map((color) => {
-                    const isSelected = (selectedColor || product.colors![0]) === color;
+                    const isSelected =
+                      (selectedColor || product.colors![0]) === color;
                     return (
                       <button
                         type="button"
@@ -279,7 +329,9 @@ export default function ProductPage({ params }: ProductPageProps) {
                 <div className={styles.inCartQuantityPill}>
                   <button
                     type="button"
-                    onClick={() => updateQuantity(product.id, cartQty - 1, activeColor)}
+                    onClick={() =>
+                      updateQuantity(product.id, cartQty - 1, activeColor)
+                    }
                     className={styles.pillQtyBtn}
                     aria-label="Decrease quantity in cart"
                   >
@@ -287,11 +339,21 @@ export default function ProductPage({ params }: ProductPageProps) {
                   </button>
                   <span className={styles.pillQtyValue}>
                     <span>{cartQty}</span>
-                    <span style={{ fontSize: "0.78rem", opacity: 0.8, fontWeight: 700 }}>in Cart</span>
+                    <span
+                      style={{
+                        fontSize: "0.78rem",
+                        opacity: 0.8,
+                        fontWeight: 700,
+                      }}
+                    >
+                      in Cart
+                    </span>
                   </span>
                   <button
                     type="button"
-                    onClick={() => updateQuantity(product.id, cartQty + 1, activeColor)}
+                    onClick={() =>
+                      updateQuantity(product.id, cartQty + 1, activeColor)
+                    }
                     disabled={cartQty >= maxStock}
                     className={styles.pillQtyBtn}
                     aria-label="Increase quantity in cart"
@@ -319,15 +381,21 @@ export default function ProductPage({ params }: ProductPageProps) {
           {/* Trust Guarantee Badges */}
           <div className={styles.trustBadges}>
             <div className={styles.trustBadgeItem}>
-              <span className={styles.trustIcon}><TruckIcon /></span>
+              <span className={styles.trustIcon}>
+                <TruckIcon />
+              </span>
               <span>Express Delivery</span>
             </div>
             <div className={styles.trustBadgeItem}>
-              <span className={styles.trustIcon}><ShieldIcon /></span>
+              <span className={styles.trustIcon}>
+                <ShieldIcon />
+              </span>
               <span>100% Authentic Guarantee</span>
             </div>
             <div className={styles.trustBadgeItem}>
-              <span className={styles.trustIcon}><RotateCcwIcon /></span>
+              <span className={styles.trustIcon}>
+                <RotateCcwIcon />
+              </span>
               <span>30-Day Easy Returns</span>
             </div>
           </div>
@@ -352,7 +420,8 @@ export default function ProductPage({ params }: ProductPageProps) {
           </ul>
         ) : (
           <p className={styles.shortDescription}>
-            {product.description || "Premium quality product crafted with attention to detail and long-lasting durability."}
+            {product.description ||
+              "Premium quality product crafted with attention to detail and long-lasting durability."}
           </p>
         )}
 
@@ -377,12 +446,16 @@ export default function ProductPage({ params }: ProductPageProps) {
           {product.colors && product.colors.length > 0 && (
             <div className={styles.specItem}>
               <span className={styles.specLabel}>Available Colors</span>
-              <span className={styles.specValue}>{product.colors.join(", ")}</span>
+              <span className={styles.specValue}>
+                {product.colors.join(", ")}
+              </span>
             </div>
           )}
           <div className={styles.specItem}>
             <span className={styles.specLabel}>Price</span>
-            <span className={styles.specValue}>${formatPrice(product.price)}</span>
+            <span className={styles.specValue}>
+              ${formatPrice(product.price)}
+            </span>
           </div>
         </div>
       </section>
@@ -390,7 +463,9 @@ export default function ProductPage({ params }: ProductPageProps) {
       {/* Related Products Showcase */}
       {relatedProducts.length > 0 && (
         <section className={styles.relatedSection}>
-          <h2 className={styles.relatedTitle}>More from {product.categoryName}</h2>
+          <h2 className={styles.relatedTitle}>
+            More from {product.categoryName}
+          </h2>
           <div className={styles.relatedGrid}>
             {relatedProducts.map((item) => (
               <ProductCard

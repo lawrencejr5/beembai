@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { CartProvider } from "@/app/context/CartContext";
 import AiShopper from "@/app/components/AiShopper";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
+import { ConvexClientProvider } from "./ConvexClientProvider";
 
 const figtree = localFont({
   src: [
@@ -62,13 +64,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={figtree.variable}>
-      <body>
-        <CartProvider>
-          {children}
-          <AiShopper />
-        </CartProvider>
-      </body>
-    </html>
+    <ConvexAuthNextjsServerProvider>
+      <html lang="en" className={figtree.variable}>
+        <body>
+          <ConvexClientProvider>
+            <CartProvider>
+              {children}
+              <AiShopper />
+            </CartProvider>
+          </ConvexClientProvider>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
   );
 }

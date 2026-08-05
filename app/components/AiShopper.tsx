@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./AiShopper.module.css";
-import { PRODUCTS_DATA, Product, formatPrice } from "@/app/data/products";
+import { PRODUCTS_DATA, Product, formatPrice } from "@/app/data/data";
 
 interface Message {
   id: string;

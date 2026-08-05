@@ -5,8 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./stores.module.css";
 import homeStyles from "@/app/page.module.css";
-import { getAllStores, Store, formatNumber } from "@/app/data/products";
+import { getAllStores, Store, formatNumber } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
+import UserMenu from "@/app/components/UserMenu";
+
 
 // Local SVG Icons
 const SearchIcon = () => (
@@ -200,9 +202,7 @@ export default function StoresPage() {
         </nav>
 
         <div className={homeStyles.navActions}>
-          <Link href="/login" className={homeStyles.authBtn}>
-            Login / Register
-          </Link>
+          <UserMenu />
           <button
             onClick={toggleTheme}
             className={homeStyles.themeToggleBtn}

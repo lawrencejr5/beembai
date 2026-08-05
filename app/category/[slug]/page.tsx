@@ -5,7 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import styles from "./category.module.css";
-import { getCategoryBySlug, getProductsByCategory, Product, formatPrice, formatNumber } from "@/app/data/products";
+import {
+  getCategoryBySlug,
+  getProductsByCategory,
+  Product,
+  formatPrice,
+  formatNumber,
+} from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
 
@@ -70,7 +76,11 @@ const ArrowLeftIcon = () => (
     stroke="currentColor"
     strokeWidth="2.5"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+    />
   </svg>
 );
 
@@ -103,7 +113,10 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   const slug = resolvedParams?.slug;
 
   const category = getCategoryBySlug(slug);
-  const rawProducts = useMemo(() => (category ? getProductsByCategory(category.slug) : []), [category]);
+  const rawProducts = useMemo(
+    () => (category ? getProductsByCategory(category.slug) : []),
+    [category],
+  );
 
   // Extract min and max prices from category products
   const categoryPrices = useMemo(() => {
@@ -134,11 +147,17 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     return Array.from(colorsSet).sort();
   }, [rawProducts]);
 
-  const availableConditions: Array<"New" | "Refurbished" | "Like New"> = ["New", "Refurbished", "Like New"];
+  const availableConditions: Array<"New" | "Refurbished" | "Like New"> = [
+    "New",
+    "Refurbished",
+    "Like New",
+  ];
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
-  const [maxPriceFilter, setMaxPriceFilter] = useState<number>(categoryPrices.max);
+  const [maxPriceFilter, setMaxPriceFilter] = useState<number>(
+    categoryPrices.max,
+  );
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
@@ -156,7 +175,14 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     if (selectedColors.length > 0) count += selectedColors.length;
     if (discountedOnly) count++;
     return count;
-  }, [maxPriceFilter, categoryPrices.max, selectedBrands, selectedConditions, selectedColors, discountedOnly]);
+  }, [
+    maxPriceFilter,
+    categoryPrices.max,
+    selectedBrands,
+    selectedConditions,
+    selectedColors,
+    discountedOnly,
+  ]);
 
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -169,19 +195,21 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
   const handleBrandToggle = (brand: string) => {
     setSelectedBrands((prev) =>
-      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand],
     );
   };
 
   const handleConditionToggle = (condition: string) => {
     setSelectedConditions((prev) =>
-      prev.includes(condition) ? prev.filter((c) => c !== condition) : [...prev, condition]
+      prev.includes(condition)
+        ? prev.filter((c) => c !== condition)
+        : [...prev, condition],
     );
   };
 
   const handleColorToggle = (color: string) => {
     setSelectedColors((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
+      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color],
     );
   };
 
@@ -195,7 +223,8 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         const matchesDesc = product.description?.toLowerCase().includes(query);
         const matchesTag = product.tag?.toLowerCase().includes(query);
         const matchesBrand = product.brand?.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDesc && !matchesTag && !matchesBrand) return false;
+        if (!matchesTitle && !matchesDesc && !matchesTag && !matchesBrand)
+          return false;
       }
 
       // 2. Price Filter
@@ -203,22 +232,32 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
       // 3. Brand Filter
       if (selectedBrands.length > 0) {
-        if (!product.brand || !selectedBrands.includes(product.brand)) return false;
+        if (!product.brand || !selectedBrands.includes(product.brand))
+          return false;
       }
 
       // 4. Condition Filter
       if (selectedConditions.length > 0) {
-        if (!product.condition || !selectedConditions.includes(product.condition)) return false;
+        if (
+          !product.condition ||
+          !selectedConditions.includes(product.condition)
+        )
+          return false;
       }
 
       // 5. Colors Filter (Array match)
       if (selectedColors.length > 0) {
-        if (!product.colors || !product.colors.some((c) => selectedColors.includes(c))) return false;
+        if (
+          !product.colors ||
+          !product.colors.some((c) => selectedColors.includes(c))
+        )
+          return false;
       }
 
       // 6. Discounted Only Filter
       if (discountedOnly) {
-        if (!product.originalPrice || product.originalPrice <= product.price) return false;
+        if (!product.originalPrice || product.originalPrice <= product.price)
+          return false;
       }
 
       return true;
@@ -252,7 +291,11 @@ export default function CategoryPage({ params }: CategoryPageProps) {
             <span>$</span>
             <span>{formatPrice(categoryPrices.min)}</span>
           </div>
-          <span style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}>to</span>
+          <span
+            style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}
+          >
+            to
+          </span>
           <div className={styles.priceInputWrapper}>
             <span>$</span>
             <span>{formatPrice(maxPriceFilter)}</span>
@@ -394,7 +437,10 @@ export default function CategoryPage({ params }: CategoryPageProps) {
               <span>Filters</span>
             </h3>
             {activeFiltersCount > 0 && (
-              <button onClick={handleResetFilters} className={styles.clearFiltersBtn}>
+              <button
+                onClick={handleResetFilters}
+                className={styles.clearFiltersBtn}
+              >
                 Clear All ({activeFiltersCount})
               </button>
             )}
@@ -413,7 +459,8 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <span className={styles.productsCountTag}>
-                Showing {formatNumber(filteredProducts.length)} of {formatNumber(rawProducts.length)} Products
+                Showing {formatNumber(filteredProducts.length)} of{" "}
+                {formatNumber(rawProducts.length)} Products
               </span>
 
               {/* Mobile Filter Button */}
@@ -425,7 +472,9 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                 <FilterIcon />
                 <span>Filters</span>
                 {activeFiltersCount > 0 && (
-                  <span className={styles.filterBadge}>{activeFiltersCount}</span>
+                  <span className={styles.filterBadge}>
+                    {activeFiltersCount}
+                  </span>
                 )}
               </button>
             </div>
@@ -441,7 +490,9 @@ export default function CategoryPage({ params }: CategoryPageProps) {
             <div className={styles.emptyState}>
               <h3 className={styles.emptyTitle}>No matching products found</h3>
               <p className={styles.emptySubtitle}>
-                We couldn't find any products matching your active filter criteria in {category.name}. Try adjusting or clearing your filters!
+                We couldn't find any products matching your active filter
+                criteria in {category.name}. Try adjusting or clearing your
+                filters!
               </p>
               <button
                 onClick={handleResetFilters}
@@ -457,8 +508,14 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
       {/* Mobile Filter Bottom Drawer / Modal */}
       {isMobileFilterOpen && (
-        <div className={styles.drawerBackdrop} onClick={() => setIsMobileFilterOpen(false)}>
-          <div className={styles.drawerSheet} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={styles.drawerBackdrop}
+          onClick={() => setIsMobileFilterOpen(false)}
+        >
+          <div
+            className={styles.drawerSheet}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className={styles.drawerHandleBar} />
 
             <div className={styles.drawerHeader}>

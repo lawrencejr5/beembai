@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
-import { Product, formatPrice } from "@/app/data/products";
+import { Product, formatPrice } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 
 const CartIcon = () => (
@@ -41,11 +41,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const { cart, addToCart, updateQuantity } = useCart();
 
   const cartItems = cart.filter((item) => item.product.id === product.id);
-  const totalQtyInCart = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const totalQtyInCart = cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0,
+  );
   const maxStock = product.stock ?? 15;
 
   const discountPercent = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    ? Math.round(
+        ((product.originalPrice - product.price) / product.originalPrice) * 100,
+      )
     : 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -59,7 +64,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     e.stopPropagation();
     if (cartItems.length > 0) {
       const targetItem = cartItems[0];
-      updateQuantity(product.id, targetItem.quantity - 1, targetItem.selectedColor);
+      updateQuantity(
+        product.id,
+        targetItem.quantity - 1,
+        targetItem.selectedColor,
+      );
     }
   };
 
@@ -70,14 +79,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     if (cartItems.length > 0) {
       const targetItem = cartItems[0];
-      updateQuantity(product.id, targetItem.quantity + 1, targetItem.selectedColor);
+      updateQuantity(
+        product.id,
+        targetItem.quantity + 1,
+        targetItem.selectedColor,
+      );
     } else {
       addToCart(product, 1);
     }
   };
 
   return (
-    <Link href={`/product/${product.id}`} className={styles.productCard} style={cardStyle}>
+    <Link
+      href={`/product/${product.id}`}
+      className={styles.productCard}
+      style={cardStyle}
+    >
       <div className={styles.productImageWrapper}>
         {product.tag && <span className={styles.cardTag}>{product.tag}</span>}
         {discountPercent > 0 && (
@@ -99,7 +116,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className={styles.cardFooter}>
           <div className={styles.priceWrapper}>
             {product.originalPrice && (
-              <span className={styles.originalPrice}>${formatPrice(product.originalPrice)}</span>
+              <span className={styles.originalPrice}>
+                ${formatPrice(product.originalPrice)}
+              </span>
             )}
             <span className={styles.price}>${formatPrice(product.price)}</span>
           </div>

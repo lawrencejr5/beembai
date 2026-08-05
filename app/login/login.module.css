@@ -348,3 +348,41 @@
     border-radius: 20px;
   }
 }
+
+.errorMessage {
+  background-color: rgba(199, 74, 41, 0.08);
+  border: 1px solid rgba(199, 74, 41, 0.3);
+  color: #c94a29;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.resendBtn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background-color: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-olive-gray);
+  padding: 0.65rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+.resendBtn:hover:not(:disabled) {
+  border-color: var(--color-palm);
+  color: var(--color-palm);
+  background-color: rgba(99, 109, 33, 0.04);
+}
+
+.resendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

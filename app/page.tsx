@@ -12,9 +12,10 @@ import {
   CATEGORIES_DATA,
   formatPrice,
   formatNumber,
-} from "@/app/data/products";
+} from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
+import UserMenu from "@/app/components/UserMenu";
 
 // SVG Components
 const SearchIcon = () => (
@@ -269,7 +270,9 @@ interface AdvertSlide {
   bgGradient: string;
 }
 
-const ADVERT_SLIDES: AdvertSlide[] = PRODUCTS_DATA.filter((p) => p.isSponsored).map((product, index) => {
+const ADVERT_SLIDES: AdvertSlide[] = PRODUCTS_DATA.filter(
+  (p) => p.isSponsored,
+).map((product, index) => {
   const gradients = [
     "linear-gradient(135deg, #241c0e 0%, #3d2f16 50%, #140f07 100%)",
     "linear-gradient(135deg, #160f26 0%, #2b1747 50%, #0c0716 100%)",
@@ -548,9 +551,7 @@ export default function Home() {
         </nav>
 
         <div className={styles.navActions}>
-          <Link href="/login" className={styles.authBtn}>
-            Login / Register
-          </Link>
+          <UserMenu />
 
           <button
             onClick={toggleTheme}
@@ -793,9 +794,7 @@ export default function Home() {
                   <p className={styles.advertSubtitle}>{slide.subtitle}</p>
 
                   <div className={styles.advertActions}>
-                    <span className={styles.advertCtaBtn}>
-                      {slide.ctaText}
-                    </span>
+                    <span className={styles.advertCtaBtn}>{slide.ctaText}</span>
                     {slide.price && (
                       <div className={styles.advertPriceBadge}>
                         <span className={styles.advertCurrentPrice}>

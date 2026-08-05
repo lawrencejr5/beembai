@@ -1,7 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
-import { Product } from "@/app/data/products";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+} from "react";
+import { Product } from "@/app/data/data";
 
 export interface CartItem {
   product: Product;
@@ -11,9 +17,17 @@ export interface CartItem {
 
 export interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, quantity?: number, selectedColor?: string) => void;
+  addToCart: (
+    product: Product,
+    quantity?: number,
+    selectedColor?: string,
+  ) => void;
   removeFromCart: (productId: string, selectedColor?: string) => void;
-  updateQuantity: (productId: string, quantity: number, selectedColor?: string) => void;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    selectedColor?: string,
+  ) => void;
   clearCart: () => void;
   totalItemsCount: number;
   subtotalPrice: number;
@@ -24,7 +38,9 @@ const CART_STORAGE_KEY = "beembai_cart_items_v1";
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [cartBounce, setCartBounce] = useState(false);
@@ -61,20 +77,32 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [cart, isLoaded]);
 
-  const addToCart = (product: Product, quantity: number = 1, selectedColor?: string) => {
-    const colorToUse = selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : undefined);
+  const addToCart = (
+    product: Product,
+    quantity: number = 1,
+    selectedColor?: string,
+  ) => {
+    const colorToUse =
+      selectedColor ||
+      (product.colors && product.colors.length > 0
+        ? product.colors[0]
+        : undefined);
     const maxStock = product.stock ?? 15;
-    
+
     triggerBounce();
 
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
-        (item) => item.product.id === product.id && item.selectedColor === colorToUse
+        (item) =>
+          item.product.id === product.id && item.selectedColor === colorToUse,
       );
 
       if (existingIndex > -1) {
         const updated = [...prevCart];
-        const newQty = Math.min(maxStock, updated[existingIndex].quantity + quantity);
+        const newQty = Math.min(
+          maxStock,
+          updated[existingIndex].quantity + quantity,
+        );
         updated[existingIndex] = {
           ...updated[existingIndex],
           quantity: newQty,
@@ -83,19 +111,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const initialQty = Math.min(maxStock, Math.max(1, quantity));
-      return [...prevCart, { product, selectedColor: colorToUse, quantity: initialQty }];
+      return [
+        ...prevCart,
+        { product, selectedColor: colorToUse, quantity: initialQty },
+      ];
     });
   };
 
   const removeFromCart = (productId: string, selectedColor?: string) => {
     setCart((prevCart) =>
       prevCart.filter(
-        (item) => !(item.product.id === productId && item.selectedColor === selectedColor)
-      )
+        (item) =>
+          !(
+            item.product.id === productId &&
+            item.selectedColor === selectedColor
+          ),
+      ),
     );
   };
 
-  const updateQuantity = (productId: string, newQuantity: number, selectedColor?: string) => {
+  const updateQuantity = (
+    productId: string,
+    newQuantity: number,
+    selectedColor?: string,
+  ) => {
     if (newQuantity <= 0) {
       removeFromCart(productId, selectedColor);
       return;
@@ -103,14 +142,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCart((prevCart) => {
       const targetItem = prevCart.find(
-        (item) => item.product.id === productId && item.selectedColor === selectedColor
+        (item) =>
+          item.product.id === productId && item.selectedColor === selectedColor,
       );
       if (targetItem && newQuantity > targetItem.quantity) {
         triggerBounce();
       }
 
       return prevCart.map((item) => {
-        if (item.product.id === productId && item.selectedColor === selectedColor) {
+        if (
+          item.product.id === productId &&
+          item.selectedColor === selectedColor
+        ) {
           const maxStock = item.product.stock ?? 15;
           return { ...item, quantity: Math.min(maxStock, newQuantity) };
         }
@@ -128,7 +171,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart]);
 
   const subtotalPrice = useMemo(() => {
-    return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+    return cart.reduce(
+      (total, item) => total + item.product.price * item.quantity,
+      0,
+    );
   }, [cart]);
 
   return (
