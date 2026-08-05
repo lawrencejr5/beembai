@@ -15,6 +15,15 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
   }).index("email", ["email"]),
 
+  cart: defineTable({
+    userId: v.id("users"),
+    productId: v.string(),
+    selectedColor: v.optional(v.string()),
+    quantity: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_user_product", ["userId", "productId"]),
+
   categories: defineTable({
     slug: v.string(),
     name: v.string(),

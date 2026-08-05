@@ -163,3 +163,14 @@
 .signOutBtn:hover {
   background-color: rgba(199, 74, 41, 0.08);
 }
+
+@media (max-width: 576px) {
+  .userName {
+    display: none;
+  }
+  .triggerBtn {
+    padding: 0.45rem 0.55rem;
+    gap: 0.25rem;
+    border-color: var(--color-border);
+  }
+}
