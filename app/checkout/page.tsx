@@ -60,7 +60,14 @@ const CheckIcon = () => (
 export default function CheckoutPage() {
   const router = useRouter();
   const user = useQuery(api.users.viewer);
-  const { cart, subtotalPrice, clearCart } = useCart();
+  const {
+    cart,
+    selectedItemKeys,
+    toggleSelectItem,
+    selectedCart,
+    selectedSubtotalPrice,
+    clearSelectedCart,
+  } = useCart();
 
   // Redirect if logged out
   useEffect(() => {
@@ -84,17 +91,17 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const shippingFee = shippingMethod === "express" ? 15 : (subtotalPrice > 100 || subtotalPrice === 0 ? 0 : 10);
-  const estimatedTax = Math.round(subtotalPrice * 0.05);
-  const finalTotal = subtotalPrice + shippingFee + estimatedTax;
+  const shippingFee = shippingMethod === "express" ? 15 : (selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10);
+  const estimatedTax = Math.round(selectedSubtotalPrice * 0.05);
+  const finalTotal = selectedSubtotalPrice + shippingFee + estimatedTax;
 
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    if (cart.length === 0) return;
+    if (selectedCart.length === 0) return;
     setIsProcessing(true);
 
     setTimeout(() => {
-      clearCart();
+      clearSelectedCart();
       setIsProcessing(false);
       setShowSuccess(true);
       setTimeout(() => {
@@ -241,7 +248,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <span className={styles.shippingPrice}>
-                    {subtotalPrice > 100 ? "FREE" : "$10.00"}
+                    {selectedSubtotalPrice > 100 ? "FREE" : "$10.00"}
                   </span>
                 </label>
 
@@ -320,34 +327,50 @@ export default function CheckoutPage() {
             <h2 className={styles.summaryTitle}>Review Order</h2>
 
             <div className={styles.checkoutItemsList}>
-              {cart.map((item) => (
-                <div key={`${item.product.id}-${item.selectedColor || "default"}`} className={styles.checkoutItemRow}>
-                  <div className={styles.itemImageWrapper}>
-                    <Image
-                      src={item.product.image}
-                      alt={item.product.title}
-                      fill
-                      style={{ objectFit: "cover" }}
-                      sizes="50px"
-                    />
-                  </div>
-                  <div className={styles.itemRowInfo}>
-                    <span className={styles.itemRowTitle}>{item.product.title}</span>
-                    <span className={styles.itemRowMeta}>
-                      Qty: {item.quantity} {item.selectedColor ? `| ${item.selectedColor}` : ""}
+              {cart.map((item) => {
+                const itemKey = `${item.product.id}-${item.selectedColor || "default"}`;
+                const isSelected = selectedItemKeys[itemKey] === true;
+                return (
+                  <div
+                    key={itemKey}
+                    className={`${styles.checkoutItemRow} ${isSelected ? "" : styles.unselectedRow}`}
+                  >
+                    <div className={styles.checkboxWrapper}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectItem(item.product.id, item.selectedColor)}
+                        className={styles.itemCheckbox}
+                        disabled={isProcessing}
+                      />
+                    </div>
+                    <div className={styles.itemImageWrapper}>
+                      <Image
+                        src={item.product.image}
+                        alt={item.product.title}
+                        fill
+                        style={{ objectFit: "cover" }}
+                        sizes="50px"
+                      />
+                    </div>
+                    <div className={styles.itemRowInfo}>
+                      <span className={styles.itemRowTitle}>{item.product.title}</span>
+                      <span className={styles.itemRowMeta}>
+                        Qty: {item.quantity} {item.selectedColor ? `| ${item.selectedColor}` : ""}
+                      </span>
+                    </div>
+                    <span className={styles.itemRowPrice}>
+                      ${formatPrice(item.product.price * item.quantity)}
                     </span>
                   </div>
-                  <span className={styles.itemRowPrice}>
-                    ${formatPrice(item.product.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Subtotal</span>
-                <span>${formatPrice(subtotalPrice)}</span>
+                <span>${formatPrice(selectedSubtotalPrice)}</span>
               </div>
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Shipping</span>
@@ -369,7 +392,7 @@ export default function CheckoutPage() {
 
             <button
               onClick={handleSubmitOrder}
-              disabled={isProcessing || cart.length === 0}
+              disabled={isProcessing || selectedCart.length === 0}
               className={styles.payBtn}
             >
               {isProcessing ? (

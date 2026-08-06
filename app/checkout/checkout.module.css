@@ -484,3 +484,28 @@
     transform: rotate(360deg);
   }
 }
+
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 0.25rem;
+  flex-shrink: 0;
+}
+
+.itemCheckbox {
+  accent-color: var(--color-palm);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.unselectedRow {
+  opacity: 0.45;
+  filter: grayscale(60%);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.unselectedRow .itemRowPrice {
+  text-decoration: line-through;
+}

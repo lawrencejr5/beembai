@@ -373,7 +373,6 @@
 
 .checkoutBtn {
   width: 100%;
-  /* height: 52px; */
   padding: 15px;
   border-radius: 99px;
   background-color: var(--color-palm);
@@ -511,5 +510,93 @@
   }
   .summaryCard {
     padding: 1.5rem;
+  }
+}
+
+/* Select All control bar */
+.selectAllBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  background-color: var(--color-sand);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.selectAllLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-papyrus);
+  cursor: pointer;
+  user-select: none;
+}
+
+:global([data-theme="dark"]) .selectAllLabel {
+  color: var(--color-coconut);
+}
+
+.selectAllCheckbox {
+  accent-color: var(--color-palm);
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+}
+
+.selectAllText {
+  font-weight: 700;
+}
+
+.selectedCountText {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--color-palm);
+  background-color: rgba(59, 107, 72, 0.08);
+  padding: 0.25rem 0.65rem;
+  border-radius: 99px;
+}
+
+/* Checkbox wrapper next to item card */
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.itemCheckbox {
+  accent-color: var(--color-palm);
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Selected item styling */
+.selectedCard {
+  background-color: rgba(99, 109, 33, 0.03) !important;
+  border-color: rgba(99, 109, 33, 0.3) !important;
+}
+
+:global([data-theme="dark"]) .selectedCard {
+  background-color: rgba(99, 109, 33, 0.06) !important;
+  border-color: rgba(99, 109, 33, 0.45) !important;
+}
+
+@media (max-width: 768px) {
+  .checkboxWrapper {
+    width: 100%;
+    justify-content: flex-start;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--color-border);
+    margin-bottom: 0.25rem;
+    padding-right: 0;
+  }
+  .itemImageWrapper {
+    margin-left: 0;
   }
 }

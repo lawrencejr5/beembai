@@ -34,6 +34,13 @@ export interface CartContextType {
   totalItemsCount: number;
   subtotalPrice: number;
   cartBounce: boolean;
+  selectedItemKeys: Record<string, boolean>;
+  toggleSelectItem: (productId: string, selectedColor?: string) => void;
+  setSelectedAll: (selected: boolean) => void;
+  clearSelectedCart: () => void;
+  selectedCart: CartItem[];
+  selectedSubtotalPrice: number;
+  selectedItemsCount: number;
 }
 
 const CART_STORAGE_KEY = "beembai_cart_items_v1";
@@ -56,6 +63,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [cartBounce, setCartBounce] = useState(false);
+
+  // Selection states
+  const [selectedItemKeys, setSelectedItemKeys] = useState<Record<string, boolean>>({});
 
   const triggerBounce = () => {
     setCartBounce(true);
@@ -144,6 +154,97 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return cart;
   }, [user, mappedDbCart, cart]);
+
+  // Synchronize selection state with active cart items
+  useEffect(() => {
+    setSelectedItemKeys((prevKeys) => {
+      const nextKeys = { ...prevKeys };
+      let updated = false;
+
+      // Keep track of active item keys
+      const activeKeys = new Set(
+        activeCart.map((item) => `${item.product.id}-${item.selectedColor || "default"}`)
+      );
+
+      // 1. Initialize newly added items as selected (true)
+      for (const item of activeCart) {
+        const key = `${item.product.id}-${item.selectedColor || "default"}`;
+        if (nextKeys[key] === undefined) {
+          nextKeys[key] = true;
+          updated = true;
+        }
+      }
+
+      // 2. Remove keys of items no longer in the cart
+      for (const key of Object.keys(nextKeys)) {
+        if (!activeKeys.has(key)) {
+          delete nextKeys[key];
+          updated = true;
+        }
+      }
+
+      return updated ? nextKeys : prevKeys;
+    });
+  }, [activeCart]);
+
+  const toggleSelectItem = (productId: string, selectedColor?: string) => {
+    const key = `${productId}-${selectedColor || "default"}`;
+    setSelectedItemKeys((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const setSelectedAll = (selected: boolean) => {
+    setSelectedItemKeys((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        next[key] = selected;
+      }
+      return next;
+    });
+  };
+
+  const clearSelectedCart = () => {
+    // Collect all selected items
+    const selectedItems = activeCart.filter((item) => {
+      const key = `${item.product.id}-${item.selectedColor || "default"}`;
+      return selectedItemKeys[key] === true;
+    });
+
+    if (user) {
+      // Clear selected items from database
+      selectedItems.forEach((item) => {
+        void removeDbCart({ productId: item.product.id, selectedColor: item.selectedColor });
+      });
+    } else {
+      // Clear selected items from localStorage state
+      setCart((prevCart) =>
+        prevCart.filter((item) => {
+          const key = `${item.product.id}-${item.selectedColor || "default"}`;
+          return selectedItemKeys[key] !== true;
+        })
+      );
+    }
+  };
+
+  const selectedCart = useMemo(() => {
+    return activeCart.filter((item) => {
+      const key = `${item.product.id}-${item.selectedColor || "default"}`;
+      return selectedItemKeys[key] === true;
+    });
+  }, [activeCart, selectedItemKeys]);
+
+  const selectedSubtotalPrice = useMemo(() => {
+    return selectedCart.reduce(
+      (total, item) => total + item.product.price * item.quantity,
+      0,
+    );
+  }, [selectedCart]);
+
+  const selectedItemsCount = useMemo(() => {
+    return selectedCart.reduce((total, item) => total + item.quantity, 0);
+  }, [selectedCart]);
 
   const addToCart = (
     product: Product,
@@ -277,6 +378,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         totalItemsCount,
         subtotalPrice,
         cartBounce,
+        selectedItemKeys,
+        toggleSelectItem,
+        setSelectedAll,
+        clearSelectedCart,
+        selectedCart,
+        selectedSubtotalPrice,
+        selectedItemsCount,
       }}
     >
       {children}

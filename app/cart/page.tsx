@@ -92,6 +92,12 @@ export default function CartPage() {
     clearCart,
     totalItemsCount,
     subtotalPrice,
+    selectedItemKeys,
+    toggleSelectItem,
+    setSelectedAll,
+    selectedCart,
+    selectedSubtotalPrice,
+    selectedItemsCount,
   } = useCart();
   const user = useQuery(api.users.viewer);
 
@@ -102,11 +108,11 @@ export default function CartPage() {
     isError: boolean;
   } | null>(null);
 
-  const shippingFee = subtotalPrice > 100 || subtotalPrice === 0 ? 0 : 10;
-  const estimatedTax = Math.round(subtotalPrice * 0.05);
+  const shippingFee = selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10;
+  const estimatedTax = Math.round(selectedSubtotalPrice * 0.05);
   const finalTotal = Math.max(
     0,
-    subtotalPrice + shippingFee + estimatedTax - discountAmount,
+    selectedSubtotalPrice + shippingFee + estimatedTax - discountAmount,
   );
 
   const handleGoBack = (e: React.MouseEvent) => {
@@ -122,7 +128,7 @@ export default function CartPage() {
     e.preventDefault();
     const code = promoCode.trim().toUpperCase();
     if (code === "BEEMBAI10" || code === "WELCOME10") {
-      const discount = Math.round(subtotalPrice * 0.1);
+      const discount = Math.round(selectedSubtotalPrice * 0.1);
       setDiscountAmount(discount);
       setPromoMessage({
         text: "10% Discount applied successfully!",
@@ -206,13 +212,41 @@ export default function CartPage() {
         <div className={styles.cartGrid}>
           {/* Left Column: List of Cart Items */}
           <div className={styles.itemsContainer}>
+            <div className={styles.selectAllBar}>
+              <label className={styles.selectAllLabel}>
+                <input
+                  type="checkbox"
+                  checked={selectedCart.length === cart.length}
+                  onChange={(e) => setSelectedAll(e.target.checked)}
+                  className={styles.selectAllCheckbox}
+                />
+                <span className={styles.selectAllText}>Select All ({cart.length} items)</span>
+              </label>
+              {selectedCart.length > 0 && (
+                <span className={styles.selectedCountText}>
+                  {selectedItemsCount} selected
+                </span>
+              )}
+            </div>
+
             {cart.map((item) => {
               const itemTotal = item.product.price * item.quantity;
+              const itemKey = `${item.product.id}-${item.selectedColor || "default"}`;
+              const isSelected = selectedItemKeys[itemKey] === true;
               return (
                 <div
                   key={`${item.product.id}-${item.selectedColor || "default"}`}
-                  className={styles.cartItemCard}
+                  className={`${styles.cartItemCard} ${isSelected ? styles.selectedCard : ""}`}
                 >
+                  <div className={styles.checkboxWrapper}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectItem(item.product.id, item.selectedColor)}
+                      className={styles.itemCheckbox}
+                    />
+                  </div>
+
                   <div className={styles.itemImageWrapper}>
                     <Image
                       src={item.product.image}
@@ -386,6 +420,10 @@ export default function CartPage() {
             {user === undefined ? (
               <button type="button" className={styles.checkoutBtn} disabled>
                 Proceed to Checkout (${formatPrice(finalTotal)})
+              </button>
+            ) : selectedCart.length === 0 ? (
+              <button type="button" className={styles.checkoutBtn} disabled>
+                Proceed to Checkout ($0.00)
               </button>
             ) : user ? (
               <Link
