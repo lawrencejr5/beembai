@@ -201,6 +201,21 @@ export default function LoginPage() {
     setSuccess(false);
   };
 
+  const getRedirectUrl = () => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get("redirectTo");
+      const startOnboarding = params.get("startOnboarding");
+      if (redirectTo) {
+        if (startOnboarding === "true") {
+          return `${redirectTo}?startOnboarding=true`;
+        }
+        return redirectTo;
+      }
+    }
+    return "/";
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -213,8 +228,9 @@ export default function LoginPage() {
           await signIn("password", { email, password, flow: "signIn" });
           setSuccessMessage("Welcome back! You have logged in successfully.");
           setSuccess(true);
+          const destination = getRedirectUrl();
           setTimeout(() => {
-            router.push("/");
+            router.push(destination);
           }, 2000);
         }
       } else {
@@ -237,8 +253,9 @@ export default function LoginPage() {
             await signIn("password", { email, code, flow: "email-verification" });
             setSuccessMessage("Congratulations! Your email has been verified and you are now logged in.");
             setSuccess(true);
+            const destination = getRedirectUrl();
             setTimeout(() => {
-              router.push("/");
+              router.push(destination);
             }, 2000);
           }
         }
@@ -271,7 +288,8 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     setError("");
     try {
-      await signIn("google");
+      const destination = getRedirectUrl();
+      await signIn("google", { redirectTo: destination });
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Google Authentication failed.");
