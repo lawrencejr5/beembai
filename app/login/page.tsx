@@ -151,12 +151,15 @@ export default function LoginPage() {
   // Form Inputs
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
 
   // UI Status
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const anyLoading = isSubmitting || isResending || isGoogleLoading;
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
@@ -168,6 +171,20 @@ export default function LoginPage() {
         | "light"
         | "dark") || "light";
     setTheme(activeTheme);
+  }, []);
+
+  // Reset loading states when returning from browser back/forward cache (bfcache)
+  useEffect(() => {
+    const handlePageShow = () => {
+      setIsSubmitting(false);
+      setIsResending(false);
+      setIsGoogleLoading(false);
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -186,7 +203,7 @@ export default function LoginPage() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
     setError("");
     setSuccess(false);
 
@@ -202,8 +219,13 @@ export default function LoginPage() {
         }
       } else {
         if (step === "credentials") {
-          if (name && email && phone && password) {
-            await signIn("password", { name, email, phone, password, flow: "signUp" });
+          if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            setIsSubmitting(false);
+            return;
+          }
+          if (name && email && password) {
+            await signIn("password", { name, email, password, flow: "signUp" });
             setSuccessMessage("Verification code has been sent to your email!");
             setSuccess(true);
             setStep("verify");
@@ -225,35 +247,35 @@ export default function LoginPage() {
       console.error(err);
       setError(err.message || "An authentication error occurred.");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleResendCode = async () => {
-    setLoading(true);
+    setIsResending(true);
     setError("");
     setSuccess(false);
     try {
-      await signIn("password", { name, email, phone, password, flow: "signUp" });
+      await signIn("password", { name, email, password, flow: "signUp" });
       setSuccessMessage("A new verification code has been sent!");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
       setError(err.message || "Failed to resend code.");
     } finally {
-      setLoading(false);
+      setIsResending(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setLoading(true);
+    setIsGoogleLoading(true);
     setError("");
     try {
       await signIn("google");
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Google Authentication failed.");
-      setLoading(false);
+      setIsGoogleLoading(false);
     }
   };
 
@@ -346,9 +368,9 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleSignIn}
               className={styles.googleBtn}
-              disabled={loading}
+              disabled={anyLoading}
             >
-              {loading ? <SpinnerIcon /> : <GoogleIcon />}
+              {isGoogleLoading ? <SpinnerIcon /> : <GoogleIcon />}
               <span>
                 {isLogin ? "Sign in with Google" : "Sign up with Google"}
               </span>
@@ -372,7 +394,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={styles.inputField}
-                    disabled={loading}
+                    disabled={anyLoading}
                   />
                 </div>
 
@@ -386,7 +408,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={styles.inputField}
-                    disabled={loading}
+                    disabled={anyLoading}
                   />
                 </div>
               </>
@@ -402,7 +424,7 @@ export default function LoginPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className={styles.inputField}
-                    disabled={loading}
+                    disabled={anyLoading}
                   />
                 </div>
 
@@ -416,21 +438,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={styles.inputField}
-                    disabled={loading}
-                  />
-                </div>
-
-                {/* Phone Input */}
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Phone Number</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+1 (555) 000-0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className={styles.inputField}
-                    disabled={loading}
+                    disabled={anyLoading}
                   />
                 </div>
 
@@ -444,7 +452,21 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={styles.inputField}
-                    disabled={loading}
+                    disabled={anyLoading}
+                  />
+                </div>
+
+                {/* Confirm Password Input */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Confirm Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={styles.inputField}
+                    disabled={anyLoading}
                   />
                 </div>
               </>
@@ -461,7 +483,7 @@ export default function LoginPage() {
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     className={styles.inputField}
-                    disabled={loading}
+                    disabled={anyLoading}
                   />
                   <span style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}>
                     An email verification OTP was sent to <strong>{email}</strong>
@@ -477,9 +499,9 @@ export default function LoginPage() {
             <button
               type="submit"
               className={styles.submitBtn}
-              disabled={loading}
+              disabled={anyLoading}
             >
-              {loading
+              {isSubmitting
                 ? "Processing..."
                 : isLogin
                   ? "Sign In"
@@ -494,9 +516,9 @@ export default function LoginPage() {
                 type="button"
                 className={styles.resendBtn}
                 onClick={handleResendCode}
-                disabled={loading}
+                disabled={anyLoading}
               >
-                Resend Code
+                {isResending ? "Resending..." : "Resend Code"}
               </button>
             )}
           </form>
@@ -508,7 +530,7 @@ export default function LoginPage() {
               type="button"
               className={styles.switchLink}
               onClick={() => handleTabChange(!isLogin)}
-              disabled={loading}
+              disabled={anyLoading}
             >
               {isLogin ? "Sign up" : "Sign in"}
             </button>

@@ -7,6 +7,8 @@ import homeStyles from "@/app/page.module.css";
 import { formatNumber } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import UserMenu from "@/app/components/UserMenu";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // Local SVG Icons
 const CartIcon = () => (
@@ -82,6 +84,7 @@ const CheckCircleIcon = () => (
 
 export default function SellPage() {
   const { totalItemsCount, cartBounce } = useCart();
+  const user = useQuery(api.users.viewer);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   // Step state
@@ -128,6 +131,19 @@ export default function SellPage() {
         | "dark") || "light";
     setTheme(activeTheme);
   }, []);
+
+  // Automatically transition to Step 1 if the user just signed in via CTA redirect
+  useEffect(() => {
+    if (typeof window !== "undefined" && user && currentStep === 0) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("startOnboarding") === "true") {
+        setCurrentStep(1);
+        // Clean parameter from URL to prevent auto-starting on fresh reloads
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, "", cleanUrl);
+      }
+    }
+  }, [user, currentStep]);
 
   const toggleTheme = () => {
     const nextTheme = theme === "light" ? "dark" : "light";
@@ -345,13 +361,31 @@ export default function SellPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setCurrentStep(1)}
-                className={styles.proceedIntroBtn}
-              >
-                Proceed to Store Setup
-              </button>
+              {user === undefined ? (
+                <button
+                  type="button"
+                  className={styles.proceedIntroBtn}
+                  disabled
+                >
+                  Proceed to Store Setup
+                </button>
+              ) : user ? (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className={styles.proceedIntroBtn}
+                >
+                  Proceed to Store Setup
+                </button>
+              ) : (
+                <Link
+                  href="/login?redirectTo=/sell&startOnboarding=true"
+                  className={styles.proceedIntroBtn}
+                  style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
+                >
+                  Proceed to Store Setup
+                </Link>
+              )}
             </section>
           </>
         )}

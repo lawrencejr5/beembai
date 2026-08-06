@@ -54,8 +54,9 @@ const figtree = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "beembai | Premium Curated E-Commerce",
-  description: "Earthy, premium, and thoughtfully curated design essentials. Crafted to elevate your lifestyle.",
+  title: "Beembai | Premium Curated E-Commerce",
+  description:
+    "Earthy, premium, and thoughtfully curated design essentials. Crafted to elevate your lifestyle.",
 };
 
 export default function RootLayout({
