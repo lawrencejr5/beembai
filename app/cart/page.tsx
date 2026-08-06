@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import styles from "./cart.module.css";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice, formatNumber } from "@/app/data/data";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // SVG Icons
 const ArrowLeftIcon = () => (
@@ -91,6 +93,7 @@ export default function CartPage() {
     totalItemsCount,
     subtotalPrice,
   } = useCart();
+  const user = useQuery(api.users.viewer);
 
   const [promoCode, setPromoCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -380,9 +383,27 @@ export default function CartPage() {
               </span>
             )}
 
-            <button type="button" className={styles.checkoutBtn}>
-              Proceed to Checkout (${formatPrice(finalTotal)})
-            </button>
+            {user === undefined ? (
+              <button type="button" className={styles.checkoutBtn} disabled>
+                Proceed to Checkout (${formatPrice(finalTotal)})
+              </button>
+            ) : user ? (
+              <Link
+                href="/checkout"
+                className={styles.checkoutBtn}
+                style={{ display: "block", textAlign: "center", textDecoration: "none" }}
+              >
+                Proceed to Checkout (${formatPrice(finalTotal)})
+              </Link>
+            ) : (
+              <Link
+                href={`/login?redirectTo=/checkout`}
+                className={styles.checkoutBtn}
+                style={{ display: "block", textAlign: "center", textDecoration: "none" }}
+              >
+                Proceed to Checkout (${formatPrice(finalTotal)})
+              </Link>
+            )}
 
             <div className={styles.trustFooter}>
               <ShieldCheckIcon />
