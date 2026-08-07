@@ -127,8 +127,7 @@ export default function SellPage() {
   useEffect(() => {
     const activeTheme =
       (document.documentElement.getAttribute("data-theme") as
-        | "light"
-        | "dark") || "light";
+        "light" | "dark") || "light";
     setTheme(activeTheme);
   }, []);
 
@@ -381,7 +380,11 @@ export default function SellPage() {
                 <Link
                   href="/login?redirectTo=/sell&startOnboarding=true"
                   className={styles.proceedIntroBtn}
-                  style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
+                  style={{
+                    display: "inline-block",
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
                 >
                   Proceed to Store Setup
                 </Link>
@@ -403,11 +406,11 @@ export default function SellPage() {
 
             <div className={styles.stepProgressHeader}>
               {[
-                { step: 1, label: "Store Info" },
+                { step: 1, label: "Store" },
                 { step: 2, label: "Location" },
-                { step: 3, label: "Verify Email" },
-                { step: 4, label: "Verify Phone" },
-                { step: 5, label: "Bank Details" },
+                { step: 3, label: "Email" },
+                { step: 4, label: "Phone" },
+                { step: 5, label: "Bank" },
               ].map((item) => {
                 let stepClass = styles.stepDot;
                 if (currentStep === item.step) {
@@ -542,7 +545,7 @@ export default function SellPage() {
                     onClick={() => setCurrentStep(0)}
                     className={styles.backBtn}
                   >
-                    Back to Intro
+                    Back
                   </button>
                   <button
                     type="button"
@@ -551,7 +554,7 @@ export default function SellPage() {
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
-                    Proceed to Location
+                    Proceed
                   </button>
                 </div>
               </div>
@@ -639,7 +642,7 @@ export default function SellPage() {
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
-                    Proceed to Email Verification
+                    Proceed
                   </button>
                 </div>
               </div>
@@ -738,7 +741,7 @@ export default function SellPage() {
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
-                    Proceed to Phone Verification
+                    Proceed
                   </button>
                 </div>
               </div>
@@ -765,7 +768,7 @@ export default function SellPage() {
                         type="tel"
                         required
                         disabled={phoneVerified}
-                        placeholder="e.g. +1 (555) 019-2834"
+                        placeholder="e.g. 09025816161"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className={styles.inputField}
@@ -837,7 +840,7 @@ export default function SellPage() {
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
-                    Proceed to Bank Details
+                    Proceed
                   </button>
                 </div>
               </div>
@@ -939,7 +942,7 @@ export default function SellPage() {
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
-                    Complete Merchant Registration
+                    Complete
                   </button>
                 </div>
               </form>
