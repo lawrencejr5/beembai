@@ -17,7 +17,7 @@ export default defineSchema({
 
   cart: defineTable({
     userId: v.id("users"),
-    productId: v.string(),
+    productId: v.id("products"),
     selectedColor: v.optional(v.string()),
     quantity: v.number(),
   })
@@ -49,7 +49,7 @@ export default defineSchema({
     isNewArrival: v.optional(v.boolean()),
     isSponsored: v.optional(v.boolean()),
     stock: v.optional(v.number()),
-    storeId: v.optional(v.string()),
+    storeId: v.optional(v.id("stores")),
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"]),

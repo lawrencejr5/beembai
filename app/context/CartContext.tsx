@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import { Product, getProductById } from "@/app/data/data";
+import { Product, getProductById, PRODUCTS_DATA } from "@/app/data/data";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -53,12 +53,39 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   // Convex Auth and Cart integrations
   const user = useQuery(api.users.viewer);
   const dbCartItems = useQuery(api.cart.getCart);
+  const dbProducts = useQuery(api.products.getProducts);
 
   const addDbCart = useMutation(api.cart.addToCart);
   const removeDbCart = useMutation(api.cart.removeFromCart);
   const updateDbQty = useMutation(api.cart.updateQuantity);
   const clearDbCart = useMutation(api.cart.clearCart);
   const mergeDbCart = useMutation(api.cart.mergeCart);
+
+  // Map dummy product ID -> Convex Product ID
+  const dummyIdToConvexIdMap = useMemo(() => {
+    if (!dbProducts) return new Map<string, string>();
+    const map = new Map<string, string>();
+    for (const dbProduct of dbProducts) {
+      const localProduct = PRODUCTS_DATA.find((p) => p.title === dbProduct.title);
+      if (localProduct) {
+        map.set(localProduct.id, dbProduct._id);
+      }
+    }
+    return map;
+  }, [dbProducts]);
+
+  // Map Convex Product ID -> dummy product ID
+  const convexIdToDummyIdMap = useMemo(() => {
+    if (!dbProducts) return new Map<string, string>();
+    const map = new Map<string, string>();
+    for (const dbProduct of dbProducts) {
+      const localProduct = PRODUCTS_DATA.find((p) => p.title === dbProduct.title);
+      if (localProduct) {
+        map.set(dbProduct._id, localProduct.id);
+      }
+    }
+    return map;
+  }, [dbProducts]);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -101,21 +128,33 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Merge guest cart items into database and clear local storage when user logs in
   useEffect(() => {
-    if (user) {
+    if (user && dbProducts) {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       if (savedCart) {
         try {
           const parsed = JSON.parse(savedCart);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const itemsToMerge = parsed.map((item: CartItem) => ({
-              productId: item.product.id,
-              selectedColor: item.selectedColor,
-              quantity: item.quantity,
-            }));
-            void mergeDbCart({ items: itemsToMerge }).then(() => {
+            const itemsToMerge = parsed
+              .map((item: CartItem) => {
+                const convexProductId = dummyIdToConvexIdMap.get(item.product.id);
+                if (!convexProductId) return null;
+                return {
+                  productId: convexProductId as any,
+                  selectedColor: item.selectedColor,
+                  quantity: item.quantity,
+                };
+              })
+              .filter((x): x is NonNullable<typeof x> => x !== null);
+
+            if (itemsToMerge.length > 0) {
+              void mergeDbCart({ items: itemsToMerge }).then(() => {
+                localStorage.removeItem(CART_STORAGE_KEY);
+                setCart([]);
+              });
+            } else {
               localStorage.removeItem(CART_STORAGE_KEY);
               setCart([]);
-            });
+            }
           } else {
             localStorage.removeItem(CART_STORAGE_KEY);
             setCart([]);
@@ -129,14 +168,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         setCart([]);
       }
     }
-  }, [user, mergeDbCart]);
+  }, [user, mergeDbCart, dbProducts, dummyIdToConvexIdMap]);
 
   // Map database cart items to frontend CartItem structures
   const mappedDbCart = useMemo(() => {
-    if (!user || !dbCartItems) return [];
+    if (!user || !dbCartItems || !dbProducts) return [];
     return dbCartItems
       .map((item): CartItem | null => {
-        const product = getProductById(item.productId);
+        const dummyId = convexIdToDummyIdMap.get(item.productId);
+        const product = getProductById(dummyId || item.productId);
         if (!product) return null;
         return {
           product,
@@ -145,7 +185,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         };
       })
       .filter((item): item is CartItem => item !== null);
-  }, [dbCartItems, user]);
+  }, [dbCartItems, user, dbProducts, convexIdToDummyIdMap]);
 
   // Determine active cart source
   const activeCart = useMemo(() => {
@@ -213,9 +253,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     if (user) {
-      // Clear selected items from database
       selectedItems.forEach((item) => {
-        void removeDbCart({ productId: item.product.id, selectedColor: item.selectedColor });
+        const convexProductId = dummyIdToConvexIdMap.get(item.product.id);
+        if (convexProductId) {
+          void removeDbCart({ productId: convexProductId as any, selectedColor: item.selectedColor });
+        }
       });
     } else {
       // Clear selected items from localStorage state
@@ -261,11 +303,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     triggerBounce();
 
     if (user) {
-      void addDbCart({
-        productId: product.id,
-        selectedColor: colorToUse,
-        quantity,
-      });
+      const convexProductId = dummyIdToConvexIdMap.get(product.id);
+      if (convexProductId) {
+        void addDbCart({
+          productId: convexProductId as any,
+          selectedColor: colorToUse,
+          quantity,
+        });
+      }
     } else {
       setCart((prevCart) => {
         const existingIndex = prevCart.findIndex(
@@ -297,7 +342,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const removeFromCart = (productId: string, selectedColor?: string) => {
     if (user) {
-      void removeDbCart({ productId, selectedColor });
+      const convexProductId = dummyIdToConvexIdMap.get(productId);
+      if (convexProductId) {
+        void removeDbCart({ productId: convexProductId as any, selectedColor });
+      }
     } else {
       setCart((prevCart) =>
         prevCart.filter(
@@ -322,7 +370,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (user) {
-      void updateDbQty({ productId, selectedColor, quantity: newQuantity });
+      const convexProductId = dummyIdToConvexIdMap.get(productId);
+      if (convexProductId) {
+        void updateDbQty({ productId: convexProductId as any, selectedColor, quantity: newQuantity });
+      }
     } else {
       setCart((prevCart) => {
         const targetItem = prevCart.find(

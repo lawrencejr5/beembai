@@ -20,7 +20,7 @@ export const getCart = query({
 // Add item to cart or increase quantity
 export const addToCart = mutation({
   args: {
-    productId: v.string(),
+    productId: v.id("products"),
     selectedColor: v.optional(v.string()),
     quantity: v.number(),
   },
@@ -56,7 +56,7 @@ export const addToCart = mutation({
 // Remove item from cart
 export const removeFromCart = mutation({
   args: {
-    productId: v.string(),
+    productId: v.id("products"),
     selectedColor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -82,7 +82,7 @@ export const removeFromCart = mutation({
 // Update item quantity
 export const updateQuantity = mutation({
   args: {
-    productId: v.string(),
+    productId: v.id("products"),
     selectedColor: v.optional(v.string()),
     quantity: v.number(),
   },
@@ -137,7 +137,7 @@ export const mergeCart = mutation({
   args: {
     items: v.array(
       v.object({
-        productId: v.string(),
+        productId: v.id("products"),
         selectedColor: v.optional(v.string()),
         quantity: v.number(),
       })
