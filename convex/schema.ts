@@ -64,5 +64,25 @@ export default defineSchema({
     category: v.string(),
     description: v.string(),
     bannerMessage: v.optional(v.string()),
-  }).index("by_slug", ["slug"]),
+    userId: v.optional(v.id("users")),
+    status: v.optional(v.string()),
+    physicalAddress: v.optional(v.string()),
+    city: v.optional(v.string()),
+    stateName: v.optional(v.string()),
+    country: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    bankName: v.optional(v.string()),
+    accountName: v.optional(v.string()),
+    accountNumber: v.optional(v.string()),
+    routingNumber: v.optional(v.string()),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_userId", ["userId"]),
+
+  storeVerifications: defineTable({
+    email: v.string(),
+    code: v.string(),
+    expiresAt: v.number(),
+  }).index("by_email", ["email"]),
 });

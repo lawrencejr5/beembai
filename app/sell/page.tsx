@@ -7,7 +7,7 @@ import homeStyles from "@/app/page.module.css";
 import { formatNumber } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import UserMenu from "@/app/components/UserMenu";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 // Local SVG Icons
@@ -85,10 +85,30 @@ const CheckCircleIcon = () => (
 export default function SellPage() {
   const { totalItemsCount, cartBounce } = useCart();
   const user = useQuery(api.users.viewer);
+  const userStore = useQuery(api.store.getStoreByOwner);
+  const sendEmailOTP = useAction(api.store.sendEmailOTP);
+  const verifyEmailOTP = useMutation(api.store.verifyEmailOTP);
+  const createStoreMut = useMutation(api.store.createStore);
+  const updateStoreMut = useMutation(api.store.updateStore);
+
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   // Step state
   const [currentStep, setCurrentStep] = useState(0); // 0 = Intro, 1 = Store Form, 2 = Location Form, 3 = Verify Email, 4 = Verify Phone, 5 = Bank Details
+
+  // Edit / Checkbox State
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [useAccountEmail, setUseAccountEmail] = useState(false);
+
+  // Loading States
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isSubmittingStore, setIsSubmittingStore] = useState(false);
+
+  // Errors / Messages
+  const [otpError, setOtpError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [formError, setFormError] = useState("");
 
   // Form States
   // Step 1: Store Setup
@@ -110,9 +130,6 @@ export default function SellPage() {
 
   // Step 4: Phone Verification
   const [phone, setPhone] = useState("");
-  const [phoneOtp, setPhoneOtp] = useState("");
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [phoneSent, setPhoneSent] = useState(false);
 
   // Step 5: Bank Details
   const [bankName, setBankName] = useState("");
@@ -144,77 +161,203 @@ export default function SellPage() {
     }
   }, [user, currentStep]);
 
+  // Clear validation error when inputs or step changes
+  useEffect(() => {
+    setFormError("");
+  }, [
+    currentStep,
+    storeName,
+    bio,
+    physicalAddress,
+    city,
+    stateName,
+    country,
+    email,
+    phone,
+    bankName,
+    accountName,
+    accountNumber,
+    routingNumber
+  ]);
+
   const toggleTheme = () => {
     const nextTheme = theme === "light" ? "dark" : "light";
     setTheme(nextTheme);
     document.documentElement.setAttribute("data-theme", nextTheme);
   };
 
-  const handleSendEmailCode = () => {
-    if (email) {
+  const handleSendEmailCode = async () => {
+    if (!email) return;
+    setIsSendingOtp(true);
+    setOtpError("");
+    try {
+      const res = await sendEmailOTP({ email });
       setEmailSent(true);
+      if (res.mocked) {
+        console.log(`[Developer OTP Mock Link]: Use code ${res.token} to verify.`);
+      }
+    } catch (err: any) {
+      setOtpError(err.message || "Failed to send verification email. Please try again.");
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
-  const handleVerifyEmailCode = () => {
-    if (emailOtp.length === 6) {
-      setEmailVerified(true);
-    }
-  };
-
-  const handleSendPhoneCode = () => {
-    if (phone) {
-      setPhoneSent(true);
-    }
-  };
-
-  const handleVerifyPhoneCode = () => {
-    if (phoneOtp.length === 6) {
-      setPhoneVerified(true);
+  const handleVerifyEmailCode = async () => {
+    if (emailOtp.length !== 6) return;
+    setIsVerifyingOtp(true);
+    setOtpError("");
+    try {
+      const isValid = await verifyEmailOTP({ email, code: emailOtp });
+      if (isValid) {
+        setEmailVerified(true);
+      } else {
+        setOtpError("Invalid or expired verification code.");
+      }
+    } catch (err: any) {
+      setOtpError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
   const handleProceedToLocation = () => {
-    if (storeName.trim()) {
-      setCurrentStep(2);
+    if (!storeName.trim()) {
+      setFormError("Store name is required.");
+      return;
     }
+    if (!bio.trim()) {
+      setFormError("Store description / bio is required.");
+      return;
+    }
+    setCurrentStep(2);
   };
 
   const handleProceedToEmail = () => {
-    if (
-      physicalAddress.trim() &&
-      city.trim() &&
-      stateName.trim() &&
-      country.trim()
-    ) {
-      setCurrentStep(3);
+    if (!physicalAddress.trim()) {
+      setFormError("Street address is required.");
+      return;
     }
+    if (!city.trim()) {
+      setFormError("City is required.");
+      return;
+    }
+    if (!stateName.trim()) {
+      setFormError("State / Province is required.");
+      return;
+    }
+    if (!country.trim()) {
+      setFormError("Country is required.");
+      return;
+    }
+    setCurrentStep(3);
   };
 
   const handleProceedToPhone = () => {
-    if (emailVerified) {
-      setCurrentStep(4);
+    if (!emailVerified) {
+      setFormError("Please verify your business email address before proceeding.");
+      return;
     }
+    setCurrentStep(4);
   };
 
   const handleProceedToBank = () => {
-    if (phoneVerified) {
-      setCurrentStep(5);
+    if (!phone.trim()) {
+      setFormError("Contact phone number is required.");
+      return;
+    }
+    if (phone.trim().length < 7) {
+      setFormError("Please enter a valid phone number.");
+      return;
+    }
+    setCurrentStep(5);
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bankName.trim()) {
+      setFormError("Bank name is required.");
+      return;
+    }
+    if (!accountName.trim()) {
+      setFormError("Account holder name is required.");
+      return;
+    }
+    if (!accountNumber.trim()) {
+      setFormError("Account number is required.");
+      return;
+    }
+    if (routingNumber.length !== 9) {
+      setFormError("Routing number must be exactly 9 digits.");
+      return;
+    }
+
+    setIsSubmittingStore(true);
+    setSubmitError("");
+    setFormError("");
+    try {
+      if (isEditMode && userStore) {
+        await updateStoreMut({
+          storeId: userStore._id,
+          name: storeName,
+          category,
+          description: bio,
+          physicalAddress,
+          city,
+          stateName,
+          country,
+          email,
+          phone,
+          bankName,
+          accountName,
+          accountNumber,
+          routingNumber,
+        });
+      } else {
+        await createStoreMut({
+          name: storeName,
+          category,
+          description: bio,
+          physicalAddress,
+          city,
+          stateName,
+          country,
+          email,
+          phone,
+          bankName,
+          accountName,
+          accountNumber,
+          routingNumber,
+        });
+      }
+      setShowSuccess(true);
+    } catch (err: any) {
+      setSubmitError(err.message || "An unexpected error occurred during submission.");
+    } finally {
+      setIsSubmittingStore(false);
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      storeName &&
-      emailVerified &&
-      phoneVerified &&
-      bankName &&
-      accountNumber &&
-      accountName
-    ) {
-      setShowSuccess(true);
-    }
+  const handleEditApplication = () => {
+    if (!userStore) return;
+    setStoreName(userStore.name);
+    setCategory(userStore.category);
+    setBio(userStore.description);
+    setPhysicalAddress(userStore.physicalAddress || "");
+    setCity(userStore.city || "");
+    setStateName(userStore.stateName || "");
+    setCountry(userStore.country || "");
+    setEmail(userStore.email || "");
+    setUseAccountEmail(userStore.email === user?.email);
+    setEmailVerified(true);
+    setPhone(userStore.phone || "");
+    setBankName(userStore.bankName || "");
+    setAccountName(userStore.accountName || "");
+    setAccountNumber(userStore.accountNumber || "");
+    setRoutingNumber(userStore.routingNumber || "");
+    
+    setIsEditMode(true);
+    setCurrentStep(1);
   };
 
   const handleResetForm = () => {
@@ -230,9 +373,6 @@ export default function SellPage() {
     setEmailVerified(false);
     setEmailSent(false);
     setPhone("");
-    setPhoneOtp("");
-    setPhoneVerified(false);
-    setPhoneSent(false);
     setBankName("");
     setAccountName("");
     setAccountNumber("");
@@ -240,6 +380,8 @@ export default function SellPage() {
     setCurrentStep(0);
     setShowSuccess(false);
     setShowCategoryInfo(false);
+    setIsEditMode(false);
+    setUseAccountEmail(false);
   };
 
   return (
@@ -298,98 +440,132 @@ export default function SellPage() {
 
       {/* Main Page Layout */}
       <main className={styles.mainContent}>
-        {/* Sell Hero Header - only visible on Step 0 */}
         {currentStep === 0 && (
           <>
-            <section className={styles.heroBanner}>
-              <div className={styles.heroTag}>
-                <span>Merchant Portal</span>
-              </div>
-              <h1 className={styles.heroTitle}>
-                Grow your business. Start selling on Beembai.
-              </h1>
-              <p className={styles.heroSubtitle}>
-                List your curated products in front of thousands of daily active
-                buyers searching for luxury electronics, designer fashion, and
-                custom homeware.
-              </p>
-            </section>
-
-            {/* Step-by-Step Selling Information */}
-            <section
-              style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
-            >
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Selling is Simple</h2>
-                <p className={styles.sectionSubtitle}>
-                  Follow our 3-step merchant integration path to list your
-                  catalog.
-                </p>
-              </div>
-
-              <div className={styles.stepsGrid}>
-                {/* Step 1 */}
-                <div className={styles.stepCard}>
-                  <div className={styles.stepNumber}>1</div>
-                  <h3 className={styles.stepCardTitle}>Create Store</h3>
-                  <p className={styles.stepCardText}>
-                    Fill out the store details application form to set up your
-                    verified digital storefront on Beembai.
+            {userStore && userStore.status === "pending" ? (
+              <section className={styles.reviewSection}>
+                <div className={styles.reviewCard}>
+                  <div className={styles.reviewHeader}>
+                    <div className={styles.reviewStatusBadge}>Under Review</div>
+                    <h2 className={styles.reviewTitle}>Your Store Application is Under Review</h2>
+                  </div>
+                  <p className={styles.reviewText}>
+                    We are currently reviewing your application for <strong>{userStore.name}</strong> in the <strong>{userStore.category}</strong> category. Our partnership team typically reviews applications within 24 hours.
+                  </p>
+                  <div className={styles.reviewDetails}>
+                    <div className={styles.reviewDetailItem}>
+                      <strong>Description:</strong> {userStore.description}
+                    </div>
+                    <div className={styles.reviewDetailItem}>
+                      <strong>Business Email:</strong> {userStore.email}
+                    </div>
+                    <div className={styles.reviewDetailItem}>
+                      <strong>Contact Phone:</strong> {userStore.phone}
+                    </div>
+                    <div className={styles.reviewDetailItem}>
+                      <strong>Payout Bank:</strong> {userStore.bankName} ({userStore.accountName})
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleEditApplication}
+                    className={styles.editApplicationBtn}
+                  >
+                    Edit Application Details
+                  </button>
+                </div>
+              </section>
+            ) : (
+              <>
+                <section className={styles.heroBanner}>
+                  <div className={styles.heroTag}>
+                    <span>Merchant Portal</span>
+                  </div>
+                  <h1 className={styles.heroTitle}>
+                    Grow your business. Start selling on Beembai.
+                  </h1>
+                  <p className={styles.heroSubtitle}>
+                    List your curated products in front of thousands of daily active
+                    buyers searching for luxury electronics, designer fashion, and
+                    custom homeware.
+                  </p>
+                </section>
+              <section
+                style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
+              >
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Selling is Simple</h2>
+                  <p className={styles.sectionSubtitle}>
+                    Follow our 3-step merchant integration path to list your
+                    catalog.
                   </p>
                 </div>
 
-                {/* Step 2 */}
-                <div className={styles.stepCard}>
-                  <div className={styles.stepNumber}>2</div>
-                  <h3 className={styles.stepCardTitle}>List Catalog</h3>
-                  <p className={styles.stepCardText}>
-                    Upload product photos, set inventory levels, colors,
-                    specifications, and manage product details in one portal.
-                  </p>
+                <div className={styles.stepsGrid}>
+                  {/* Step 1 */}
+                  <div className={styles.stepCard}>
+                    <div className={styles.stepNumber}>1</div>
+                    <h3 className={styles.stepCardTitle}>Create Store</h3>
+                    <p className={styles.stepCardText}>
+                      Fill out the store details application form to set up your
+                      verified digital storefront on Beembai.
+                    </p>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className={styles.stepCard}>
+                    <div className={styles.stepNumber}>2</div>
+                    <h3 className={styles.stepCardTitle}>List Catalog</h3>
+                    <p className={styles.stepCardText}>
+                      Upload product photos, set inventory levels, colors,
+                      specifications, and manage product details in one portal.
+                    </p>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className={styles.stepCard}>
+                    <div className={styles.stepNumber}>3</div>
+                    <h3 className={styles.stepCardTitle}>Receive Payouts</h3>
+                    <p className={styles.stepCardText}>
+                      Enjoy low commission rates, zero listing fees, and secure
+                      bank payouts processed immediately within 24 hours of
+                      delivery.
+                    </p>
+                  </div>
                 </div>
 
-                {/* Step 3 */}
-                <div className={styles.stepCard}>
-                  <div className={styles.stepNumber}>3</div>
-                  <h3 className={styles.stepCardTitle}>Receive Payouts</h3>
-                  <p className={styles.stepCardText}>
-                    Enjoy low commission rates, zero listing fees, and secure
-                    bank payouts processed immediately within 24 hours of
-                    delivery.
-                  </p>
-                </div>
-              </div>
-
-              {user === undefined ? (
-                <button
-                  type="button"
-                  className={styles.proceedIntroBtn}
-                  disabled
-                >
-                  Proceed to Store Setup
-                </button>
-              ) : user ? (
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(1)}
-                  className={styles.proceedIntroBtn}
-                >
-                  Proceed to Store Setup
-                </button>
-              ) : (
-                <Link
-                  href="/login?redirectTo=/sell&startOnboarding=true"
-                  className={styles.proceedIntroBtn}
-                  style={{
-                    display: "inline-block",
-                    textAlign: "center",
-                    textDecoration: "none",
-                  }}
-                >
-                  Proceed to Store Setup
-                </Link>
-              )}
-            </section>
+                {user === undefined ? (
+                  <button
+                    type="button"
+                    className={styles.proceedIntroBtn}
+                    disabled
+                  >
+                    Proceed to Store Setup
+                  </button>
+                ) : user ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className={styles.proceedIntroBtn}
+                  >
+                    Proceed to Store Setup
+                  </button>
+                ) : (
+                  <Link
+                    href="/login?redirectTo=/sell&startOnboarding=true"
+                    className={styles.proceedIntroBtn}
+                    style={{
+                      display: "inline-block",
+                      textAlign: "center",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Proceed to Store Setup
+                  </Link>
+                )}
+              </section>
+              </>
+            )}
           </>
         )}
 
@@ -428,6 +604,24 @@ export default function SellPage() {
                 );
               })}
             </div>
+
+            {formError && (
+              <div style={{
+                color: "#d93838",
+                backgroundColor: "rgba(217, 56, 56, 0.06)",
+                border: "1.5px solid rgba(217, 56, 56, 0.15)",
+                borderRadius: "14px",
+                padding: "0.85rem 1.25rem",
+                fontSize: "0.85rem",
+                fontWeight: "700",
+                marginBottom: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem"
+              }}>
+                <span>⚠️ {formError}</span>
+              </div>
+            )}
 
             {/* Step 1: Store Setup Form */}
             {currentStep === 1 && (
@@ -550,7 +744,6 @@ export default function SellPage() {
                   <button
                     type="button"
                     onClick={handleProceedToLocation}
-                    disabled={!storeName.trim()}
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
@@ -633,12 +826,6 @@ export default function SellPage() {
                   <button
                     type="button"
                     onClick={handleProceedToEmail}
-                    disabled={
-                      !physicalAddress.trim() ||
-                      !city.trim() ||
-                      !stateName.trim() ||
-                      !country.trim()
-                    }
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
@@ -660,6 +847,32 @@ export default function SellPage() {
                 </div>
 
                 <div className={styles.verificationContainer}>
+                  {user?.email && (
+                    <div style={{ marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <input
+                        type="checkbox"
+                        id="useAccountEmail"
+                        checked={useAccountEmail}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setUseAccountEmail(checked);
+                          if (checked && user.email) {
+                            setEmail(user.email);
+                            setEmailVerified(true);
+                          } else {
+                            setEmail("");
+                            setEmailVerified(false);
+                            setEmailSent(false);
+                            setEmailOtp("");
+                          }
+                        }}
+                      />
+                      <label htmlFor="useAccountEmail" className={styles.formLabel} style={{ cursor: "pointer", marginBottom: 0 }}>
+                        Use my account email ({user.email})
+                      </label>
+                    </div>
+                  )}
+
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>
                       Business Email Address *
@@ -668,26 +881,32 @@ export default function SellPage() {
                       <input
                         type="email"
                         required
-                        disabled={emailVerified}
+                        disabled={emailVerified || useAccountEmail}
                         placeholder="e.g. partner@store.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className={styles.inputField}
                       />
-                      {!emailVerified && (
+                      {!emailVerified && !useAccountEmail && (
                         <button
                           type="button"
                           onClick={handleSendEmailCode}
-                          disabled={!email || emailSent}
+                          disabled={!email || isSendingOtp}
                           className={styles.sendCodeBtn}
                         >
-                          {emailSent ? "Resend OTP" : "Send Code"}
+                          {isSendingOtp ? "Sending..." : emailSent ? "Resend OTP" : "Send Code"}
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {emailSent && !emailVerified && (
+                  {otpError && (
+                    <span style={{ color: "#d93838", fontSize: "0.82rem", fontWeight: "600", marginTop: "0.5rem" }}>
+                      ⚠️ {otpError}
+                    </span>
+                  )}
+
+                  {emailSent && !emailVerified && !useAccountEmail && (
                     <div className={styles.otpInputWrapper}>
                       <label className={styles.formLabel}>
                         Enter 6-Digit OTP *
@@ -706,16 +925,12 @@ export default function SellPage() {
                         <button
                           type="button"
                           onClick={handleVerifyEmailCode}
-                          disabled={emailOtp.length !== 6}
+                          disabled={emailOtp.length !== 6 || isVerifyingOtp}
                           className={styles.sendCodeBtn}
                         >
-                          Confirm
+                          {isVerifyingOtp ? "Verifying..." : "Confirm"}
                         </button>
                       </div>
-                      <span className={styles.verificationText}>
-                        💡 Enter any 6 digits (e.g. 123456) to mock a successful
-                        validation.
-                      </span>
                     </div>
                   )}
 
@@ -729,7 +944,14 @@ export default function SellPage() {
                 <div className={styles.btnGroup}>
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => {
+                      if (useAccountEmail) {
+                        setEmail("");
+                        setEmailVerified(false);
+                        setUseAccountEmail(false);
+                      }
+                      setCurrentStep(2);
+                    }}
                     className={styles.backBtn}
                   >
                     Back
@@ -737,7 +959,6 @@ export default function SellPage() {
                   <button
                     type="button"
                     onClick={handleProceedToPhone}
-                    disabled={!emailVerified}
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
@@ -751,10 +972,9 @@ export default function SellPage() {
             {currentStep === 4 && (
               <div className={styles.applicationForm}>
                 <div className={styles.formHeader}>
-                  <h2 className={styles.formTitle}>Verify Your Phone Number</h2>
+                  <h2 className={styles.formTitle}>Contact Phone Number</h2>
                   <p className={styles.formSubtitle}>
-                    Verify your phone contact to prevent fraudulent account
-                    activations.
+                    Provide your contact phone number to finalize your store creation.
                   </p>
                 </div>
 
@@ -763,66 +983,15 @@ export default function SellPage() {
                     <label className={styles.formLabel}>
                       Contact Phone Number *
                     </label>
-                    <div className={styles.verificationActionRow}>
-                      <input
-                        type="tel"
-                        required
-                        disabled={phoneVerified}
-                        placeholder="e.g. 09025816161"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className={styles.inputField}
-                      />
-                      {!phoneVerified && (
-                        <button
-                          type="button"
-                          onClick={handleSendPhoneCode}
-                          disabled={!phone || phoneSent}
-                          className={styles.sendCodeBtn}
-                        >
-                          {phoneSent ? "Resend OTP" : "Send SMS"}
-                        </button>
-                      )}
-                    </div>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. 09025816161"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className={styles.inputField}
+                    />
                   </div>
-
-                  {phoneSent && !phoneVerified && (
-                    <div className={styles.otpInputWrapper}>
-                      <label className={styles.formLabel}>
-                        Enter 6-Digit OTP *
-                      </label>
-                      <div className={styles.verificationActionRow}>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          placeholder="e.g. 123456"
-                          value={phoneOtp}
-                          onChange={(e) =>
-                            setPhoneOtp(e.target.value.replace(/\D/g, ""))
-                          }
-                          className={styles.inputField}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleVerifyPhoneCode}
-                          disabled={phoneOtp.length !== 6}
-                          className={styles.sendCodeBtn}
-                        >
-                          Confirm
-                        </button>
-                      </div>
-                      <span className={styles.verificationText}>
-                        💡 Enter any 6 digits (e.g. 123456) to mock a successful
-                        validation.
-                      </span>
-                    </div>
-                  )}
-
-                  {phoneVerified && (
-                    <div className={styles.verifiedBadge}>
-                      ✓ Phone Number Verified Successfully
-                    </div>
-                  )}
                 </div>
 
                 <div className={styles.btnGroup}>
@@ -836,7 +1005,6 @@ export default function SellPage() {
                   <button
                     type="button"
                     onClick={handleProceedToBank}
-                    disabled={!phoneVerified}
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
@@ -923,26 +1091,28 @@ export default function SellPage() {
                   </div>
                 </div>
 
+                {submitError && (
+                  <span style={{ color: "#d93838", fontSize: "0.82rem", fontWeight: "600", marginTop: "0.5rem" }}>
+                    ⚠️ {submitError}
+                  </span>
+                )}
+
                 <div className={styles.btnGroup}>
                   <button
                     type="button"
                     onClick={() => setCurrentStep(4)}
                     className={styles.backBtn}
+                    disabled={isSubmittingStore}
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    disabled={
-                      !bankName.trim() ||
-                      !accountName.trim() ||
-                      !accountNumber.trim() ||
-                      routingNumber.length !== 9
-                    }
+                    disabled={isSubmittingStore}
                     className={styles.submitBtn}
                     style={{ marginTop: 0 }}
                   >
-                    Complete
+                    {isSubmittingStore ? "Submitting..." : isEditMode ? "Save Changes" : "Complete"}
                   </button>
                 </div>
               </form>
@@ -958,10 +1128,19 @@ export default function SellPage() {
             <div className={styles.successTickCircle}>
               <CheckCircleIcon />
             </div>
-            <h3 className={styles.successTitle}>Application Completed!</h3>
+            <h3 className={styles.successTitle}>
+              {isEditMode ? "Changes Saved!" : "Application Completed!"}
+            </h3>
             <p className={styles.successText}>
-              Congratulations! Your merchant setup for{" "}
-              <strong>{storeName}</strong> has been completed successfully.
+              {isEditMode ? (
+                <>
+                  Your store details for <strong>{storeName}</strong> have been updated and are under review.
+                </>
+              ) : (
+                <>
+                  Congratulations! Your merchant setup for <strong>{storeName}</strong> has been completed successfully.
+                </>
+              )}
               <br />
               <span
                 style={{
@@ -970,9 +1149,8 @@ export default function SellPage() {
                 }}
               >
                 We've verified your email (<strong>{email}</strong>) and phone (
-                <strong>{phone}</strong>). Payouts will settle to your Chase
-                bank account. Our partnership team will activate your catalog
-                within 24 hours.
+                <strong>{phone}</strong>). Payouts will settle to your bank account.
+                Our partnership team will review your storefront within 24 hours.
               </span>
             </p>
             <button
