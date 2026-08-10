@@ -4,7 +4,7 @@ import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
   ...authTables,
-  
+
   // Extend the default users table to capture custom fields like phone
   users: defineTable({
     name: v.optional(v.string()),
@@ -65,7 +65,7 @@ export default defineSchema({
     description: v.string(),
     bannerMessage: v.optional(v.string()),
     userId: v.optional(v.id("users")),
-    status: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("pending"), v.literal("approved"))),
     physicalAddress: v.optional(v.string()),
     city: v.optional(v.string()),
     stateName: v.optional(v.string()),

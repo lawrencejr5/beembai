@@ -18,6 +18,32 @@ export const getStoreByOwner = query({
   },
 });
 
+// Get ALL stores owned by the current user (supports multiple stores)
+export const getStoresByOwner = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return [];
+    }
+    return await ctx.db
+      .query("stores")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+  },
+});
+
+// Get all products belonging to a specific store
+export const getProductsByStore = query({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("products")
+      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
+      .collect();
+  },
+});
+
 // Helper slug generator
 function generateSlug(name: string): string {
   return name
