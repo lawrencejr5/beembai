@@ -44,6 +44,35 @@ export const getProductsByStore = query({
   },
 });
 
+// Get a store by its slug, only if owned by the current user
+export const getStoreBySlugForOwner = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const store = await ctx.db
+      .query("stores")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+    if (!store || store.userId !== userId) return null;
+    return store;
+  },
+});
+
+// Get a store by its ID, only if owned by the current user (for edit pre-populate)
+export const getStoreById = query({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) return null;
+    return store;
+  },
+});
+
+
+
 // Helper slug generator
 function generateSlug(name: string): string {
   return name
