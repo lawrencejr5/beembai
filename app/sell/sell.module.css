@@ -942,7 +942,7 @@
 
 .editBannerBtn {
   position: absolute;
-  bottom: 1.25rem;
+  bottom: 4.5rem;
   right: 1.25rem;
   font-family: inherit;
   font-size: 0.8rem;
@@ -1757,3 +1757,32 @@
     justify-content: center;
   }
 }
+
+.editStoreDetailsBtn {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background-color: var(--color-sand);
+  border: 1px solid var(--color-border);
+  color: var(--color-palm);
+  padding: 0.4rem 0.85rem;
+  border-radius: 99px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:global([data-theme="dark"]) .editStoreDetailsBtn {
+  background-color: rgba(25, 23, 2, 0.6);
+  color: var(--color-coconut);
+}
+
+.editStoreDetailsBtn:hover {
+  background-color: var(--color-palm);
+  color: #ffffff;
+  border-color: var(--color-palm);
+  transform: translateY(-1px);
+}
+

@@ -204,6 +204,107 @@ export const updateStore = mutation({
   },
 });
 
+// Generate an upload URL for files (images)
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Update store logo image
+export const updateStoreLogo = mutation({
+  args: {
+    storeId: v.id("stores"),
+    storageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) {
+      throw new Error("Unauthorized or Store not found");
+    }
+
+    const logoUrl = await ctx.storage.getUrl(args.storageId);
+    if (!logoUrl) {
+      throw new Error("File not found");
+    }
+
+    await ctx.db.patch(args.storeId, { logo: logoUrl });
+    return logoUrl;
+  },
+});
+
+// Update store banner image
+export const updateStoreBanner = mutation({
+  args: {
+    storeId: v.id("stores"),
+    storageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) {
+      throw new Error("Unauthorized or Store not found");
+    }
+
+    const bannerUrl = await ctx.storage.getUrl(args.storageId);
+    if (!bannerUrl) {
+      throw new Error("File not found");
+    }
+
+    await ctx.db.patch(args.storeId, { banner: bannerUrl });
+    return bannerUrl;
+  },
+});
+
+// Update general store details (name, category, description, and location) from dashboard without resetting status
+export const updateStoreDetails = mutation({
+  args: {
+    storeId: v.id("stores"),
+    name: v.string(),
+    category: v.string(),
+    description: v.string(),
+    physicalAddress: v.optional(v.string()),
+    city: v.optional(v.string()),
+    stateName: v.optional(v.string()),
+    country: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) {
+      throw new Error("Unauthorized or Store not found");
+    }
+
+    await ctx.db.patch(args.storeId, {
+      name: args.name,
+      category: args.category,
+      description: args.description,
+      physicalAddress: args.physicalAddress,
+      city: args.city,
+      stateName: args.stateName,
+      country: args.country,
+    });
+
+    return args.storeId;
+  },
+});
+
+
 // Mutation to save the generated OTP
 export const saveOTP = mutation({
   args: {

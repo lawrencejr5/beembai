@@ -9,7 +9,8 @@ import homeStyles from "@/app/page.module.css";
 import { formatNumber } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import UserMenu from "@/app/components/UserMenu";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
+import { useRef } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -199,7 +200,44 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // Edit details modal state
+  const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
+  const [editName, setEditName] = useState(store.name);
+  const [editCategory, setEditCategory] = useState(store.category);
+  const [editDescription, setEditDescription] = useState(store.description);
+  const [editPhysicalAddress, setEditPhysicalAddress] = useState(store.physicalAddress || "");
+  const [editCity, setEditCity] = useState(store.city || "");
+  const [editStateName, setEditStateName] = useState(store.stateName || "");
+  const [editCountry, setEditCountry] = useState(store.country || "");
+  const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
+
+  // File upload states
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+
+  // File input refs
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  // Mutations
+  const generateUploadUrl = useMutation(api.store.generateUploadUrl);
+  const updateStoreLogo = useMutation(api.store.updateStoreLogo);
+  const updateStoreBanner = useMutation(api.store.updateStoreBanner);
+  const updateStoreDetails = useMutation(api.store.updateStoreDetails);
+
   const storeProducts = useQuery(api.store.getProductsByStore, { storeId: store._id });
+
+  // Sync form states when store changes (e.g., store navigation)
+  useEffect(() => {
+    setEditName(store.name);
+    setEditCategory(store.category);
+    setEditDescription(store.description);
+    setEditPhysicalAddress(store.physicalAddress || "");
+    setEditCity(store.city || "");
+    setEditStateName(store.stateName || "");
+    setEditCountry(store.country || "");
+  }, [store]);
 
   const filteredProducts = useMemo(() => {
     if (!storeProducts) return [];
@@ -215,8 +253,94 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
 
   const hasBanner = !!store.banner;
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingLogo(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!result.ok) throw new Error("Upload failed");
+      const { storageId } = await result.json();
+      await updateStoreLogo({ storeId: store._id, storageId });
+    } catch (err) {
+      console.error("Logo upload failed:", err);
+      alert("Failed to upload logo image. Please check your connection and try again.");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBanner(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!result.ok) throw new Error("Upload failed");
+      const { storageId } = await result.json();
+      await updateStoreBanner({ storeId: store._id, storageId });
+    } catch (err) {
+      console.error("Banner upload failed:", err);
+      alert("Failed to upload banner image. Please check your connection and try again.");
+    } finally {
+      setIsUploadingBanner(false);
+    }
+  };
+
+  const handleDetailsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim()) { setDetailsError("Store name is required."); return; }
+    if (!editDescription.trim()) { setDetailsError("Brand biography is required."); return; }
+
+    setIsSubmittingDetails(true);
+    setDetailsError("");
+    try {
+      await updateStoreDetails({
+        storeId: store._id,
+        name: editName,
+        category: editCategory,
+        description: editDescription,
+        physicalAddress: editPhysicalAddress,
+        city: editCity,
+        stateName: editStateName,
+        country: editCountry,
+      });
+      setShowEditDetailsModal(false);
+    } catch (err: any) {
+      setDetailsError(err.message || "An error occurred while updating store details.");
+    } finally {
+      setIsSubmittingDetails(false);
+    }
+  };
+
   return (
     <>
+      {/* Hidden file input tags */}
+      <input
+        type="file"
+        ref={logoInputRef}
+        style={{ display: "none" }}
+        accept="image/*"
+        onChange={handleLogoUpload}
+      />
+      <input
+        type="file"
+        ref={bannerInputRef}
+        style={{ display: "none" }}
+        accept="image/*"
+        onChange={handleBannerUpload}
+      />
+
       {/* Store Selector Pill Bar */}
       <div className={styles.storeSelectorBar}>
         {allStores.map((s) => {
@@ -246,23 +370,47 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
         <div className={styles.dashBanner} style={hasBanner ? { backgroundImage: `url('${store.banner}')` } : {}}>
           {!hasBanner && <div className={styles.dashBannerGradient} />}
           <div className={styles.dashBannerOverlay} />
-          <button type="button" className={styles.editBannerBtn} title="Update store banner image">
+          <button
+            type="button"
+            className={styles.editBannerBtn}
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={isUploadingBanner}
+            title="Update store banner image"
+          >
             <span>🖼</span>
-            Edit Banner
+            {isUploadingBanner ? "Uploading..." : "Edit Banner"}
           </button>
         </div>
 
         {/* Store Header */}
         <div className={styles.dashStoreHeader}>
           <div className={styles.dashLogoWrap}>
-            <div className={styles.dashLogoContainer}>
+            <div className={styles.dashLogoContainer} style={{ position: "relative" }}>
               {store.logo ? (
                 <Image src={store.logo} alt={store.name} width={130} height={130} className={styles.dashLogoImage} />
               ) : (
                 <span className={styles.dashLogoInitials}>{getStoreInitials(store.name)}</span>
               )}
+              {isUploadingLogo && (
+                <div style={{
+                  position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: 28, color: "#fff", fontSize: "0.8rem", fontWeight: 700
+                }}>
+                  ⏳ Uploading...
+                </div>
+              )}
             </div>
-            <button type="button" className={styles.editLogoBtn} title="Update store logo" aria-label="Edit store logo">✏</button>
+            <button
+              type="button"
+              className={styles.editLogoBtn}
+              onClick={() => logoInputRef.current?.click()}
+              disabled={isUploadingLogo}
+              title="Update store logo"
+              aria-label="Edit store logo"
+            >
+              ✏
+            </button>
           </div>
 
           <div className={styles.dashMetaBlock}>
@@ -284,7 +432,16 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
         {/* Bio & Stats */}
         <div className={styles.dashBioSection}>
           <div className={styles.dashBioContent}>
-            <h2 className={styles.dashSectionTitle}>About the Brand</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+              <h2 className={styles.dashSectionTitle} style={{ marginBottom: 0 }}>About the Brand</h2>
+              <button
+                type="button"
+                className={styles.editStoreDetailsBtn}
+                onClick={() => setShowEditDetailsModal(true)}
+              >
+                ✏️ Edit Brand Info
+              </button>
+            </div>
             <p className={styles.dashBioText}>{store.description}</p>
           </div>
           <div className={styles.dashStatsSidebar}>
@@ -405,6 +562,82 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
           </div>
         )}
       </div>
+
+      {/* Edit details modal */}
+      {showEditDetailsModal && (
+        <div className={styles.modalBackdrop} onClick={(e) => e.target === e.currentTarget && setShowEditDetailsModal(false)}>
+          <div className={styles.productModal} style={{ maxWidth: 640 }}>
+            <div className={styles.productModalHeader}>
+              <div>
+                <h2 className={styles.productModalTitle}>Edit Brand Details</h2>
+                <p className={styles.productModalSubtitle}>Update your public storefront information</p>
+              </div>
+              <button className={styles.modalCloseBtn} onClick={() => setShowEditDetailsModal(false)} aria-label="Close modal">✕</button>
+            </div>
+
+            <form className={styles.modalForm} onSubmit={handleDetailsSubmit}>
+              {detailsError && (
+                <div style={{ color: "#d93838", fontSize: "0.85rem", fontWeight: 700, marginBottom: "1rem" }}>
+                  ⚠️ {detailsError}
+                </div>
+              )}
+
+              <div className={styles.modalFormRow}>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Store Name *</label>
+                  <input className={styles.modalInput} type="text" required value={editName} onChange={(e) => setEditName(e.target.value)} />
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Primary Category</label>
+                  <select className={styles.modalSelect} value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
+                    <option value="All Categories">All Categories</option>
+                    <option value="Phone & Tablets">Phone &amp; Tablets</option>
+                    <option value="Gadgets & Accessories">Gadgets &amp; Accessories</option>
+                    <option value="Apparel & Fashion">Apparel &amp; Fashion</option>
+                    <option value="Furniture & Living">Furniture &amp; Living</option>
+                    <option value="Beauty & Care">Beauty &amp; Care</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Home Appliances">Home Appliances</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>Brand Biography / Description *</label>
+                <textarea className={styles.modalTextarea} style={{ minHeight: 100 }} required value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+              </div>
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>Street Address</label>
+                <input className={styles.modalInput} type="text" value={editPhysicalAddress} onChange={(e) => setEditPhysicalAddress(e.target.value)} />
+              </div>
+
+              <div className={styles.modalFormRow}>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>City</label>
+                  <input className={styles.modalInput} type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} />
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>State / Province</label>
+                  <input className={styles.modalInput} type="text" value={editStateName} onChange={(e) => setEditStateName(e.target.value)} />
+                </div>
+              </div>
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>Country</label>
+                <input className={styles.modalInput} type="text" value={editCountry} onChange={(e) => setEditCountry(e.target.value)} />
+              </div>
+
+              <div className={styles.modalBtnGroup}>
+                <button type="button" className={styles.modalCancelBtn} onClick={() => setShowEditDetailsModal(false)}>Cancel</button>
+                <button type="submit" className={styles.modalSubmitBtn} disabled={isSubmittingDetails}>
+                  {isSubmittingDetails ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showAddModal && <AddProductModal storeName={store.name} onClose={() => setShowAddModal(false)} />}
     </>
