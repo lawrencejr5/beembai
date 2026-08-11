@@ -23,7 +23,11 @@
   text-align: center;
   padding: 4rem 2rem;
   border-radius: 28px;
-  background: linear-gradient(135deg, var(--color-sand) 0%, var(--color-cream) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-sand) 0%,
+    var(--color-cream) 100%
+  );
   border: 1.5px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -33,7 +37,11 @@
 }
 
 :global([data-theme="dark"]) .heroBanner {
-  background: linear-gradient(135deg, rgba(23, 22, 0, 0.4) 0%, rgba(30, 28, 5, 0.3) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(23, 22, 0, 0.4) 0%,
+    rgba(30, 28, 5, 0.3) 100%
+  );
   border-color: var(--color-border);
 }
 
@@ -376,8 +384,12 @@
 
 /* Animations keyframes */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
@@ -392,9 +404,18 @@
 }
 
 @keyframes pulseTick {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 109, 33, 0.4); }
-  70% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(99, 109, 33, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 109, 33, 0); }
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(99, 109, 33, 0.4);
+  }
+  70% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 10px rgba(99, 109, 33, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(99, 109, 33, 0);
+  }
 }
 
 /* Responsive adjustments */
@@ -773,7 +794,7 @@
   .reviewCard {
     padding: 2rem 1.5rem;
   }
-  
+
   /* Step Indicator mobile adjustments */
   .stepProgressHeader {
     margin-bottom: 2rem;
@@ -930,19 +951,28 @@
 .dashBannerGradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--color-palm) 0%, #a0a832 40%, var(--color-sand) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-palm) 0%,
+    #a0a832 40%,
+    var(--color-sand) 100%
+  );
   opacity: 0.5;
 }
 
 .dashBannerOverlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(40, 38, 0, 0.1) 0%, rgba(40, 38, 0, 0.55) 100%);
+  background: linear-gradient(
+    to bottom,
+    rgba(40, 38, 0, 0.1) 0%,
+    rgba(40, 38, 0, 0.55) 100%
+  );
 }
 
 .editBannerBtn {
   position: absolute;
-  bottom: 4.5rem;
+  top: 1rem;
   right: 1.25rem;
   font-family: inherit;
   font-size: 0.8rem;
@@ -978,7 +1008,6 @@
   display: flex;
   align-items: flex-end;
   gap: 2rem;
-  margin-top: -52px;
   position: relative;
   z-index: 5;
   padding: 0 0 2rem 0;
@@ -989,6 +1018,7 @@
 .dashLogoWrap {
   position: relative;
   flex-shrink: 0;
+  margin-top: -52px;
 }
 
 .dashLogoContainer {
@@ -1411,6 +1441,10 @@
   background-color: rgba(30, 28, 5, 0.3);
 }
 
+.dashCatalogEmptyState {
+  grid-column: 2 / -1;
+}
+
 .dashEmptyIcon {
   font-size: 3.5rem;
   opacity: 0.35;
@@ -1756,6 +1790,12 @@
     width: 100%;
     justify-content: center;
   }
+  .addProductCard {
+    display: none;
+  }
+  .dashCatalogEmptyState {
+    grid-column: 1 / -1;
+  }
 }
 
 .editStoreDetailsBtn {
@@ -1785,4 +1825,3 @@
   border-color: var(--color-palm);
   transform: translateY(-1px);
 }
-

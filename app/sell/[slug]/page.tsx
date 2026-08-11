@@ -414,17 +414,17 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
           </div>
 
           <div className={styles.dashMetaBlock}>
+            <h1 className={styles.dashStoreName}>{store.name}</h1>
+            <div className={styles.dashRatingRow}>
+              <span className={styles.dashStarIcon}><StarIcon /></span>
+              <span className={styles.dashRatingValue}>{store.rating.toFixed(1)} / 5.0 rating</span>
+            </div>
             <div className={styles.dashBadgeRow}>
               <span className={styles.dashCategoryTag}>{store.category}</span>
               {store.verified && (
                 <span className={styles.dashVerifiedLabel}><VerifiedIcon /><span>Verified Store</span></span>
               )}
               <span className={styles.dashApprovedBadge}>✓ Approved</span>
-            </div>
-            <h1 className={styles.dashStoreName}>{store.name}</h1>
-            <div className={styles.dashRatingRow}>
-              <span className={styles.dashStarIcon}><StarIcon /></span>
-              <span className={styles.dashRatingValue}>{store.rating.toFixed(1)} / 5.0 rating</span>
             </div>
           </div>
         </div>
@@ -508,7 +508,7 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
             </button>
 
             {filteredProducts.length === 0 && !searchQuery && (
-              <div className={styles.dashEmptyState} style={{ gridColumn: "2 / -1" }}>
+              <div className={`${styles.dashEmptyState} ${styles.dashCatalogEmptyState}`}>
                 <span className={styles.dashEmptyIcon}>📦</span>
                 <p className={styles.dashEmptyTitle}>No products listed yet</p>
                 <p className={styles.dashEmptySubtitle}>Add your first product using the card on the left to start selling on Beembai.</p>
@@ -516,7 +516,7 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
             )}
 
             {filteredProducts.length === 0 && searchQuery && (
-              <div className={styles.dashEmptyState} style={{ gridColumn: "2 / -1" }}>
+              <div className={`${styles.dashEmptyState} ${styles.dashCatalogEmptyState}`}>
                 <span className={styles.dashEmptyIcon}>🔍</span>
                 <p className={styles.dashEmptyTitle}>No results for &ldquo;{searchQuery}&rdquo;</p>
                 <p className={styles.dashEmptySubtitle}>Try a different search term or clear the search.</p>
