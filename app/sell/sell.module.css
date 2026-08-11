@@ -1142,6 +1142,9 @@
   color: var(--color-papyrus);
   letter-spacing: -0.03em;
   line-height: 1.1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 :global([data-theme="dark"]) .dashStoreName {
@@ -1993,4 +1996,20 @@
 :global([data-theme="dark"]) .dashVerificationUnderReviewBadge {
   background-color: rgba(234, 179, 8, 0.18);
   color: #facc15;
+}
+
+.dashTitleVerifiedIcon {
+  color: var(--color-palm);
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.15rem;
+}
+
+.dashTitleVerifiedIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+:global([data-theme="dark"]) .dashTitleVerifiedIcon {
+  color: var(--color-coconut);
 }

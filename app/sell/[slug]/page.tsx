@@ -1263,7 +1263,14 @@ function ApprovedDashboard({
           </div>
 
           <div className={styles.dashMetaBlock}>
-            <h1 className={styles.dashStoreName}>{store.name}</h1>
+            <h1 className={styles.dashStoreName}>
+              <span>{store.name}</span>
+              {(store.verified || store.verificationStatus === "verified") && (
+                <span className={styles.dashTitleVerifiedIcon} title="Verified Store">
+                  <VerifiedIcon />
+                </span>
+              )}
+            </h1>
             <div className={styles.dashRatingRow}>
               <span className={styles.dashStarIcon}>
                 <StarIcon />
