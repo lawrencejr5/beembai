@@ -1943,3 +1943,54 @@
     transform: translateY(0);
   }
 }
+
+.verifyStoreBtn {
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 900;
+  background-color: transparent;
+  color: var(--color-palm);
+  border: none;
+  padding: 0 0.2rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.verifyStoreBtn:hover {
+  color: var(--color-papyrus);
+  text-decoration-color: var(--color-papyrus);
+  transform: translateY(-0.5px);
+}
+
+:global([data-theme="dark"]) .verifyStoreBtn {
+  color: var(--color-coconut);
+}
+
+:global([data-theme="dark"]) .verifyStoreBtn:hover {
+  color: #ffffff;
+}
+
+.dashVerificationUnderReviewBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: rgba(234, 179, 8, 0.12);
+  color: #ca8a04;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global([data-theme="dark"]) .dashVerificationUnderReviewBadge {
+  background-color: rgba(234, 179, 8, 0.18);
+  color: #facc15;
+}

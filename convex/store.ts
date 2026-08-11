@@ -416,3 +416,34 @@ export const sendEmailOTP = action({
     }
   },
 });
+
+// Submit verification documents for a store
+export const submitStoreVerification = mutation({
+  args: {
+    storeId: v.id("stores"),
+    businessRegistrationFile: v.string(),
+    taxId: v.string(),
+    proofOfAddressFile: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) {
+      throw new Error("Unauthorized or Store not found");
+    }
+
+    await ctx.db.patch(args.storeId, {
+      verificationStatus: "under_review",
+      businessRegistrationFile: args.businessRegistrationFile,
+      taxId: args.taxId,
+      proofOfAddressFile: args.proofOfAddressFile,
+    });
+
+    return args.storeId;
+  },
+});
+

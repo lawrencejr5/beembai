@@ -79,6 +79,11 @@ export default defineSchema({
     accountName: v.optional(v.string()),
     accountNumber: v.optional(v.string()),
     routingNumber: v.optional(v.string()),
+    verificationStatus: v.optional(v.union(v.literal("unverified"), v.literal("under_review"), v.literal("verified"))),
+    businessRegistrationFile: v.optional(v.string()),
+    taxId: v.optional(v.string()),
+    corporateBankAccount: v.optional(v.string()),
+    proofOfAddressFile: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
     .index("by_userId", ["userId"]),
