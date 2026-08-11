@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, use } from "react";
+import React, { useState, useMemo, use, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
@@ -13,6 +13,8 @@ import {
 } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // SVG Components
 const CartIcon = () => (
@@ -123,11 +125,48 @@ export default function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const productId = resolvedParams?.id;
 
-  const product = getProductById(productId);
+  // 1. Try mock data first
+  const mockProduct = getProductById(productId);
+
+  // 2. Fetch from Convex if not mock
+  const dbProduct = useQuery(
+    api.products.getProductDetails,
+    !mockProduct && productId ? { productId } : "skip"
+  );
+
+  const product: any = useMemo(() => {
+    if (mockProduct) return mockProduct;
+    if (dbProduct) {
+      return {
+        id: dbProduct._id,
+        title: dbProduct.title,
+        price: dbProduct.price,
+        originalPrice: dbProduct.originalPrice,
+        image: dbProduct.image,
+        categorySlug: dbProduct.categorySlug,
+        categoryName: dbProduct.categoryName,
+        colors: dbProduct.colors,
+        description: dbProduct.description,
+        tag: dbProduct.tag,
+        stock: dbProduct.stock,
+        storeId: dbProduct.storeId,
+        images: dbProduct.images,
+        youtubeLink: dbProduct.youtubeLink,
+        status: dbProduct.status,
+        brand: dbProduct.brand,
+      };
+    }
+    return undefined;
+  }, [mockProduct, dbProduct]);
+
+  // Loading state
+  const isLoading = !mockProduct && dbProduct === undefined;
+
   const category = useMemo(
     () => (product ? getCategoryBySlug(product.categorySlug) : undefined),
     [product],
   );
+
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     return getProductsByCategory(product.categorySlug)
@@ -135,9 +174,28 @@ export default function ProductPage({ params }: ProductPageProps) {
       .slice(0, 4);
   }, [product]);
 
-  const [selectedColor, setSelectedColor] = useState<string>(
-    product?.colors && product.colors.length > 0 ? product.colors[0] : "",
-  );
+  // Selected thumbnail/main image state
+  const [selectedImage, setSelectedImage] = useState<string>("");
+  const activeImage = selectedImage || product?.image || "";
+
+  const [selectedColor, setSelectedColor] = useState<string>("");
+
+  // Sync default color selection when product loads
+  useEffect(() => {
+    if (product?.colors && product.colors.length > 0) {
+      setSelectedColor(product.colors[0]);
+    }
+  }, [product]);
+
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", background: "var(--background)" }}>
+        <div style={{ textAlign: "center" }}>
+          <p style={{ color: "var(--color-olive-gray)", fontWeight: 600, fontSize: "1rem" }}>Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return notFound();
@@ -207,21 +265,41 @@ export default function ProductPage({ params }: ProductPageProps) {
       {/* Main Hero Product Showcase Section */}
       <section className={styles.heroShowcase}>
         {/* Left Column: Image Frame */}
-        <div className={styles.imageGalleryContainer}>
-          {product.tag && <span className={styles.cardTag}>{product.tag}</span>}
-          {product.originalPrice && (
-            <span className={styles.cardDiscountTag}>
-              -{discountPercent}% OFF
-            </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", width: "100%" }}>
+          <div className={styles.imageGalleryContainer}>
+            {product.tag && <span className={styles.cardTag}>{product.tag}</span>}
+            {product.originalPrice && (
+              <span className={styles.cardDiscountTag}>
+                -{discountPercent}% OFF
+              </span>
+            )}
+            <Image
+              src={activeImage}
+              alt={product.title}
+              fill
+              priority
+              className={styles.mainProductImg}
+              sizes="(max-width: 992px) 100vw, 50vw"
+            />
+          </div>
+          {/* Multiple thumbnails rendering */}
+          {product.images && product.images.length > 0 && (
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              {product.images.map((imgUrl: string, idx: number) => (
+                <div
+                  key={idx}
+                  onClick={() => setSelectedImage(imgUrl)}
+                  style={{
+                    width: 70, height: 70, position: "relative", borderRadius: 10, overflow: "hidden",
+                    border: activeImage === imgUrl ? "2px solid var(--color-palm)" : "1.5px solid var(--color-border)",
+                    cursor: "pointer", transition: "all 0.2s ease", backgroundColor: "var(--color-sand)"
+                  }}
+                >
+                  <Image src={imgUrl} alt={`Thumbnail ${idx + 1}`} fill sizes="70px" style={{ objectFit: "cover" }} />
+                </div>
+              ))}
+            </div>
           )}
-          <Image
-            src={product.image}
-            alt={product.title}
-            fill
-            priority
-            className={styles.mainProductImg}
-            sizes="(max-width: 992px) 100vw, 50vw"
-          />
         </div>
 
         {/* Right Column: Product Details & Purchase Actions */}
@@ -292,7 +370,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                   Color: <strong>{selectedColor || product.colors[0]}</strong>
                 </span>
                 <div className={styles.colorList}>
-                  {product.colors.map((color) => {
+                  {product.colors.map((color: string) => {
                     const isSelected =
                       (selectedColor || product.colors![0]) === color;
                     return (
@@ -411,7 +489,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
         {product.productDetails && product.productDetails.length > 0 ? (
           <ul className={styles.detailsList}>
-            {product.productDetails.map((detail, index) => (
+            {product.productDetails.map((detail: string, index: number) => (
               <li key={index} className={styles.detailBulletItem}>
                 <div className={styles.bulletDot} />
                 <span>{detail}</span>
@@ -458,6 +536,41 @@ export default function ProductPage({ params }: ProductPageProps) {
             </span>
           </div>
         </div>
+
+        {/* YouTube Video Section */}
+        {product.youtubeLink && (
+          <div style={{ marginTop: "2.5rem", borderTop: "1px solid var(--color-border)", paddingTop: "1.5rem" }}>
+            <h3 style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--color-papyrus)", marginBottom: "1rem" }}>
+              Product Video Demonstration
+            </h3>
+            {(() => {
+              const youtubeId = (() => {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = product.youtubeLink?.match(regExp);
+                return match && match[2].length === 11 ? match[2] : null;
+              })();
+              
+              if (youtubeId) {
+                return (
+                  <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: 16, border: "1.5px solid var(--color-border)" }}>
+                    <iframe
+                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+                      src={`https://www.youtube.com/embed/${youtubeId}`}
+                      title="YouTube video player"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                );
+              }
+              return (
+                <p style={{ fontSize: "0.85rem", color: "var(--color-olive-gray)" }}>
+                  Watch video: <a href={product.youtubeLink} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-palm)", fontWeight: 700 }}>{product.youtubeLink}</a>
+                </p>
+              );
+            })()}
+          </div>
+        )}
       </section>
 
       {/* Related Products Showcase */}

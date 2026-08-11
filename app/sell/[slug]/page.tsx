@@ -73,7 +73,16 @@ const getStoreInitials = (name: string): string => {
 
 // ─── Add Product Modal ────────────────────────────────────────────────────────
 
-function AddProductModal({ storeName, onClose }: { storeName: string; onClose: () => void }) {
+function AddProductModal({
+  storeId,
+  storeName,
+  onClose,
+}: {
+  storeId: Id<"stores">;
+  storeName: string;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState(1);
   const [productTitle, setProductTitle] = useState("");
   const [productCategory, setProductCategory] = useState("Phone & Tablets");
   const [productPrice, setProductPrice] = useState("");
@@ -82,25 +91,140 @@ function AddProductModal({ storeName, onClose }: { storeName: string; onClose: (
   const [productCondition, setProductCondition] = useState("New");
   const [productColors, setProductColors] = useState("");
   const [productStock, setProductStock] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
+
+  // Step 2 states
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [mainImage, setMainImage] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const generateUploadUrl = useMutation(api.store.generateUploadUrl);
+  const resolveStorageUrl = useMutation(api.products.resolveStorageUrl);
+  const createProductMut = useMutation(api.products.createProduct);
+
+  const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
     if (!productTitle.trim() || !productPrice.trim()) return;
+    setStep(2);
+  };
+
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError("");
+    const newUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // 1. Generate Convex storage upload URL
+        const uploadUrl = await generateUploadUrl();
+
+        // 2. POST the image file to the Convex storage
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!result.ok) throw new Error(`Failed to upload file ${file.name}`);
+
+        const { storageId } = await result.json();
+
+        // 3. Resolve the storage ID to its public URL
+        const publicUrl = await resolveStorageUrl({ storageId });
+        if (publicUrl) {
+          newUrls.push(publicUrl);
+        }
+      }
+
+      setUploadedImages((prev) => {
+        const updated = [...prev, ...newUrls];
+        // Automatically select the first image as main if none is selected yet
+        if (!mainImage && updated.length > 0) {
+          setMainImage(updated[0]);
+        }
+        return updated;
+      });
+    } catch (err: any) {
+      console.error("Image upload failed:", err);
+      setUploadError(err.message || "Failed to upload one or more images.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = ""; // clear input
+    }
+  };
+
+  const handleDeleteImage = (urlToDelete: string) => {
+    setUploadedImages((prev) => {
+      const filtered = prev.filter((url) => url !== urlToDelete);
+      if (mainImage === urlToDelete) {
+        setMainImage(filtered.length > 0 ? filtered[0] : "");
+      }
+      return filtered;
+    });
+  };
+
+  const handleFinalSubmit = async () => {
+    if (uploadedImages.length === 0) {
+      setSubmitError("Please upload at least one image.");
+      return;
+    }
+    if (!mainImage) {
+      setSubmitError("Please select a main image.");
+      return;
+    }
+
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setIsSubmitting(false);
-    setSubmitted(true);
-    setTimeout(onClose, 1500);
+    setSubmitError("");
+
+    // Parse colors string into array
+    const colorsArray = productColors
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+
+    try {
+      await createProductMut({
+        title: productTitle,
+        price: parseFloat(productPrice),
+        originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+        categoryName: productCategory,
+        description: productDesc || undefined,
+        condition: productCondition || undefined,
+        colors: colorsArray.length > 0 ? colorsArray : undefined,
+        stock: productStock ? parseInt(productStock, 10) : undefined,
+        storeId,
+        images: uploadedImages,
+        image: mainImage,
+        youtubeLink: youtubeLink.trim() || undefined,
+      });
+
+      setSubmitted(true);
+      setTimeout(onClose, 2000);
+    } catch (err: any) {
+      console.error("Failed to create product:", err);
+      setSubmitError(err.message || "Failed to list your product. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className={styles.modalBackdrop} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={styles.productModal}>
+      <div className={styles.productModal} style={step === 2 ? { maxWidth: 640 } : undefined}>
         <div className={styles.productModalHeader}>
           <div>
-            <h2 className={styles.productModalTitle}>Add New Product</h2>
+            <h2 className={styles.productModalTitle}>Add New Product (Step {step} of 2)</h2>
             <p className={styles.productModalSubtitle}>Listing to <strong>{storeName}</strong></p>
           </div>
           <button className={styles.modalCloseBtn} onClick={onClose} aria-label="Close modal">✕</button>
@@ -109,11 +233,11 @@ function AddProductModal({ storeName, onClose }: { storeName: string; onClose: (
         {submitted ? (
           <div style={{ textAlign: "center", padding: "2rem 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
             <div className={styles.successTickCircle} style={{ width: 60, height: 60 }}><CheckCircleIcon /></div>
-            <p style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--color-papyrus)" }}>Product added successfully!</p>
-            <p style={{ fontSize: "0.85rem", color: "var(--color-olive-gray)" }}>Your listing will appear shortly.</p>
+            <p style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--color-papyrus)" }}>Product submitted successfully!</p>
+            <p style={{ fontSize: "0.85rem", color: "var(--color-olive-gray)" }}>Your product is pending admin approval.</p>
           </div>
-        ) : (
-          <form className={styles.modalForm} onSubmit={handleSubmit}>
+        ) : step === 1 ? (
+          <form className={styles.modalForm} onSubmit={handleNextStep}>
             <div className={styles.modalFormGroup}>
               <label className={styles.modalFormLabel}>Product Title *</label>
               <input className={styles.modalInput} type="text" required placeholder="e.g. iPhone 15 Pro Max 256GB" value={productTitle} onChange={(e) => setProductTitle(e.target.value)} />
@@ -180,11 +304,108 @@ function AddProductModal({ storeName, onClose }: { storeName: string; onClose: (
 
             <div className={styles.modalBtnGroup}>
               <button type="button" className={styles.modalCancelBtn} onClick={onClose}>Cancel</button>
-              <button type="submit" className={styles.modalSubmitBtn} disabled={isSubmitting || !productTitle.trim() || !productPrice.trim()}>
-                {isSubmitting ? "Adding..." : "Add Product"}
+              <button type="submit" className={styles.modalSubmitBtn} disabled={!productTitle.trim() || !productPrice.trim()}>
+                Next: Upload Images
               </button>
             </div>
           </form>
+        ) : (
+          <div className={styles.modalForm}>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--color-papyrus)", marginBottom: "0.4rem" }}>
+                Product Images *
+              </p>
+              <p style={{ fontSize: "0.78rem", color: "var(--color-olive-gray)", fontWeight: 500, lineHeight: 1.4 }}>
+                Upload multiple images for your product page. Click on an image to select it as the <strong>Main/Thumbnail</strong> image.
+              </p>
+            </div>
+
+            {/* Upload area */}
+            <input
+              type="file"
+              multiple
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              accept="image/*"
+              onChange={handleImagesUpload}
+            />
+            
+            <div
+              className={styles.imageUploadZone}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+              style={{ cursor: isUploading ? "not-allowed" : "pointer" }}
+            >
+              <span style={{ fontSize: "2rem" }}>📁</span>
+              <p style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--color-palm)" }}>
+                {isUploading ? "Uploading Images..." : "Click to select product images"}
+              </p>
+              <p style={{ fontSize: "0.75rem", color: "var(--color-olive-gray)", marginTop: "0.2rem" }}>
+                {isUploading ? "Please wait..." : "Select one or more JPG, PNG, or WEBP files"}
+              </p>
+            </div>
+
+            {uploadError && (
+              <div style={{ color: "#d93838", fontSize: "0.82rem", fontWeight: 700, marginTop: "0.5rem" }}>
+                ⚠️ {uploadError}
+              </div>
+            )}
+
+            {/* Uploaded images list */}
+            {uploadedImages.length > 0 && (
+              <div className={styles.imagePreviewGrid}>
+                {uploadedImages.map((url, idx) => {
+                  const isMain = url === mainImage;
+                  return (
+                    <div
+                      key={idx}
+                      className={`${styles.imagePreviewWrapper} ${isMain ? styles.imagePreviewMainActive : ""}`}
+                      onClick={() => setMainImage(url)}
+                    >
+                      <Image src={url} alt={`Preview ${idx + 1}`} fill sizes="100px" style={{ objectFit: "cover" }} />
+                      {isMain && <span className={styles.mainImageBadgeTag}>Main</span>}
+                      <button
+                        type="button"
+                        className={styles.deletePreviewBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteImage(url);
+                        }}
+                        title="Delete image"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {submitError && (
+              <div style={{ color: "#d93838", fontSize: "0.85rem", fontWeight: 700, marginTop: "1rem" }}>
+                ⚠️ {submitError}
+              </div>
+            )}
+
+            <div className={styles.modalFormGroup} style={{ marginTop: "1.5rem" }}>
+              <label className={styles.modalFormLabel}>YouTube Video Link (Optional)</label>
+              <input className={styles.modalInput} type="url" placeholder="e.g. https://www.youtube.com/watch?v=..." value={youtubeLink} onChange={(e) => setYoutubeLink(e.target.value)} />
+              <span className={styles.modalColorsHint}>Provide a link to a product video or demonstration</span>
+            </div>
+
+            <div className={styles.modalBtnGroup} style={{ marginTop: "2rem" }}>
+              <button type="button" className={styles.modalCancelBtn} onClick={() => setStep(1)} disabled={isSubmitting}>
+                Back
+              </button>
+              <button
+                type="button"
+                className={styles.modalSubmitBtn}
+                onClick={handleFinalSubmit}
+                disabled={isSubmitting || isUploading || uploadedImages.length === 0}
+              >
+                {isSubmitting ? "Listing Product..." : "List Product"}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -526,21 +747,41 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
             {filteredProducts.map((product) => (
               <div
                 key={product._id}
+                onClick={() => router.push(`/product/${product._id}`)}
                 style={{
                   background: "var(--color-cream)", border: "1.5px solid var(--color-border)",
                   borderRadius: 18, overflow: "hidden", display: "flex", flexDirection: "column",
                   transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  opacity: product.status === "pending" ? 0.82 : 1,
+                  cursor: "pointer",
                 }}
               >
                 <div style={{ width: "100%", aspectRatio: "1", background: "var(--color-sand)", position: "relative", overflow: "hidden" }}>
                   {product.image && (
                     <Image src={product.image} alt={product.title} fill sizes="(max-width: 640px) 50vw, 25vw" style={{ objectFit: "cover" }} />
                   )}
-                  {product.tag && (
+                  {product.status === "pending" ? (
+                    <span style={{
+                      position: "absolute",
+                      top: 10,
+                      right: 10,
+                      backgroundColor: "#eab308",
+                      color: "#1e1b4b",
+                      fontSize: "0.65rem",
+                      fontWeight: 800,
+                      padding: "0.2rem 0.55rem",
+                      borderRadius: 99,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      zIndex: 2,
+                    }}>
+                      Pending Review
+                    </span>
+                  ) : product.tag ? (
                     <span style={{ position: "absolute", top: 10, left: 10, background: "var(--color-palm)", color: "#fff", fontSize: "0.65rem", fontWeight: 800, padding: "0.2rem 0.55rem", borderRadius: 99, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       {product.tag}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div style={{ padding: "1rem 1rem 1.1rem", display: "flex", flexDirection: "column", gap: "0.4rem", flex: 1 }}>
                   <p style={{ fontSize: "0.82rem", color: "var(--color-olive-gray)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{product.categoryName}</p>
@@ -548,7 +789,7 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "auto", paddingTop: "0.5rem" }}>
                     <span style={{ fontWeight: 900, fontSize: "1rem", color: "var(--color-palm)" }}>₦{formatNumber(product.price)}</span>
                     {product.originalPrice && (
-                      <span style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)", textDecoration: "line-through" }}>₦{formatNumber(product.originalPrice)}</span>
+                      <span className={styles.catalogOriginalPrice}>₦{formatNumber(product.originalPrice)}</span>
                     )}
                   </div>
                   {product.stock !== undefined && (
@@ -639,7 +880,7 @@ function ApprovedDashboard({ store, allStores }: { store: StoreType; allStores: 
         </div>
       )}
 
-      {showAddModal && <AddProductModal storeName={store.name} onClose={() => setShowAddModal(false)} />}
+      {showAddModal && <AddProductModal storeId={store._id} storeName={store.name} onClose={() => setShowAddModal(false)} />}
     </>
   );
 }

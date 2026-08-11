@@ -1778,9 +1778,17 @@
   .modalFormRow {
     grid-template-columns: 1fr;
   }
+  .modalBackdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
   .productModal {
-    padding: 2rem 1.5rem;
-    border-radius: 20px;
+    padding: 2.5rem 1.5rem;
+    border-radius: 28px 28px 0 0;
+    width: 100%;
+    max-width: 100% !important;
+    height: 95vh;
+    animation: slideUpMobile 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   .modalBtnGroup {
     flex-direction: column-reverse;
@@ -1824,4 +1832,114 @@
   color: #ffffff;
   border-color: var(--color-palm);
   transform: translateY(-1px);
+}
+
+/* Image upload zone */
+.imageUploadZone {
+  border: 2px dashed var(--color-border);
+  border-radius: 20px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: rgba(99, 109, 33, 0.02);
+}
+
+.imageUploadZone:hover {
+  border-color: var(--color-palm);
+  background-color: rgba(99, 109, 33, 0.05);
+}
+
+/* Image preview grid */
+.imagePreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.imagePreviewWrapper {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: var(--color-sand);
+}
+
+.imagePreviewWrapper:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-palm);
+}
+
+.imagePreviewMainActive {
+  border-color: var(--color-palm);
+  box-shadow: 0 0 0 3px rgba(99, 109, 33, 0.2);
+}
+
+.mainImageBadgeTag {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background-color: var(--color-palm);
+  color: #ffffff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  z-index: 2;
+  letter-spacing: 0.05em;
+}
+
+.deletePreviewBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: rgba(217, 56, 56, 0.95);
+  color: #ffffff;
+  border: none;
+  font-size: 0.65rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.deletePreviewBtn:hover {
+  background-color: #d93838;
+  transform: scale(1.1);
+}
+
+.catalogOriginalPrice {
+  font-size: 0.8rem;
+  color: var(--color-olive-gray);
+  text-decoration: line-through;
+}
+
+@media (max-width: 768px) {
+  .catalogOriginalPrice {
+    font-size: 0.64rem;
+  }
+}
+
+@keyframes slideUpMobile {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }

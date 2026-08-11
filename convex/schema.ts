@@ -50,6 +50,9 @@ export default defineSchema({
     isSponsored: v.optional(v.boolean()),
     stock: v.optional(v.number()),
     storeId: v.optional(v.id("stores")),
+    images: v.optional(v.array(v.string())),
+    youtubeLink: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("pending"), v.literal("approved"))),
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"]),

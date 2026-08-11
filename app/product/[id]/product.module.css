@@ -893,6 +893,9 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
   }
+  .originalPrice {
+    font-size: 0.95rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -904,6 +907,9 @@
   }
   .currentPrice {
     font-size: 1.5rem;
+  }
+  .originalPrice {
+    font-size: 0.85rem;
   }
   .aboutSection {
     padding: 1.5rem 1rem;
