@@ -904,3 +904,44 @@
     height: 10px;
   }
 }
+
+.categoryBackButton {
+  position: absolute;
+  top: 1.5rem;
+  left: 2rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: rgba(23, 22, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  padding: 0.45rem 1rem;
+  border-radius: 99px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.categoryBackButton:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  color: var(--color-papyrus);
+  border-color: rgba(255, 255, 255, 0.95);
+  transform: translateX(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 768px) {
+  .categoryBackButton {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.74rem;
+  }
+}
+

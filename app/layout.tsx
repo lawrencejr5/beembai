@@ -5,6 +5,7 @@ import { CartProvider } from "@/app/context/CartContext";
 import AiShopper from "@/app/components/AiShopper";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "./ConvexClientProvider";
+import { NavigationProvider } from "@/app/context/NavigationContext";
 
 const figtree = localFont({
   src: [
@@ -69,10 +70,12 @@ export default function RootLayout({
       <html lang="en" className={figtree.variable}>
         <body>
           <ConvexClientProvider>
-            <CartProvider>
-              {children}
-              <AiShopper />
-            </CartProvider>
+            <NavigationProvider>
+              <CartProvider>
+                {children}
+                <AiShopper />
+              </CartProvider>
+            </NavigationProvider>
           </ConvexClientProvider>
         </body>
       </html>

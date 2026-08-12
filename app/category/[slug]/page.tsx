@@ -392,6 +392,11 @@ export default function CategoryPage({ params }: CategoryPageProps) {
       >
         <div className={styles.bannerOverlay} />
 
+        <Link href="/#shop" className={styles.categoryBackButton}>
+          <ArrowLeftIcon />
+          <span>Back</span>
+        </Link>
+
         <div className={styles.bannerContent}>
           <div className={styles.categoryTag}>
             <SparklesIcon />
