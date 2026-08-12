@@ -15,7 +15,7 @@ import {
 } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
-import UserMenu from "@/app/components/UserMenu";
+import Navbar from "@/app/components/Navbar";
 
 // SVG Components
 const SearchIcon = () => (
@@ -528,55 +528,7 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
-      {/* Header / Navbar */}
-      <header className={styles.navbar}>
-        <div className={styles.logo}>
-          beembai
-          <span className={styles.logoDot} />
-        </div>
-
-        <nav className={styles.navLinks}>
-          <Link href="/#featured" className={styles.navLink}>
-            Featured
-          </Link>
-          <Link href="/#shop" className={styles.navLink}>
-            New Arrivals
-          </Link>
-          <Link href="/stores" className={styles.navLink}>
-            Stores
-          </Link>
-          <Link href="/sell" className={styles.navLink}>
-            Sell
-          </Link>
-        </nav>
-
-        <div className={styles.navActions}>
-          <UserMenu />
-
-          <button
-            onClick={toggleTheme}
-            className={styles.themeToggleBtn}
-            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-          >
-            {theme === "light" ? <MoonIcon /> : <SunIcon />}
-          </button>
-
-          <Link
-            href="/cart"
-            className={`${styles.cartIconBtn} ${cartBounce ? styles.cartBounce : ""}`}
-            aria-label="Shopping Cart"
-          >
-            <CartIcon />
-            {totalItemsCount > 0 && (
-              <span
-                className={`${styles.cartBadge} ${cartBounce ? styles.badgePop : ""}`}
-              >
-                {formatNumber(totalItemsCount)}
-              </span>
-            )}
-          </Link>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Dark Transparent Backdrop Overlay */}
       <div

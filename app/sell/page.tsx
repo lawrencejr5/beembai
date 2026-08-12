@@ -7,7 +7,7 @@ import styles from "./sell.module.css";
 import homeStyles from "@/app/page.module.css";
 import { formatNumber } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
-import UserMenu from "@/app/components/UserMenu";
+import Navbar from "@/app/components/Navbar";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -74,33 +74,7 @@ export default function SellLandingPage() {
 
   return (
     <div className={styles.container}>
-      {/* Navbar */}
-      <header className={homeStyles.navbar}>
-        <Link href="/" className={homeStyles.logo}>
-          <span>beembai</span>
-          <span className={homeStyles.logoDot} />
-        </Link>
-        <nav className={homeStyles.navLinks}>
-          <Link href="/#featured" className={homeStyles.navLink}>Featured</Link>
-          <Link href="/#shop" className={homeStyles.navLink}>New Arrivals</Link>
-          <Link href="/stores" className={homeStyles.navLink}>Stores</Link>
-          <Link href="/sell" className={`${homeStyles.navLink} ${homeStyles.activeNavLink}`}>Sell</Link>
-        </nav>
-        <div className={homeStyles.navActions}>
-          <UserMenu />
-          <button onClick={toggleTheme} className={homeStyles.themeToggleBtn} aria-label="Toggle theme">
-            {theme === "light" ? <MoonIcon /> : <SunIcon />}
-          </button>
-          <Link href="/cart" className={`${homeStyles.cartIconBtn} ${cartBounce ? homeStyles.cartBounce : ""}`} aria-label="Shopping Cart">
-            <CartIcon />
-            {totalItemsCount > 0 && (
-              <span className={`${homeStyles.cartBadge} ${cartBounce ? homeStyles.badgePop : ""}`}>
-                {formatNumber(totalItemsCount)}
-              </span>
-            )}
-          </Link>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main */}
       <main className={styles.mainContent}>
