@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/app/context/CartContext";
 import { formatNumber } from "@/app/data/data";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import UserMenu from "./UserMenu";
 import styles from "./Navbar.module.css";
 
@@ -72,6 +74,13 @@ export default function Navbar() {
   const { totalItemsCount, cartBounce } = useCart();
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
+  // Fetch user stores to determine sell link destination dynamically
+  const userStores = useQuery(api.store.getStoresByOwner);
+  const preferredStore = userStores && userStores.length > 0
+    ? (userStores.find((s) => s.status === "approved") ?? userStores[0])
+    : null;
+  const sellHref = preferredStore ? `/sell/${preferredStore.slug}` : "/sell";
+
   // Sync theme state with document element attribute
   useEffect(() => {
     const activeTheme =
@@ -89,6 +98,9 @@ export default function Navbar() {
   const isActive = (path: string) => {
     if (path === "/") {
       return pathname === "/";
+    }
+    if (path === "/sell") {
+      return pathname.startsWith("/sell");
     }
     return pathname.startsWith(path);
   };
@@ -120,7 +132,7 @@ export default function Navbar() {
           Stores
         </Link>
         <Link
-          href="/sell"
+          href={sellHref}
           className={`${styles.navLink} ${isActive("/sell") ? styles.activeNavLink : ""}`}
         >
           Sell

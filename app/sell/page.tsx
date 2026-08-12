@@ -70,7 +70,23 @@ export default function SellLandingPage() {
 
   // While we're checking if the user has stores, show a neutral loading state
   // to avoid flashing the landing page before a redirect
-  const isRedirecting = userStores !== undefined && userStores.length > 0;
+  if (userStores === undefined) {
+    return (
+      <div className={styles.container}>
+        <Navbar />
+        <main className={styles.mainContent}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "50vh", gap: "1rem" }}>
+            <div style={{ fontSize: "2rem" }}>⏳</div>
+            <p style={{ color: "var(--color-olive-gray)", fontWeight: 600, fontSize: "0.95rem" }}>
+              Checking store status…
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const isRedirecting = userStores.length > 0;
 
   return (
     <div className={styles.container}>
