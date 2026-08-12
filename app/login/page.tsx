@@ -108,6 +108,35 @@ const CheckIcon = () => (
   </svg>
 );
 
+const EyeIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88L3 3m12 12l9 9" />
+  </svg>
+);
+
 const SpinnerIcon = () => (
   <svg
     className="animate-spin"
@@ -154,6 +183,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // UI Status
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -199,6 +230,8 @@ export default function LoginPage() {
     setCode("");
     setError("");
     setSuccess(false);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const getRedirectUrl = () => {
@@ -419,15 +452,26 @@ export default function LoginPage() {
                 {/* Password Input */}
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Password</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={styles.inputField}
-                    disabled={anyLoading}
-                  />
+                  <div className={styles.passwordInputWrapper}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`${styles.inputField} ${styles.passwordInputField}`}
+                      disabled={anyLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className={styles.passwordToggleBtn}
+                      title={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                 </div>
               </>
             ) : step === "credentials" ? (
@@ -463,29 +507,51 @@ export default function LoginPage() {
                 {/* Password Input */}
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Password</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={styles.inputField}
-                    disabled={anyLoading}
-                  />
+                  <div className={styles.passwordInputWrapper}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`${styles.inputField} ${styles.passwordInputField}`}
+                      disabled={anyLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className={styles.passwordToggleBtn}
+                      title={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Confirm Password Input */}
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Confirm Password</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={styles.inputField}
-                    disabled={anyLoading}
-                  />
+                  <div className={styles.passwordInputWrapper}>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`${styles.inputField} ${styles.passwordInputField}`}
+                      disabled={anyLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className={styles.passwordToggleBtn}
+                      title={showConfirmPassword ? "Hide password" : "Show password"}
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (

@@ -386,3 +386,38 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.passwordInputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.passwordToggleBtn {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-olive-gray);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  z-index: 2;
+}
+
+.passwordToggleBtn:hover {
+  color: var(--color-palm);
+}
+
+:global([data-theme="dark"]) .passwordToggleBtn:hover {
+  color: var(--color-coconut);
+}
+
+.passwordInputField {
+  padding-right: 3rem !important;
+}
+
