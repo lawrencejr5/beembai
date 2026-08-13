@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { CartProvider } from "@/app/context/CartContext";
@@ -58,6 +58,12 @@ export const metadata: Metadata = {
   title: "Beembai | Premium Curated E-Commerce",
   description:
     "Earthy, premium, and thoughtfully curated design essentials. Crafted to elevate your lifestyle.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
