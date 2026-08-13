@@ -3,6 +3,9 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import styles from "./page.module.css";
 import {
   getFeaturedProducts,
@@ -366,9 +369,11 @@ const POPULAR_CATEGORIES_DATA: PopularCategory[] = [
 
 export default function Home() {
   const { totalItemsCount, addToCart, cartBounce } = useCart();
+  const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [subscribeEmail, setSubscribeEmail] = useState("");
@@ -429,17 +434,21 @@ export default function Home() {
     "OLED",
   ];
 
-  const searchMatchingProducts = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase().trim();
-    return PRODUCTS_DATA.filter(
-      (p) =>
-        p.title.toLowerCase().includes(query) ||
-        p.categoryName.toLowerCase().includes(query) ||
-        (p.brand && p.brand.toLowerCase().includes(query)) ||
-        (p.tag && p.tag.toLowerCase().includes(query)),
-    ).slice(0, 5);
+  // Debounce: only update debouncedQuery 350ms after the user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 350);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Live Convex search using the full-text index
+  const searchResults = useQuery(
+    api.products.searchProducts,
+    debouncedQuery ? { query: debouncedQuery } : "skip",
+  );
+
+  const searchMatchingProducts = searchResults ?? [];
 
   const scrollFeatured = (direction: "left" | "right") => {
     if (!featuredRowRef.current) return;
@@ -566,6 +575,7 @@ export default function Home() {
                 } else if (e.key === "Enter" && searchQuery.trim()) {
                   saveRecentSearch(searchQuery);
                   setIsSearchFocused(false);
+                  router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
                 }
               }}
               className={styles.subHeaderSearchInput}
@@ -663,55 +673,71 @@ export default function Home() {
                   </div>
                 </>
               ) : (
-                /* Active Live Matching Suggestions */
+                /* Active Live Matching Suggestions (Convex full-text search) */
                 <div className={styles.suggestionGroup}>
                   <div className={styles.suggestionSectionTitle}>
                     <span>
-                      Matching Products ({searchMatchingProducts.length})
+                      {searchResults === undefined && debouncedQuery
+                        ? "Searching..."
+                        : `Matching Products (${searchMatchingProducts.length})`}
                     </span>
                   </div>
 
-                  {searchMatchingProducts.length > 0 ? (
-                    <div className={styles.productSuggestionList}>
-                      {searchMatchingProducts.map((product) => (
-                        <Link
-                          key={product.id}
-                          href={`/product/${product.id}`}
-                          onClick={() => {
-                            saveRecentSearch(product.title);
-                            setIsSearchFocused(false);
-                          }}
-                          className={styles.productSuggestionRow}
-                        >
-                          <div className={styles.suggestionImgWrapper}>
-                            <Image
-                              src={product.image}
-                              alt={product.title}
-                              fill
-                              className={styles.suggestionImg}
-                              sizes="44px"
-                            />
-                          </div>
+                  {searchResults === undefined && debouncedQuery ? (
+                    <div className={styles.noMatchesText}>Loading suggestions…</div>
+                  ) : searchMatchingProducts.length > 0 ? (
+                    <>
+                      <div className={styles.productSuggestionList}>
+                        {searchMatchingProducts.slice(0, 5).map((product) => (
+                          <Link
+                            key={product._id}
+                            href={`/product/${product._id}`}
+                            onClick={() => {
+                              saveRecentSearch(product.title);
+                              setIsSearchFocused(false);
+                            }}
+                            className={styles.productSuggestionRow}
+                          >
+                            <div className={styles.suggestionImgWrapper}>
+                              <Image
+                                src={product.image}
+                                alt={product.title}
+                                fill
+                                className={styles.suggestionImg}
+                                sizes="44px"
+                              />
+                            </div>
 
-                          <div className={styles.suggestionInfo}>
-                            <span className={styles.suggestionTitle}>
-                              {product.title}
-                            </span>
-                            <span className={styles.suggestionMeta}>
-                              {product.brand ? `${product.brand} • ` : ""}
-                              {product.categoryName}
-                            </span>
-                          </div>
+                            <div className={styles.suggestionInfo}>
+                              <span className={styles.suggestionTitle}>
+                                {product.title}
+                              </span>
+                              <span className={styles.suggestionMeta}>
+                                {product.brand ? `${product.brand} • ` : ""}
+                                {product.categoryName}
+                              </span>
+                            </div>
 
-                          <span className={styles.suggestionPrice}>
-                            ${formatPrice(product.price)}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
+                            <span className={styles.suggestionPrice}>
+                              ${formatPrice(product.price)}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                      <Link
+                        href={`/search?q=${encodeURIComponent(searchQuery.trim())}`}
+                        onClick={() => {
+                          saveRecentSearch(searchQuery);
+                          setIsSearchFocused(false);
+                        }}
+                        className={styles.viewAllResultsBtn}
+                      >
+                        View all {searchMatchingProducts.length} results for &ldquo;{searchQuery}&rdquo; →
+                      </Link>
+                    </>
                   ) : (
                     <div className={styles.noMatchesText}>
-                      No products found for "{searchQuery}"
+                      No products found for &ldquo;{searchQuery}&rdquo;
                     </div>
                   )}
                 </div>

@@ -55,7 +55,11 @@ export default defineSchema({
     status: v.optional(v.union(v.literal("pending"), v.literal("approved"))),
   })
     .index("by_categorySlug", ["categorySlug"])
-    .index("by_storeId", ["storeId"]),
+    .index("by_storeId", ["storeId"])
+    .searchIndex("search_products", {
+      searchField: "title",
+      filterFields: ["categorySlug", "status"],
+    }),
 
   stores: defineTable({
     name: v.string(),

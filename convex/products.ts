@@ -128,4 +128,56 @@ export const getProductDetails = query({
   },
 });
 
+// Full-text search for products by title
+export const searchProducts = query({
+  args: {
+    query: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("products"),
+      title: v.string(),
+      price: v.number(),
+      originalPrice: v.optional(v.number()),
+      image: v.string(),
+      categoryName: v.string(),
+      categorySlug: v.string(),
+      brand: v.optional(v.string()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    if (!args.query.trim()) return [];
 
+    const results = await ctx.db
+      .query("products")
+      .withSearchIndex("search_products", (q) =>
+        q.search("title", args.query),
+      )
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "approved"),
+          q.eq(q.field("status"), undefined),
+        ),
+      )
+      .take(10);
+
+    return results.map((p) => ({
+      _id: p._id,
+      title: p.title,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      image: p.image,
+      categoryName: p.categoryName,
+      categorySlug: p.categorySlug,
+      brand: p.brand,
+    }));
+  },
+});
+
+// Get all categories for search suggestion dropdown
+export const getCategories = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("categories").take(20);
+  },
+});

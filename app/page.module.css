@@ -469,6 +469,25 @@
   text-align: center;
 }
 
+.viewAllResultsBtn {
+  display: block;
+  margin-top: 10px;
+  padding: 10px 14px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #8b5cf6;
+  text-decoration: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 14px 14px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.viewAllResultsBtn:hover {
+  background: rgba(139, 92, 246, 0.08);
+  color: #a78bfa;
+}
+
 .subHeaderSearchInput {
   border: none;
   background: transparent;
