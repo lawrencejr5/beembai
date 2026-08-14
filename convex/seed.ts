@@ -67,6 +67,59 @@ export const seedDatabase = mutation({
   },
 });
 
+export const reseedProducts = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // 1. Get all stores from the DB to map customStoreIds to Convex _ids
+    const dbStores = await ctx.db.query("stores").collect();
+    const slugToStoreId = new Map<string, Id<"stores">>();
+    for (const store of dbStores) {
+      slugToStoreId.set(store.slug, store._id);
+    }
+
+    const customStoreIdToConvexId = new Map<string, Id<"stores">>();
+    for (const storeData of STORES_DATA) {
+      const convexId = slugToStoreId.get(storeData.slug);
+      if (convexId) {
+        customStoreIdToConvexId.set(storeData.id, convexId);
+      }
+    }
+
+    // 2. Fetch and delete all existing products
+    const existingProducts = await ctx.db.query("products").collect();
+    for (const p of existingProducts) {
+      await ctx.db.delete(p._id);
+    }
+
+    // 3. Re-seed products using the new PRODUCTS_DATA (with Naira prices)
+    for (const product of PRODUCTS_DATA) {
+      const convexStoreId = product.storeId ? customStoreIdToConvexId.get(product.storeId) : undefined;
+      await ctx.db.insert("products", {
+        title: product.title,
+        categorySlug: product.categorySlug,
+        categoryName: product.categoryName,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        image: product.image,
+        tag: product.tag,
+        description: product.description,
+        brand: product.brand,
+        condition: product.condition,
+        colors: product.colors,
+        productDetails: product.productDetails,
+        isFeatured: product.isFeatured,
+        isNewArrival: product.isNewArrival,
+        isSponsored: product.isSponsored,
+        stock: product.stock,
+        storeId: convexStoreId,
+      });
+    }
+
+    return "Products re-seeded with Naira prices successfully!";
+  },
+});
+
+
 export const migrateDatabase = mutation({
   args: {},
   handler: async (ctx) => {
