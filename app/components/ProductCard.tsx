@@ -117,10 +117,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className={styles.priceWrapper}>
             {product.originalPrice && (
               <span className={styles.originalPrice}>
-                ${formatPrice(product.originalPrice)}
+                ₦{formatPrice(product.originalPrice)}
               </span>
             )}
-            <span className={styles.price}>${formatPrice(product.price)}</span>
+            <span className={styles.price}>₦{formatPrice(product.price)}</span>
           </div>
 
           {totalQtyInCart === 0 ? (

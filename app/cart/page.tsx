@@ -277,7 +277,7 @@ export default function CartPage() {
                         </span>
                       )}
                       <span className={styles.unitPrice}>
-                        ${formatPrice(item.product.price)} each
+                        ₦{formatPrice(item.product.price)} each
                       </span>
                     </div>
                   </div>
@@ -321,7 +321,7 @@ export default function CartPage() {
                   {/* Subtotal & Trash Remove Button */}
                   <div className={styles.itemActionGroup}>
                     <span className={styles.subtotalPrice}>
-                      ${formatPrice(itemTotal)}
+                      ₦{formatPrice(itemTotal)}
                     </span>
                     <button
                       type="button"
@@ -346,7 +346,7 @@ export default function CartPage() {
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Subtotal</span>
-                <span>${formatPrice(subtotalPrice)}</span>
+                <span>₦{formatPrice(subtotalPrice)}</span>
               </div>
 
               <div className={styles.summaryRow}>
@@ -356,7 +356,7 @@ export default function CartPage() {
                 {shippingFee === 0 ? (
                   <span className={styles.freeShippingTag}>FREE</span>
                 ) : (
-                  <span>${formatPrice(shippingFee)}</span>
+                  <span>₦{formatPrice(shippingFee)}</span>
                 )}
               </div>
 
@@ -364,7 +364,7 @@ export default function CartPage() {
                 <span className={styles.summaryRowLabel}>
                   Estimated Tax (5%)
                 </span>
-                <span>${formatPrice(estimatedTax)}</span>
+                <span>₦{formatPrice(estimatedTax)}</span>
               </div>
 
               {discountAmount > 0 && (
@@ -378,14 +378,14 @@ export default function CartPage() {
                   >
                     Promo Discount
                   </span>
-                  <span>-${formatPrice(discountAmount)}</span>
+                  <span>-₦{formatPrice(discountAmount)}</span>
                 </div>
               )}
 
               <div className={styles.totalRow}>
                 <span className={styles.totalLabel}>Total</span>
                 <span className={styles.totalValue}>
-                  ${formatPrice(finalTotal)}
+                  ₦{formatPrice(finalTotal)}
                 </span>
               </div>
             </div>
@@ -419,7 +419,7 @@ export default function CartPage() {
 
             {user === undefined ? (
               <button type="button" className={styles.checkoutBtn} disabled>
-                Proceed to Checkout (${formatPrice(finalTotal)})
+                Proceed to Checkout (₦{formatPrice(finalTotal)})
               </button>
             ) : selectedCart.length === 0 ? (
               <button type="button" className={styles.checkoutBtn} disabled>
@@ -431,7 +431,7 @@ export default function CartPage() {
                 className={styles.checkoutBtn}
                 style={{ display: "block", textAlign: "center", textDecoration: "none" }}
               >
-                Proceed to Checkout (${formatPrice(finalTotal)})
+                Proceed to Checkout (₦{formatPrice(finalTotal)})
               </Link>
             ) : (
               <Link
@@ -439,7 +439,7 @@ export default function CartPage() {
                 className={styles.checkoutBtn}
                 style={{ display: "block", textAlign: "center", textDecoration: "none" }}
               >
-                Proceed to Checkout (${formatPrice(finalTotal)})
+                Proceed to Checkout (₦{formatPrice(finalTotal)})
               </Link>
             )}
 

@@ -307,7 +307,7 @@ export default function AiShopper() {
                             {product.title}
                           </span>
                           <span className={styles.productLinkPrice}>
-                            ${formatPrice(product.price)}
+                            ₦{formatPrice(product.price)}
                           </span>
                         </div>
                       </Link>

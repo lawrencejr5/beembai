@@ -360,7 +360,7 @@ export default function CheckoutPage() {
                       </span>
                     </div>
                     <span className={styles.itemRowPrice}>
-                      ${formatPrice(item.product.price * item.quantity)}
+                      ₦{formatPrice(item.product.price * item.quantity)}
                     </span>
                   </div>
                 );
@@ -370,23 +370,23 @@ export default function CheckoutPage() {
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Subtotal</span>
-                <span>${formatPrice(selectedSubtotalPrice)}</span>
+                <span>₦{formatPrice(selectedSubtotalPrice)}</span>
               </div>
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Shipping</span>
                 {shippingFee === 0 ? (
                   <span className={styles.freeShippingTag}>FREE</span>
                 ) : (
-                  <span>${formatPrice(shippingFee)}</span>
+                  <span>₦{formatPrice(shippingFee)}</span>
                 )}
               </div>
               <div className={styles.summaryRow}>
                 <span className={styles.summaryRowLabel}>Estimated Tax</span>
-                <span>${formatPrice(estimatedTax)}</span>
+                <span>₦{formatPrice(estimatedTax)}</span>
               </div>
               <div className={styles.totalRow}>
                 <span className={styles.totalLabel}>Total</span>
-                <span className={styles.totalValue}>${formatPrice(finalTotal)}</span>
+                <span className={styles.totalValue}>₦{formatPrice(finalTotal)}</span>
               </div>
             </div>
 
@@ -400,7 +400,7 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   <LockIcon />
-                  <span>Authorize & Pay ${formatPrice(finalTotal)}</span>
+                  <span>Authorize & Pay ₦{formatPrice(finalTotal)}</span>
                 </>
               )}
             </button>

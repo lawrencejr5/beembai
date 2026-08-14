@@ -719,7 +719,7 @@ export default function Home() {
                             </div>
 
                             <span className={styles.suggestionPrice}>
-                              ${formatPrice(product.price)}
+                              ₦{formatPrice(product.price)}
                             </span>
                           </Link>
                         ))}
@@ -776,11 +776,11 @@ export default function Home() {
                     {slide.price && (
                       <div className={styles.advertPriceBadge}>
                         <span className={styles.advertCurrentPrice}>
-                          ${slide.price}
+                          ₦{formatPrice(slide.price)}
                         </span>
                         {slide.originalPrice && (
                           <span className={styles.advertOriginalPrice}>
-                            ${slide.originalPrice}
+                            ₦{formatPrice(slide.originalPrice)}
                           </span>
                         )}
                       </div>

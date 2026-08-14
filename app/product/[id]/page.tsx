@@ -320,11 +320,11 @@ export default function ProductPage({ params }: ProductPageProps) {
 
           <div className={styles.priceRow}>
             <span className={styles.currentPrice}>
-              ${formatPrice(product.price)}
+              ₦{formatPrice(product.price)}
             </span>
             {product.originalPrice && (
               <span className={styles.originalPrice}>
-                ${formatPrice(product.originalPrice)}
+                ₦{formatPrice(product.originalPrice)}
               </span>
             )}
             {discountPercent > 0 && (
@@ -532,7 +532,7 @@ export default function ProductPage({ params }: ProductPageProps) {
           <div className={styles.specItem}>
             <span className={styles.specLabel}>Price</span>
             <span className={styles.specValue}>
-              ${formatPrice(product.price)}
+              ₦{formatPrice(product.price)}
             </span>
           </div>
         </div>

@@ -116,11 +116,11 @@ export default function SearchPage() {
                     </div>
                     <div className={styles.productPricing}>
                       <span className={styles.productPrice}>
-                        ${formatPrice(product.price)}
+                        ₦{formatPrice(product.price)}
                       </span>
                       {product.originalPrice && product.originalPrice > product.price && (
                         <span className={styles.productOriginalPrice}>
-                          ${formatPrice(product.originalPrice)}
+                          ₦{formatPrice(product.originalPrice)}
                         </span>
                       )}
                     </div>

@@ -288,7 +288,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         <span className={styles.filterGroupTitle}>Price Range</span>
         <div className={styles.priceRangeInputs}>
           <div className={styles.priceInputWrapper}>
-            <span>$</span>
+            <span>₦</span>
             <span>{formatPrice(categoryPrices.min)}</span>
           </div>
           <span
@@ -297,7 +297,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
             to
           </span>
           <div className={styles.priceInputWrapper}>
-            <span>$</span>
+            <span>₦</span>
             <span>{formatPrice(maxPriceFilter)}</span>
           </div>
         </div>
