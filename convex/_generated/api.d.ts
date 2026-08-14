@@ -9,8 +9,10 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as billing from "../billing.js";
 import type * as cart from "../cart.js";
 import type * as http from "../http.js";
+import type * as paystackActions from "../paystackActions.js";
 import type * as products from "../products.js";
 import type * as seed from "../seed.js";
 import type * as store from "../store.js";
@@ -24,8 +26,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  billing: typeof billing;
   cart: typeof cart;
   http: typeof http;
+  paystackActions: typeof paystackActions;
   products: typeof products;
   seed: typeof seed;
   store: typeof store;

@@ -97,4 +97,17 @@ export default defineSchema({
     code: v.string(),
     expiresAt: v.number(),
   }).index("by_email", ["email"]),
+
+  // Paystack-tokenized payment methods — raw card numbers are NEVER stored
+  paymentMethods: defineTable({
+    userId: v.id("users"),
+    authorizationCode: v.string(),  // Paystack reusable token
+    cardType: v.string(),           // "visa" | "mastercard" | "verve" etc.
+    last4: v.string(),              // e.g. "4081"
+    expMonth: v.string(),           // e.g. "12"
+    expYear: v.string(),            // e.g. "2027"
+    bank: v.string(),               // e.g. "GTBank"
+    email: v.string(),              // customer email used with Paystack
+    isDefault: v.boolean(),
+  }).index("by_userId", ["userId"]),
 });

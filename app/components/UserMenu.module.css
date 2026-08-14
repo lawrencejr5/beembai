@@ -144,6 +144,24 @@
   margin: 0.5rem 0;
 }
 
+.menuLinkItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--foreground);
+  padding: 0.5rem 1rem;
+  width: 100%;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.menuLinkItem:hover {
+  background-color: rgba(99, 109, 33, 0.07);
+  color: var(--color-palm);
+}
+
 .signOutBtn {
   display: flex;
   align-items: center;
