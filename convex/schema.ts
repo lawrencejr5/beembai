@@ -110,4 +110,18 @@ export default defineSchema({
     email: v.string(),              // customer email used with Paystack
     isDefault: v.boolean(),
   }).index("by_userId", ["userId"]),
+
+  // Customer shipping addresses
+  addresses: defineTable({
+    userId: v.id("users"),
+    fullName: v.string(),
+    phone: v.string(),
+    streetAddress: v.string(),
+    apartment: v.optional(v.string()),
+    city: v.string(),
+    stateName: v.string(),
+    postalCode: v.string(),
+    country: v.string(),
+    isDefault: v.boolean(),
+  }).index("by_userId", ["userId"]),
 });
