@@ -76,28 +76,44 @@ export default function CheckoutPage() {
     }
   }, [user, router]);
 
-  // Form states
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [stateName, setStateName] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
+  // Fetch saved shipping addresses and tokenized card details from Convex
+  const addresses = useQuery(api.addresses.getUserAddresses);
+  const paymentMethods = useQuery(api.billing.getUserPaymentMethods);
+
+  // Selected address/card options
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const [isChangingAddress, setIsChangingAddress] = useState(false);
+  const [isChangingPayment, setIsChangingPayment] = useState(false);
 
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Initialize selected address/payment
+  useEffect(() => {
+    if (addresses && !selectedAddressId) {
+      const def = addresses.find((a: any) => a.isDefault) || addresses[0];
+      if (def) setSelectedAddressId(def._id);
+    }
+  }, [addresses, selectedAddressId]);
+
+  useEffect(() => {
+    if (paymentMethods && !selectedPaymentId) {
+      const def = paymentMethods.find((p: any) => p.isDefault) || paymentMethods[0];
+      if (def) setSelectedPaymentId(def._id);
+    }
+  }, [paymentMethods, selectedPaymentId]);
+
+  const activeAddress = addresses?.find((a: any) => a._id === selectedAddressId);
+  const activePayment = paymentMethods?.find((p: any) => p._id === selectedPaymentId);
+
   const shippingFee = shippingMethod === "express" ? 15 : (selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10);
-  const estimatedTax = Math.round(selectedSubtotalPrice * 0.05);
-  const finalTotal = selectedSubtotalPrice + shippingFee + estimatedTax;
+  const finalTotal = selectedSubtotalPrice + shippingFee;
 
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedCart.length === 0) return;
+    if (selectedCart.length === 0 || !activeAddress || !activePayment) return;
     setIsProcessing(true);
 
     setTimeout(() => {
@@ -118,6 +134,8 @@ export default function CheckoutPage() {
       </div>
     );
   }
+
+  const isCheckoutDisabled = selectedCart.length === 0 || !activeAddress || !activePayment;
 
   return (
     <main className={styles.checkoutPage}>
@@ -141,88 +159,83 @@ export default function CheckoutPage() {
         </div>
       ) : (
         <div className={styles.checkoutGrid}>
-          {/* Left Column: Checkout details form */}
-          <form onSubmit={handleSubmitOrder} className={styles.formSection}>
-            {/* Step 1: Shipping Details */}
+          {/* Left Column: Saved checkout configurations */}
+          <div className={styles.formSection}>
+            
+            {/* Step 1: Shipping Address Details */}
             <div className={styles.stepCard}>
-              <h2 className={styles.cardTitle}>
-                <span className={styles.titleNum}>1</span>
-                <span>Shipping Address</span>
-              </h2>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>First Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Jane"
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Last Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Doe"
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className={styles.formGroupFull}>
-                  <label className={styles.formLabel}>Address</label>
-                  <input
-                    type="text"
-                    required
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="123 Curated Lane"
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>City</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="Design City"
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>State / Region</label>
-                  <input
-                    type="text"
-                    required
-                    value={stateName}
-                    onChange={(e) => setStateName(e.target.value)}
-                    placeholder="West Region"
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className={styles.formGroupFull}>
-                  <label className={styles.formLabel}>Postal / ZIP Code</label>
-                  <input
-                    type="text"
-                    required
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value)}
-                    placeholder="90210"
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
+              <div className={styles.stepCardHeader}>
+                <h2 className={styles.cardTitle}>
+                  <span className={styles.titleNum}>1</span>
+                  <span>Shipping Address</span>
+                </h2>
+                {addresses && addresses.length > 0 && !isChangingAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setIsChangingAddress(true)}
+                    className={styles.changeBtn}
+                  >
+                    Change
+                  </button>
+                )}
               </div>
+
+              {addresses === undefined ? (
+                <div className={styles.loaderPlaceholder}>Loading saved addresses...</div>
+              ) : addresses.length === 0 ? (
+                <div className={styles.emptyCallout}>
+                  <p>You don't have any shipping addresses saved yet.</p>
+                  <Link href="/addresses" className={styles.addDetailsBtn}>
+                    Add Shipping Address
+                  </Link>
+                </div>
+              ) : isChangingAddress ? (
+                <div className={styles.selectionList}>
+                  {addresses.map((addr: any) => (
+                    <label
+                      key={addr._id}
+                      className={`${styles.selectionItem} ${selectedAddressId === addr._id ? styles.selectionItemActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="checkout_address"
+                        checked={selectedAddressId === addr._id}
+                        onChange={() => {
+                          setSelectedAddressId(addr._id);
+                          setIsChangingAddress(false);
+                        }}
+                        className={styles.selectionRadio}
+                      />
+                      <div className={styles.selectionInfo}>
+                        <span className={styles.selectionName}>{addr.fullName} ({addr.phone})</span>
+                        <span className={styles.selectionText}>
+                          {addr.streetAddress}{addr.apartment ? `, ${addr.apartment}` : ""}, {addr.city}, {addr.stateName}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setIsChangingAddress(false)}
+                    className={styles.cancelSelectionBtn}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : activeAddress ? (
+                <div className={styles.detailsPreviewCard}>
+                  <p className={styles.previewName}>{activeAddress.fullName}</p>
+                  <p className={styles.previewText}>
+                    {activeAddress.streetAddress}
+                    {activeAddress.apartment ? `, ${activeAddress.apartment}` : ""}
+                  </p>
+                  <p className={styles.previewText}>
+                    {activeAddress.city}, {activeAddress.stateName} {activeAddress.postalCode}
+                  </p>
+                  <p className={styles.previewText}>{activeAddress.country}</p>
+                  <p className={styles.previewPhone}>📞 {activeAddress.phone}</p>
+                </div>
+              ) : null}
             </div>
 
             {/* Step 2: Shipping Method */}
@@ -248,7 +261,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <span className={styles.shippingPrice}>
-                    {selectedSubtotalPrice > 100 ? "FREE" : "$10.00"}
+                    {selectedSubtotalPrice > 100 ? "FREE" : "₦15,000"}
                   </span>
                 </label>
 
@@ -267,60 +280,92 @@ export default function CheckoutPage() {
                       <p className={styles.radioLabelDesc}>Delivered within 1–2 business days</p>
                     </div>
                   </div>
-                  <span className={styles.shippingPrice}>$15.00</span>
+                  <span className={styles.shippingPrice}>₦22,500</span>
                 </label>
               </div>
             </div>
 
             {/* Step 3: Payment Details */}
             <div className={styles.stepCard}>
-              <h2 className={styles.cardTitle}>
-                <span className={styles.titleNum}>3</span>
-                <span>Payment Details</span>
-              </h2>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroupFull}>
-                  <label className={styles.formLabel}>Card Number</label>
-                  <input
-                    type="text"
-                    required
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value.replace(/\s?/g, ""))}
-                    placeholder="4111 2222 3333 4444"
-                    maxLength={16}
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Expiration Date</label>
-                  <input
-                    type="text"
-                    required
-                    value={expiry}
-                    onChange={(e) => setExpiry(e.target.value)}
-                    placeholder="MM/YY"
-                    maxLength={5}
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Security Code (CVV)</label>
-                  <input
-                    type="password"
-                    required
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
-                    placeholder="•••"
-                    maxLength={3}
-                    className={styles.inputField}
-                    disabled={isProcessing}
-                  />
-                </div>
+              <div className={styles.stepCardHeader}>
+                <h2 className={styles.cardTitle}>
+                  <span className={styles.titleNum}>3</span>
+                  <span>Payment Details</span>
+                </h2>
+                {paymentMethods && paymentMethods.length > 0 && !isChangingPayment && (
+                  <button
+                    type="button"
+                    onClick={() => setIsChangingPayment(true)}
+                    className={styles.changeBtn}
+                  >
+                    Change
+                  </button>
+                )}
               </div>
+
+              {paymentMethods === undefined ? (
+                <div className={styles.loaderPlaceholder}>Loading saved cards...</div>
+              ) : paymentMethods.length === 0 ? (
+                <div className={styles.emptyCallout}>
+                  <p>You don't have any saved payment methods.</p>
+                  <Link href="/billing" className={styles.addDetailsBtn}>
+                    Add Payment Method
+                  </Link>
+                </div>
+              ) : isChangingPayment ? (
+                <div className={styles.selectionList}>
+                  {paymentMethods.map((pm: any) => (
+                    <label
+                      key={pm._id}
+                      className={`${styles.selectionItem} ${selectedPaymentId === pm._id ? styles.selectionItemActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="checkout_payment"
+                        checked={selectedPaymentId === pm._id}
+                        onChange={() => {
+                          setSelectedPaymentId(pm._id);
+                          setIsChangingPayment(false);
+                        }}
+                        className={styles.selectionRadio}
+                      />
+                      <div className={styles.selectionInfo}>
+                        <span className={styles.selectionName}>
+                          {pm.cardType.toUpperCase()} •••• {pm.last4}
+                        </span>
+                        <span className={styles.selectionText}>
+                          {pm.bank} · Expires {pm.expMonth}/{pm.expYear}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setIsChangingPayment(false)}
+                    className={styles.cancelSelectionBtn}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : activePayment ? (
+                <div className={styles.detailsPreviewCard}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                    <span className={styles.cardIconBadge}>
+                      {activePayment.cardType.toUpperCase()}
+                    </span>
+                    <span className={styles.previewName}>
+                      •••• •••• •••• {activePayment.last4}
+                    </span>
+                  </div>
+                  <p className={styles.previewText}>{activePayment.bank}</p>
+                  <p className={styles.previewText} style={{ opacity: 0.8 }}>
+                    Expires {activePayment.expMonth}/{activePayment.expYear}
+                  </p>
+                </div>
+              ) : null}
             </div>
-          </form>
+
+          </div>
 
           {/* Right Column: Order Summary */}
           <aside className={styles.summaryCard}>
@@ -380,10 +425,6 @@ export default function CheckoutPage() {
                   <span>₦{formatPrice(shippingFee)}</span>
                 )}
               </div>
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryRowLabel}>Estimated Tax</span>
-                <span>₦{formatPrice(estimatedTax)}</span>
-              </div>
               <div className={styles.totalRow}>
                 <span className={styles.totalLabel}>Total</span>
                 <span className={styles.totalValue}>₦{formatPrice(finalTotal)}</span>
@@ -392,7 +433,7 @@ export default function CheckoutPage() {
 
             <button
               onClick={handleSubmitOrder}
-              disabled={isProcessing || selectedCart.length === 0}
+              disabled={isProcessing || isCheckoutDisabled}
               className={styles.payBtn}
             >
               {isProcessing ? (

@@ -109,10 +109,9 @@ export default function CartPage() {
   } | null>(null);
 
   const shippingFee = selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10;
-  const estimatedTax = Math.round(selectedSubtotalPrice * 0.05);
   const finalTotal = Math.max(
     0,
-    selectedSubtotalPrice + shippingFee + estimatedTax - discountAmount,
+    selectedSubtotalPrice + shippingFee - discountAmount,
   );
 
   const handleGoBack = (e: React.MouseEvent) => {
@@ -358,13 +357,6 @@ export default function CartPage() {
                 ) : (
                   <span>₦{formatPrice(shippingFee)}</span>
                 )}
-              </div>
-
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryRowLabel}>
-                  Estimated Tax (5%)
-                </span>
-                <span>₦{formatPrice(estimatedTax)}</span>
               </div>
 
               {discountAmount > 0 && (
