@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import styles from "./checkout.module.css";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/data/data";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 const ShieldCheckIcon = () => (
@@ -79,6 +79,7 @@ export default function CheckoutPage() {
   // Fetch saved shipping addresses and tokenized card details from Convex
   const addresses = useQuery(api.addresses.getUserAddresses);
   const paymentMethods = useQuery(api.billing.getUserPaymentMethods);
+  const dbProducts = useQuery(api.products.getProducts);
 
   // Selected address/card options
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -86,9 +87,13 @@ export default function CheckoutPage() {
   const [isChangingAddress, setIsChangingAddress] = useState(false);
   const [isChangingPayment, setIsChangingPayment] = useState(false);
 
+  const createOrder = useMutation(api.orders.createUnpaidOrder);
+  const chargeCard = useAction(api.paystackBilling.chargeSavedCardForOrder);
+
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Initialize selected address/payment
   useEffect(() => {
@@ -111,19 +116,74 @@ export default function CheckoutPage() {
   const shippingFee = shippingMethod === "express" ? 15 : (selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10);
   const finalTotal = selectedSubtotalPrice + shippingFee;
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedCart.length === 0 || !activeAddress || !activePayment) return;
     setIsProcessing(true);
+    setPaymentError(null);
 
-    setTimeout(() => {
+    try {
+      // 1. Prepare items snapshot using database product IDs
+      const orderItems = selectedCart.map((item: any) => {
+        const dbProd = dbProducts?.find((p: any) => p.title === item.product.title);
+        if (!dbProd) {
+          throw new Error(`Product "${item.product.title}" not found in database catalog.`);
+        }
+        return {
+          productId: dbProd._id,
+          title: item.product.title,
+          price: item.product.price,
+          quantity: item.quantity,
+          color: item.selectedColor,
+          image: item.product.image,
+        };
+      });
+
+      // 2. Create the unpaid order record in Convex
+      const orderId = await createOrder({
+        items: orderItems,
+        address: {
+          fullName: activeAddress.fullName,
+          phone: activeAddress.phone,
+          streetAddress: activeAddress.streetAddress,
+          apartment: activeAddress.apartment,
+          city: activeAddress.city,
+          stateName: activeAddress.stateName,
+          postalCode: activeAddress.postalCode,
+          country: activeAddress.country,
+        },
+        shippingMethod,
+        shippingFee,
+        totalAmount: finalTotal,
+      });
+
+      // 3. Request Paystack billing server-side via saved card authorization
+      const result = await chargeCard({
+        orderId,
+        authorizationCode: activePayment.authorizationCode,
+        email: user?.email || activePayment.email || "shopper@beembai.com",
+        amount: finalTotal,
+      });
+
+      if (!result.success) {
+        setPaymentError(result.message);
+        setIsProcessing(false);
+        return;
+      }
+
+      // 4. Success! Clear cart items and show confirmation screen
       clearSelectedCart();
       setIsProcessing(false);
       setShowSuccess(true);
       setTimeout(() => {
-        router.push("/");
+        router.push("/orders");
       }, 3500);
-    }, 2500);
+    } catch (err: unknown) {
+      console.error("Checkout process failed:", err);
+      const msg = err instanceof Error ? err.message : "Checkout order processing failed.";
+      setPaymentError(msg);
+      setIsProcessing(false);
+    }
   };
 
   // If loading user or redirecting
@@ -141,15 +201,38 @@ export default function CheckoutPage() {
     <main className={styles.checkoutPage}>
       {/* Header Row */}
       <header className={styles.headerRow}>
-        <Link href="/" className={styles.logo}>
-          <span>beembai</span>
-          <span className={styles.logoDot} />
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+          <button onClick={() => router.push("/cart")} className={styles.backButton}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back</span>
+          </button>
+          <Link href="/" className={styles.logo}>
+            <span>beembai</span>
+            <span className={styles.logoDot} />
+          </Link>
+        </div>
         <div className={styles.securityBadge}>
           <ShieldCheckIcon />
           <span>Secure Checkout</span>
         </div>
       </header>
+
+      {paymentError && (
+        <div className={styles.paymentErrorBanner}>
+          <span>⚠ {paymentError}</span>
+          <button onClick={() => setPaymentError(null)} className={styles.errorClose}>✕</button>
+        </div>
+      )}
 
       {cart.length === 0 && !showSuccess ? (
         <div style={{ textAlign: "center", padding: "4rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "1.5rem" }}>

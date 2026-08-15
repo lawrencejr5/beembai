@@ -124,4 +124,49 @@ export default defineSchema({
     country: v.string(),
     isDefault: v.boolean(),
   }).index("by_userId", ["userId"]),
+
+  // Customer Orders
+  orders: defineTable({
+    userId: v.id("users"),
+    items: v.array(
+      v.object({
+        productId: v.id("products"),
+        title: v.string(),
+        price: v.number(),
+        quantity: v.number(),
+        color: v.optional(v.string()),
+        image: v.string(),
+      })
+    ),
+    address: v.object({
+      fullName: v.string(),
+      phone: v.string(),
+      streetAddress: v.string(),
+      apartment: v.optional(v.string()),
+      city: v.string(),
+      stateName: v.string(),
+      postalCode: v.string(),
+      country: v.string(),
+    }),
+    shippingMethod: v.string(),
+    shippingFee: v.number(),
+    totalAmount: v.number(),
+    paymentStatus: v.union(v.literal("unpaid"), v.literal("paid"), v.literal("failed")),
+    status: v.union(
+      v.literal("placed"),
+      v.literal("processing"),
+      v.literal("shipped"),
+      v.literal("delivered"),
+      v.literal("cancelled")
+    ),
+    statusHistory: v.array(
+      v.object({
+        status: v.string(),
+        timestamp: v.number(),
+        message: v.string(),
+      })
+    ),
+    paystackReference: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
 });

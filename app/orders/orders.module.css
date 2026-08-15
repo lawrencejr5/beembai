@@ -1,0 +1,580 @@
+/* Orders Dashboard Styles */
+
+.container {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-figtree), system-ui, -apple-system, sans-serif;
+}
+
+.main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--color-sand);
+  border: 1.5px solid var(--color-border);
+  padding: 0.5rem 1.1rem;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.backButton:hover {
+  background-color: var(--color-palm);
+  color: var(--color-coconut);
+  border-color: var(--color-palm);
+  transform: translateX(-2px);
+}
+
+.pageTitle {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-size: 0.9rem;
+  color: var(--color-olive-gray);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 520px;
+}
+
+/* ── Tabs ── */
+.tabsRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+  border-bottom: 1.5px solid var(--color-border);
+  padding-bottom: 1px;
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-olive-gray);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.tabBtn:hover {
+  color: var(--foreground);
+}
+
+.tabBtnActive {
+  color: var(--color-palm);
+  border-bottom-color: var(--color-palm);
+}
+
+/* ── Orders List ── */
+.ordersList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.orderCard {
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.orderCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.headerDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dateAndRef {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.orderDate {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: var(--color-olive-gray);
+  font-weight: 600;
+}
+
+.orderIdText {
+  font-size: 0.75rem;
+  font-family: monospace;
+  background-color: var(--color-sand);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--foreground);
+}
+
+.orderItemsCount {
+  font-size: 0.88rem;
+  color: var(--color-olive-gray);
+  margin: 0;
+}
+
+.totalPrice {
+  color: var(--foreground);
+  font-size: 0.95rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.paymentStatusBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.04em;
+}
+
+.paidBadge {
+  background: rgba(99, 109, 33, 0.1);
+  color: var(--color-palm);
+}
+
+.unpaidBadge {
+  background: rgba(201, 74, 41, 0.1);
+  color: #c94a29;
+}
+
+.expandToggleBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-olive-gray);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expandToggleBtn:hover {
+  border-color: var(--color-palm);
+  color: var(--color-palm);
+}
+
+/* ── Horizontal Status Roadmap ── */
+.roadmapContainer {
+  border-top: 1px solid var(--color-border);
+  padding-top: 18px;
+  margin-top: 2px;
+}
+
+.roadmapWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.stepContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  text-align: center;
+}
+
+.stepDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--color-sand);
+  border: 2px solid var(--color-border);
+  color: var(--color-olive-gray);
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.stepDotCompleted {
+  background-color: var(--color-palm);
+  border-color: var(--color-palm);
+  color: var(--color-coconut);
+}
+
+.stepDotActive {
+  background-color: var(--background);
+  border-color: var(--color-palm);
+  color: var(--color-palm);
+  box-shadow: 0 0 0 4px rgba(99, 109, 33, 0.15);
+}
+
+.stepLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-olive-gray);
+}
+
+.stepLabelActive {
+  color: var(--color-palm);
+  font-weight: 800;
+}
+
+.stepLine {
+  height: 2.5px;
+  flex-grow: 1;
+  background-color: var(--color-border);
+  margin-bottom: 14px;
+  transition: all 0.3s;
+}
+
+.stepLineCompleted {
+  background-color: var(--color-palm);
+}
+
+.cancelledRoadmap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(201, 74, 41, 0.05);
+  border: 1px solid rgba(201, 74, 41, 0.15);
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+
+.cancelledBadge {
+  background: #c94a29;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.cancelledText {
+  font-size: 0.8rem;
+  color: #c94a29;
+  margin: 0;
+}
+
+/* ── Expandable Body ── */
+.orderDetailsBody {
+  border-top: 1.5px dashed var(--color-border);
+  margin-top: 10px;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detailSectionTitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-olive-gray);
+  margin: 0 0 12px 0;
+  border-left: 3px solid var(--color-palm);
+  padding-left: 8px;
+}
+
+/* Timeline Log */
+.timelineList {
+  display: flex;
+  flex-direction: column;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+}
+
+.timelineMarker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 14px;
+}
+
+.markerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-palm);
+  margin-top: 5px;
+}
+
+.markerLine {
+  width: 2px;
+  flex-grow: 1;
+  background-color: var(--color-border);
+  min-height: 28px;
+  margin: 4px 0;
+}
+
+.timelineContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 14px;
+}
+
+.timelineTime {
+  font-size: 0.72rem;
+  color: var(--color-olive-gray);
+  font-weight: 600;
+}
+
+.timelineMessage {
+  font-size: 0.85rem;
+  color: var(--foreground);
+}
+
+/* Shipping & Receipt Grid */
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .detailsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.detailsGridBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryInfoCard {
+  background-color: var(--background);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px;
+  flex: 1;
+}
+
+.summaryName {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: var(--foreground);
+  margin: 0 0 4px 0;
+}
+
+.summaryText {
+  font-size: 0.82rem;
+  color: var(--color-olive-gray);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.summaryPhone {
+  font-size: 0.8rem;
+  color: var(--color-palm);
+  font-weight: 700;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.summaryDelivery {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-top: 8px;
+  margin-bottom: 0;
+  opacity: 0.95;
+}
+
+/* Receipt Line */
+.receiptRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-olive-gray);
+  margin-bottom: 4px;
+}
+
+/* Ordered Items List */
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background-color: var(--background);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.itemRowImg {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.itemRowInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemRowTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.itemRowMeta {
+  font-size: 0.76rem;
+  color: var(--color-olive-gray);
+}
+
+.itemRowPrice {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+/* Skeleton Loading states */
+.skeletonCard {
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonLine {
+  background: var(--color-sand);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeletonLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 60px 24px;
+  gap: 12px;
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.emptyTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.emptyDesc {
+  font-size: 0.9rem;
+  color: var(--color-olive-gray);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 400px;
+}
+
+.goShoppingBtn {
+  background-color: var(--color-palm);
+  color: var(--color-coconut);
+  border: none;
+  border-radius: 99px;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s;
+  font-family: inherit;
+}
+
+.goShoppingBtn:hover {
+  opacity: 0.9;
+}
