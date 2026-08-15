@@ -150,7 +150,6 @@ export default function UserMenu() {
             </svg>
             <span>Billing</span>
           </Link>
-          <div className={styles.divider} />
           <Link
             href="/addresses"
             onClick={() => setIsOpen(false)}
@@ -178,7 +177,6 @@ export default function UserMenu() {
             </svg>
             <span>Addresses</span>
           </Link>
-          <div className={styles.divider} />
           <Link
             href="/orders"
             onClick={() => setIsOpen(false)}
