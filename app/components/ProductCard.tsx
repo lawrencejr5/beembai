@@ -1,11 +1,40 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
 import { Product, formatPrice } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
+
+const SpinnerIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ animation: "spin 1s linear infinite" }}
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+      style={{ opacity: 0.25 }}
+    />
+    <path
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    />
+    <style>{`
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </svg>
+);
 
 const CartIcon = () => (
   <svg
@@ -53,10 +82,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       )
     : 0;
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product, 1);
+    setIsAdding(true);
+    try {
+      await addToCart(product, 1);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleDecrease = (e: React.MouseEvent) => {
@@ -128,10 +166,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleAddToCart}
+              disabled={isAdding}
               className={styles.addToCartBtn}
               aria-label={`Add ${product.title} to cart`}
             >
-              <CartIcon />
+              {isAdding ? <SpinnerIcon /> : <CartIcon />}
             </button>
           ) : (
             /* Dynamic Inline Counter Pill (- 1 +) when item IS in cart */

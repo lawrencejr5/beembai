@@ -23,7 +23,7 @@ export interface CartContextType {
     product: Product,
     quantity?: number,
     selectedColor?: string,
-  ) => void;
+  ) => Promise<any> | void;
   removeFromCart: (productId: string, selectedColor?: string) => void;
   updateQuantity: (
     productId: string,
@@ -305,12 +305,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     if (user) {
       const convexProductId = dummyIdToConvexIdMap.get(product.id);
       if (convexProductId) {
-        void addDbCart({
+        return addDbCart({
           productId: convexProductId as any,
           selectedColor: colorToUse,
           quantity,
         });
       }
+      return Promise.resolve();
     } else {
       setCart((prevCart) => {
         const existingIndex = prevCart.findIndex(
@@ -337,6 +338,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           { product, selectedColor: colorToUse, quantity: initialQty },
         ];
       });
+      return Promise.resolve();
     }
   };
 

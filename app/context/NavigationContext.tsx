@@ -32,6 +32,8 @@ export const NavigationProvider = ({ children }: { children: React.ReactNode }) 
   // Handle global internal link navigation clicks
   useEffect(() => {
     const handleLinkClick = (e: MouseEvent) => {
+      if (e.defaultPrevented) return;
+
       const target = e.target as HTMLElement;
       const anchor = target.closest("a");
 
