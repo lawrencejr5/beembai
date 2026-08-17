@@ -571,8 +571,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(true)}
-                className={styles.buyNowBtn}
-                style={{ width: "100%", maxWidth: "340px", backgroundColor: "var(--color-palm)", color: "#fff" }}
+                className={styles.pendingEditBtn}
               >
                 ✏️ Edit Product Details
               </button>

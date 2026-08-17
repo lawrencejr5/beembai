@@ -941,6 +941,31 @@
   opacity: 0.9;
 }
 
+.pendingEditBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.8rem;
+  min-height: 52px;
+  border-radius: 99px;
+  background-color: var(--color-palm);
+  color: #ffffff;
+  border: none;
+  font-size: 0.98rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 20px rgba(99, 109, 33, 0.25);
+  width: 100%;
+  max-width: 360px;
+}
+
+.pendingEditBtn:hover {
+  opacity: 0.92;
+  transform: translateY(-2px);
+}
+
 .pendingReviewBanner {
   background-color: rgba(234, 179, 8, 0.08);
   border: 1.5px dashed #eab308;
