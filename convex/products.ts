@@ -20,7 +20,15 @@ export const getProducts = query({
 export const getStores = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("stores").collect();
+    return await ctx.db
+      .query("stores")
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "approved"),
+          q.eq(q.field("status"), undefined)
+        )
+      )
+      .collect();
   },
 });
 

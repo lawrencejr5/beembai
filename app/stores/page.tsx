@@ -8,6 +8,8 @@ import homeStyles from "@/app/page.module.css";
 import { getAllStores, Store, formatNumber } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import Navbar from "@/app/components/Navbar";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 
 // Local SVG Icons
@@ -160,7 +162,9 @@ export default function StoresPage() {
     document.documentElement.setAttribute("data-theme", nextTheme);
   };
 
-  const stores = useMemo(() => getAllStores(), []);
+  const dbStores = useQuery(api.products.getStores);
+  const stores = dbStores || [];
+  const isLoading = dbStores === undefined;
 
   // Filter stores based on search query
   const filteredStores = useMemo(() => {
@@ -238,14 +242,31 @@ export default function StoresPage() {
         </section>
 
         {/* Stores Directory Grid */}
-        {filteredStores.length > 0 ? (
+        {isLoading ? (
+          <section className={styles.storesGrid}>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className={styles.storeCard}
+                style={{ height: "350px", opacity: 0.6, pointerEvents: "none" }}
+              >
+                <div className={styles.cardBanner} style={{ backgroundColor: "var(--color-border)", height: "120px" }} />
+                <div className={styles.cardBody} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "1.5rem" }}>
+                  <div style={{ width: "80px", height: "15px", backgroundColor: "var(--color-border)", borderRadius: 4 }} />
+                  <div style={{ width: "160px", height: "24px", backgroundColor: "var(--color-border)", borderRadius: 4, marginTop: "0.5rem" }} />
+                  <div style={{ width: "100%", height: "40px", backgroundColor: "var(--color-border)", borderRadius: 4, marginTop: "0.5rem" }} />
+                </div>
+              </div>
+            ))}
+          </section>
+        ) : filteredStores.length > 0 ? (
           <section className={styles.storesGrid}>
             {filteredStores.map((store) => (
               <Link
-                key={store.id}
+                key={store._id}
                 href={`/stores/${store.slug}`}
                 className={`${styles.storeCard} ${
-                  store.id === "beembai-official"
+                  store.slug === "beembai-official" || store.slug === "beembai"
                     ? styles.officialStoreCard
                     : ""
                 }`}
@@ -254,12 +275,12 @@ export default function StoresPage() {
                 <div
                   className={styles.cardBanner}
                   style={{
-                    backgroundImage: `url('${store.banner}')`,
+                    backgroundImage: store.banner ? `url('${store.banner}')` : "none",
                     backgroundColor: "var(--color-sand)",
                   }}
                 >
                   <div className={styles.cardBannerOverlay} />
-                  {store.id === "beembai-official" && (
+                  {(store.slug === "beembai-official" || store.slug === "beembai") && (
                     <div className={styles.logoContainer}>
                       {store.logo ? (
                         <Image
@@ -284,7 +305,7 @@ export default function StoresPage() {
                 {/* Card Info Body */}
                 <div className={styles.cardBody}>
                   {/* Floating Store Logo for other stores */}
-                  {store.id !== "beembai-official" && (
+                  {store.slug !== "beembai-official" && store.slug !== "beembai" && (
                     <div className={styles.logoContainer}>
                       {store.logo ? (
                         <Image
@@ -317,7 +338,7 @@ export default function StoresPage() {
                       {store.verified && (
                         <span
                           className={`${styles.verifiedBadge} ${
-                            store.id === "beembai-official"
+                            store.slug === "beembai-official" || store.slug === "beembai"
                               ? styles.officialVerifiedBadge
                               : styles.otherVerifiedBadge
                           }`}
@@ -330,7 +351,7 @@ export default function StoresPage() {
 
                     <div
                       className={`${styles.ratingRow} ${
-                        store.id === "beembai-official"
+                        store.slug === "beembai-official" || store.slug === "beembai"
                           ? styles.officialStoreRating
                           : ""
                       }`}
@@ -339,7 +360,7 @@ export default function StoresPage() {
                         <StarIcon />
                       </span>
                       <span className={styles.ratingText}>
-                        {store.rating.toFixed(1)}
+                        {(store.rating || 5.0).toFixed(1)}
                       </span>
                     </div>
                   </div>
@@ -351,7 +372,7 @@ export default function StoresPage() {
                   <div className={styles.cardFooter}>
                     <span className={styles.visitText}>
                       <span>
-                        {store.id === "beembai-official"
+                        {store.slug === "beembai-official" || store.slug === "beembai"
                           ? "Visit Official Store"
                           : "Visit Store"}
                       </span>
