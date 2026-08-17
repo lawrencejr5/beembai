@@ -6,14 +6,10 @@ import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import styles from "./storeDetail.module.css";
 import homeStyles from "@/app/page.module.css";
-import {
-  getStoreBySlug,
-  getProductsByStore,
-  Product,
-  formatNumber,
-} from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // Local SVG Icons
 const SearchIcon = () => (
@@ -158,7 +154,12 @@ export default function StoreDetailPage({ params }: PageProps) {
 
   const resolvedParams = use(params);
   const slug = resolvedParams.slug;
-  const store = getStoreBySlug(slug);
+
+  const store = useQuery(api.store.getStoreBySlug, { slug });
+  const dbProducts = useQuery(
+    api.store.getProductsByStore,
+    store ? { storeId: store._id } : "skip"
+  );
 
   // Sync theme
   useEffect(() => {
@@ -175,40 +176,48 @@ export default function StoreDetailPage({ params }: PageProps) {
     document.documentElement.setAttribute("data-theme", nextTheme);
   };
 
-  if (!store) {
+  if (store === undefined || dbProducts === undefined) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", background: "var(--background)" }}>
+        <p style={{ color: "var(--color-olive-gray)", fontWeight: 600 }}>Loading brand storefront...</p>
+      </div>
+    );
+  }
+
+  if (store === null) {
     notFound();
   }
 
-  // Get store inventory
-  const rawProducts = useMemo(() => getProductsByStore(store.id), [store.id]);
+  // Get store inventory mapped with id for ProductCard compatibility
+  const rawProducts = dbProducts.map((p) => ({
+    id: p._id,
+    ...p,
+    condition: p.condition as any,
+  }));
 
   // Filter store products
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return rawProducts;
-    const query = searchQuery.toLowerCase().trim();
-    return rawProducts.filter(
-      (product) =>
-        product.title.toLowerCase().includes(query) ||
-        (product.description &&
-          product.description.toLowerCase().includes(query)) ||
-        (product.tag && product.tag.toLowerCase().includes(query)),
-    );
-  }, [searchQuery, rawProducts]);
+  const filteredProducts = rawProducts.filter(
+    (product) =>
+      product.title.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+      (product.description &&
+        product.description.toLowerCase().includes(searchQuery.toLowerCase().trim())) ||
+      (product.tag && product.tag.toLowerCase().includes(searchQuery.toLowerCase().trim())),
+  );
 
   // Get unique categories list from raw store catalog products
-  const categoriesList = useMemo(() => {
+  const categoriesList = (() => {
     const catsMap: Record<string, string> = {};
     rawProducts.forEach((p) => {
       catsMap[p.categorySlug] = p.categoryName;
     });
     return Object.entries(catsMap).map(([slug, name]) => ({ slug, name }));
-  }, [rawProducts]);
+  })();
 
   // Filter products by selectedCategory tab
-  const displayedProducts = useMemo(() => {
+  const displayedProducts = (() => {
     if (selectedCategory === "all") return filteredProducts;
     return filteredProducts.filter((p) => p.categorySlug === selectedCategory);
-  }, [filteredProducts, selectedCategory]);
+  })();
 
   return (
     <div className={styles.container}>
