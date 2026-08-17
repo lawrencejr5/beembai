@@ -335,7 +335,7 @@ export default function StoresPage() {
                   <div className={styles.storeMeta}>
                     <div className={styles.storeNameGroup}>
                       <h3 className={styles.storeCardName}>{store.name}</h3>
-                      {store.verified && (
+                      {(store.verified || store.verificationStatus === "verified") && (
                         <span
                           className={`${styles.verifiedBadge} ${
                             store.slug === "beembai-official" || store.slug === "beembai"

@@ -264,7 +264,7 @@ export default function StoreDetailPage({ params }: PageProps) {
           <div className={styles.storeMetaBlock}>
             <div className={styles.badgeRow}>
               <span className={styles.categoryTag}>{store.category}</span>
-              {store.verified && (
+              {(store.verified || store.verificationStatus === "verified") && (
                 <span className={styles.verifiedLabel}>
                   <VerifiedIcon />
                   <span>Verified Store</span>
