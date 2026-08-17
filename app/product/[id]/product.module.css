@@ -958,7 +958,7 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 6px 20px rgba(99, 109, 33, 0.25);
   width: 100%;
-  max-width: 360px;
+  max-width: 100%;
 }
 
 .pendingEditBtn:hover {
