@@ -264,16 +264,18 @@ export default function StoreDetailPage({ params }: PageProps) {
           <div className={styles.storeMetaBlock}>
             <div className={styles.badgeRow}>
               <span className={styles.categoryTag}>{store.category}</span>
-              {(store.verified || store.verificationStatus === "verified") && (
-                <span className={styles.verifiedLabel}>
-                  <VerifiedIcon />
-                  <span>Verified Store</span>
-                </span>
-              )}
             </div>
 
-            <div className={styles.storeNameGroup}>
+            <div className={styles.storeNameGroup} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <h1 className={styles.storeTitleName}>{store.name}</h1>
+              {(store.verified || store.verificationStatus === "verified") && (
+                <span
+                  style={{ color: "var(--color-palm)", display: "inline-flex", alignItems: "center" }}
+                  title="Verified Store"
+                >
+                  <VerifiedIcon />
+                </span>
+              )}
             </div>
 
             <div className={styles.ratingRow}>
