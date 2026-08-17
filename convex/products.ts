@@ -196,6 +196,7 @@ export const updateProduct = mutation({
     image: v.optional(v.string()),
     images: v.optional(v.array(v.string())),
     youtubeLink: v.optional(v.string()),
+    categoryName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -231,6 +232,15 @@ export const updateProduct = mutation({
     if (args.image !== undefined) patch.image = args.image;
     if (args.images !== undefined) patch.images = args.images;
     if (args.youtubeLink !== undefined) patch.youtubeLink = args.youtubeLink;
+
+    if (args.categoryName !== undefined) {
+      patch.categoryName = args.categoryName;
+      patch.categorySlug = args.categoryName
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+    }
 
     await ctx.db.patch(args.productId, patch);
     return args.productId;

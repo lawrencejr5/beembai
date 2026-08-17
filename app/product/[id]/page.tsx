@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, use, useEffect } from "react";
+import React, { useState, useMemo, use, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
@@ -198,8 +198,19 @@ export default function ProductPage({ params }: ProductPageProps) {
   const [editStock, setEditStock] = useState("");
   const [editColors, setEditColors] = useState("");
   const [editCondition, setEditCondition] = useState("");
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editYoutubeLink, setEditYoutubeLink] = useState("");
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [mainImage, setMainImage] = useState("");
+
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [updateError, setUpdateError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const generateUploadUrl = useMutation(api.store.generateUploadUrl);
+  const resolveStorageUrl = useMutation(api.products.resolveStorageUrl);
 
   // Sync default color selection when product loads
   useEffect(() => {
@@ -216,13 +227,88 @@ export default function ProductPage({ params }: ProductPageProps) {
       setEditStock(product.stock ? product.stock.toString() : "");
       setEditColors(product.colors ? product.colors.join(", ") : "");
       setEditCondition(product.condition || "New");
+      setEditCategoryName(product.categoryName || "Phone & Tablets");
+      setEditYoutubeLink(product.youtubeLink || "");
+      setUploadedImages(product.images || (product.image ? [product.image] : []));
+      setMainImage(product.image || "");
     }
   }, [product]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError("");
+    const newUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const uploadUrl = await generateUploadUrl();
+
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!result.ok) throw new Error(`Failed to upload file ${file.name}`);
+
+        const { storageId } = await result.json();
+        const publicUrl = await resolveStorageUrl({ storageId });
+        if (publicUrl) {
+          newUrls.push(publicUrl);
+        }
+      }
+
+      setUploadedImages((prev) => {
+        const updated = [...prev, ...newUrls];
+        if (!mainImage && updated.length > 0) {
+          setMainImage(updated[0]);
+        }
+        return updated;
+      });
+    } catch (err: any) {
+      console.error("Image upload failed:", err);
+      setUploadError(err.message || "Failed to upload one or more images.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDeleteImage = (urlToDelete: string) => {
+    setUploadedImages((prev) => {
+      const updated = prev.filter((url) => url !== urlToDelete);
+      if (mainImage === urlToDelete) {
+        setMainImage(updated.length > 0 ? updated[0] : "");
+      }
+      return updated;
+    });
+  };
+
+  const moveImage = (index: number, direction: "left" | "right") => {
+    const newIndex = direction === "left" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= uploadedImages.length) return;
+
+    setUploadedImages((prev) => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[newIndex];
+      copy[newIndex] = temp;
+      return copy;
+    });
+  };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTitle.trim() || !editPrice.trim()) {
       setUpdateError("Title and price are required.");
+      return;
+    }
+    if (uploadedImages.length === 0) {
+      setUpdateError("Please upload at least one product image.");
       return;
     }
     setIsUpdating(true);
@@ -243,6 +329,10 @@ export default function ProductPage({ params }: ProductPageProps) {
         condition: editCondition || undefined,
         colors: colorsArray.length > 0 ? colorsArray : undefined,
         stock: editStock ? parseInt(editStock, 10) : undefined,
+        image: mainImage || uploadedImages[0],
+        images: uploadedImages,
+        youtubeLink: editYoutubeLink || undefined,
+        categoryName: editCategoryName,
       });
 
       setIsEditModalOpen(false);
@@ -384,7 +474,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
           <h1 className={styles.productTitle} style={{ flex: 1, margin: 0 }}>{product.title}</h1>
-          {isOwner && (
+          {isOwner && product.status !== "pending" && (
             <button
               type="button"
               onClick={() => setIsEditModalOpen(true)}
@@ -476,70 +566,80 @@ export default function ProductPage({ params }: ProductPageProps) {
 
         {/* Dynamic Purchase Actions & Inline Quantity Control */}
         <div className={styles.actionsContainer}>
-          <div className={styles.buttonGroup}>
-            {cartQty === 0 ? (
+          {product.status === "pending" ? (
+            isOwner ? (
               <button
                 type="button"
-                onClick={() => addToCart(product, 1, activeColor)}
-                className={styles.addToCartMainBtn}
-                disabled={product.status === "pending"}
+                onClick={() => setIsEditModalOpen(true)}
+                className={styles.buyNowBtn}
+                style={{ width: "100%", maxWidth: "340px", backgroundColor: "var(--color-palm)", color: "#fff" }}
               >
-                <CartIcon />
-                <span>{product.status === "pending" ? "Pending Review" : "Add to Cart"}</span>
+                ✏️ Edit Product Details
               </button>
-            ) : (
-              <div className={styles.inCartQuantityPill}>
+            ) : null
+          ) : (
+            <div className={styles.buttonGroup}>
+              {cartQty === 0 ? (
                 <button
                   type="button"
-                  onClick={() =>
-                    updateQuantity(product.id, cartQty - 1, activeColor)
-                  }
-                  className={styles.pillQtyBtn}
-                  aria-label="Decrease quantity in cart"
-                  disabled={product.status === "pending"}
+                  onClick={() => addToCart(product, 1, activeColor)}
+                  className={styles.addToCartMainBtn}
                 >
-                  -
+                  <CartIcon />
+                  <span>Add to Cart</span>
                 </button>
-                <span className={styles.pillQtyValue}>
-                  <span>{cartQty}</span>
-                  <span
-                    style={{
-                      fontSize: "0.78rem",
-                      opacity: 0.8,
-                      fontWeight: 700,
-                    }}
+              ) : (
+                <div className={styles.inCartQuantityPill}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateQuantity(product.id, cartQty - 1, activeColor)
+                    }
+                    className={styles.pillQtyBtn}
+                    aria-label="Decrease quantity in cart"
                   >
-                    in Cart
+                    -
+                  </button>
+                  <span className={styles.pillQtyValue}>
+                    <span>{cartQty}</span>
+                    <span
+                      style={{
+                        fontSize: "0.78rem",
+                        opacity: 0.8,
+                        fontWeight: 700,
+                      }}
+                    >
+                      in Cart
+                    </span>
                   </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateQuantity(product.id, cartQty + 1, activeColor)
-                  }
-                  disabled={product.status === "pending" || cartQty >= maxStock}
-                  className={styles.pillQtyBtn}
-                  aria-label="Increase quantity in cart"
-                >
-                  +
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateQuantity(product.id, cartQty + 1, activeColor)
+                    }
+                    disabled={cartQty >= maxStock}
+                    className={styles.pillQtyBtn}
+                    aria-label="Increase quantity in cart"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
 
-            <button
-              type="button"
-              onClick={() => {
-                if (cartQty === 0) {
-                  addToCart(product, 1, activeColor);
-                }
-                router.push("/cart");
-              }}
-              className={styles.buyNowBtn}
-              disabled={product.status === "pending"}
-            >
-              <span>{product.status === "pending" ? "Pending Approval" : "Buy Now"}</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (cartQty === 0) {
+                    addToCart(product, 1, activeColor);
+                  }
+                  router.push("/cart");
+                }}
+                className={styles.buyNowBtn}
+              >
+                <span>Buy Now</span>
+              </button>
+            </div>
+          )}
         </div>
 
           {/* Trust Guarantee Badges */}
@@ -752,13 +852,21 @@ export default function ProductPage({ params }: ProductPageProps) {
 
               <div className={styles.modalFormRow}>
                 <div className={styles.modalFormGroup}>
-                  <label className={styles.modalFormLabel}>Stock Level</label>
-                  <input
-                    type="number"
-                    value={editStock}
-                    onChange={(e) => setEditStock(e.target.value)}
+                  <label className={styles.modalFormLabel}>Category</label>
+                  <select
+                    value={editCategoryName}
+                    onChange={(e) => setEditCategoryName(e.target.value)}
                     className={styles.modalInputField}
-                  />
+                    style={{ height: "46px" }}
+                  >
+                    <option value="Phone & Tablets">Phone &amp; Tablets</option>
+                    <option value="Gadgets & Accessories">Gadgets &amp; Accessories</option>
+                    <option value="Apparel & Fashion">Apparel &amp; Fashion</option>
+                    <option value="Furniture & Living">Furniture &amp; Living</option>
+                    <option value="Beauty & Care">Beauty &amp; Care</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Home Appliances">Home Appliances</option>
+                  </select>
                 </div>
                 <div className={styles.modalFormGroup}>
                   <label className={styles.modalFormLabel}>Condition</label>
@@ -775,13 +883,151 @@ export default function ProductPage({ params }: ProductPageProps) {
                 </div>
               </div>
 
+              <div className={styles.modalFormRow}>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Stock Level</label>
+                  <input
+                    type="number"
+                    value={editStock}
+                    onChange={(e) => setEditStock(e.target.value)}
+                    className={styles.modalInputField}
+                  />
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Available Colors (Comma separated)</label>
+                  <input
+                    type="text"
+                    value={editColors}
+                    onChange={(e) => setEditColors(e.target.value)}
+                    placeholder="e.g. Black, White, Silver"
+                    className={styles.modalInputField}
+                  />
+                </div>
+              </div>
+
               <div className={styles.modalFormGroup}>
-                <label className={styles.modalFormLabel}>Available Colors (Comma separated)</label>
+                <label className={styles.modalFormLabel}>Product Images</label>
+                <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={styles.cancelModalBtn}
+                    style={{ margin: 0, padding: "0.6rem 1.2rem", height: "auto" }}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? "Uploading..." : "Upload Images"}
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    style={{ display: "none" }}
+                  />
+                  <span style={{ fontSize: "0.82rem", color: "var(--color-olive-gray)" }}>
+                    Click image to set main. Use arrows to reorder.
+                  </span>
+                </div>
+
+                {uploadError && (
+                  <div style={{ color: "#d93838", fontSize: "0.8rem", fontWeight: 700, marginTop: "0.5rem" }}>
+                    ⚠️ {uploadError}
+                  </div>
+                )}
+
+                {uploadedImages.length > 0 && (
+                  <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "1rem" }}>
+                    {uploadedImages.map((url, idx) => {
+                      const isMain = url === mainImage;
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => setMainImage(url)}
+                          style={{
+                            width: 80,
+                            height: 80,
+                            position: "relative",
+                            borderRadius: 12,
+                            overflow: "hidden",
+                            border: isMain ? "2.5px solid var(--color-palm)" : "1.5px solid var(--color-border)",
+                            cursor: "pointer",
+                            backgroundColor: "var(--color-sand)",
+                          }}
+                        >
+                          <Image src={url} alt={`Upload preview ${idx + 1}`} fill sizes="80px" style={{ objectFit: "cover" }} />
+                          {isMain && (
+                            <span style={{
+                              position: "absolute", bottom: 2, right: 2, backgroundColor: "var(--color-palm)",
+                              color: "#fff", fontSize: "0.55rem", padding: "0.1rem 0.3rem", borderRadius: 4, fontWeight: 800
+                            }}>
+                              Main
+                            </span>
+                          )}
+
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveImage(idx, "left");
+                              }}
+                              style={{
+                                position: "absolute", top: 2, left: 2, background: "rgba(0,0,0,0.6)", color: "#fff",
+                                border: "none", borderRadius: 4, fontSize: "0.6rem", padding: "0.1rem 0.25rem", cursor: "pointer"
+                              }}
+                              title="Move left"
+                            >
+                              ◀
+                            </button>
+                          )}
+
+                          {idx < uploadedImages.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveImage(idx, "right");
+                              }}
+                              style={{
+                                position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,0.6)", color: "#fff",
+                                border: "none", borderRadius: 4, fontSize: "0.6rem", padding: "0.1rem 0.25rem", cursor: "pointer"
+                              }}
+                              title="Move right"
+                            >
+                              ▶
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteImage(url);
+                            }}
+                            style={{
+                              position: "absolute", bottom: 2, left: 2, background: "#d93838", color: "#fff",
+                              border: "none", borderRadius: 4, fontSize: "0.65rem", width: 14, height: 14,
+                              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontWeight: "bold"
+                            }}
+                            title="Delete image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>YouTube Video Link (Optional)</label>
                 <input
-                  type="text"
-                  value={editColors}
-                  onChange={(e) => setEditColors(e.target.value)}
-                  placeholder="e.g. Black, White, Silver"
+                  type="url"
+                  value={editYoutubeLink}
+                  onChange={(e) => setEditYoutubeLink(e.target.value)}
+                  placeholder="e.g. https://www.youtube.com/watch?v=..."
                   className={styles.modalInputField}
                 />
               </div>
@@ -801,14 +1047,14 @@ export default function ProductPage({ params }: ProductPageProps) {
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
                   className={styles.cancelModalBtn}
-                  disabled={isUpdating}
+                  disabled={isUpdating || isUploading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className={styles.submitModalBtn}
-                  disabled={isUpdating}
+                  disabled={isUpdating || isUploading}
                 >
                   {isUpdating ? "Saving..." : "Save Changes"}
                 </button>
