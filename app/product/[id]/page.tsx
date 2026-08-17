@@ -13,7 +13,7 @@ import {
 } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 // SVG Components
@@ -174,18 +174,84 @@ export default function ProductPage({ params }: ProductPageProps) {
       .slice(0, 4);
   }, [product]);
 
+  // Check store to determine if the currently logged-in user is the owner
+  const store = useQuery(
+    api.store.getStoreById,
+    product?.storeId ? { storeId: product.storeId } : "skip"
+  );
+  const isOwner = !!store;
+
+  const updateProductMut = useMutation(api.products.updateProduct);
+
   // Selected thumbnail/main image state
   const [selectedImage, setSelectedImage] = useState<string>("");
   const activeImage = selectedImage || product?.image || "";
 
   const [selectedColor, setSelectedColor] = useState<string>("");
 
+  // Edit Product Modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editOriginalPrice, setEditOriginalPrice] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editStock, setEditStock] = useState("");
+  const [editColors, setEditColors] = useState("");
+  const [editCondition, setEditCondition] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState("");
+
   // Sync default color selection when product loads
   useEffect(() => {
     if (product?.colors && product.colors.length > 0) {
       setSelectedColor(product.colors[0]);
     }
+    if (product) {
+      setEditTitle(product.title || "");
+      setEditPrice(product.price ? product.price.toString() : "");
+      setEditOriginalPrice(
+        product.originalPrice ? product.originalPrice.toString() : "",
+      );
+      setEditDescription(product.description || "");
+      setEditStock(product.stock ? product.stock.toString() : "");
+      setEditColors(product.colors ? product.colors.join(", ") : "");
+      setEditCondition(product.condition || "New");
+    }
   }, [product]);
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim() || !editPrice.trim()) {
+      setUpdateError("Title and price are required.");
+      return;
+    }
+    setIsUpdating(true);
+    setUpdateError("");
+
+    try {
+      const colorsArray = editColors
+        .split(",")
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0);
+
+      await updateProductMut({
+        productId: product.id,
+        title: editTitle,
+        price: parseFloat(editPrice),
+        originalPrice: editOriginalPrice ? parseFloat(editOriginalPrice) : undefined,
+        description: editDescription || undefined,
+        condition: editCondition || undefined,
+        colors: colorsArray.length > 0 ? colorsArray : undefined,
+        stock: editStock ? parseInt(editStock, 10) : undefined,
+      });
+
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      setUpdateError(err.message || "Failed to update product details.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -313,148 +379,168 @@ export default function ProductPage({ params }: ProductPageProps) {
               className={styles.categoryLink}
             >
               {product.categoryName}
-            </Link>
+          </Link>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+          <h1 className={styles.productTitle} style={{ flex: 1, margin: 0 }}>{product.title}</h1>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className={styles.editProductBtn}
+            >
+              ✏️ Edit Product
+            </button>
+          )}
+        </div>
+
+        {product.status === "pending" && (
+          <div className={styles.pendingReviewBanner}>
+            ⚠️ This product is pending review. Buy now and Add to cart are disabled until approval.
           </div>
+        )}
 
-          <h1 className={styles.productTitle}>{product.title}</h1>
-
-          <div className={styles.priceRow}>
-            <span className={styles.currentPrice}>
-              ₦{formatPrice(product.price)}
+        <div className={styles.priceRow}>
+          <span className={styles.currentPrice}>
+            ₦{formatPrice(product.price)}
+          </span>
+          {product.originalPrice && (
+            <span className={styles.originalPrice}>
+              ₦{formatPrice(product.originalPrice)}
             </span>
-            {product.originalPrice && (
-              <span className={styles.originalPrice}>
-                ₦{formatPrice(product.originalPrice)}
-              </span>
-            )}
-            {discountPercent > 0 && (
-              <span className={styles.discountPill}>
-                Save {discountPercent}%
-              </span>
-            )}
+          )}
+          {discountPercent > 0 && (
+            <span className={styles.discountPill}>
+              Save {discountPercent}%
+            </span>
+          )}
+        </div>
+
+        {product.description && (
+          <p className={styles.shortDescription}>{product.description}</p>
+        )}
+
+        {/* Condition, Color & Stock Availability Options */}
+        <div className={styles.optionsContainer}>
+          <div className={styles.optionGroup}>
+            <span className={styles.optionLabel}>Stock Status</span>
+            <span
+              className={
+                maxStock <= 5
+                  ? `${styles.stockBadge} ${styles.lowStockBadge}`
+                  : styles.stockBadge
+              }
+            >
+              {maxStock <= 5
+                ? `🔥 Only ${maxStock} left in stock!`
+                : `✓ In Stock (${maxStock} available)`}
+            </span>
           </div>
 
-          {product.description && (
-            <p className={styles.shortDescription}>{product.description}</p>
+          {product.condition && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Condition</span>
+              <span className={styles.conditionBadge}>
+                ✨ {product.condition}
+              </span>
+            </div>
           )}
 
-          {/* Condition, Color & Stock Availability Options */}
-          <div className={styles.optionsContainer}>
+          {product.colors && product.colors.length > 0 && (
             <div className={styles.optionGroup}>
-              <span className={styles.optionLabel}>Stock Status</span>
-              <span
-                className={
-                  maxStock <= 5
-                    ? `${styles.stockBadge} ${styles.lowStockBadge}`
-                    : styles.stockBadge
-                }
-              >
-                {maxStock <= 5
-                  ? `🔥 Only ${maxStock} left in stock!`
-                  : `✓ In Stock (${maxStock} available)`}
+              <span className={styles.optionLabel}>
+                Color: <strong>{selectedColor || product.colors[0]}</strong>
               </span>
-            </div>
-
-            {product.condition && (
-              <div className={styles.optionGroup}>
-                <span className={styles.optionLabel}>Condition</span>
-                <span className={styles.conditionBadge}>
-                  ✨ {product.condition}
-                </span>
-              </div>
-            )}
-
-            {product.colors && product.colors.length > 0 && (
-              <div className={styles.optionGroup}>
-                <span className={styles.optionLabel}>
-                  Color: <strong>{selectedColor || product.colors[0]}</strong>
-                </span>
-                <div className={styles.colorList}>
-                  {product.colors.map((color: string) => {
-                    const isSelected =
-                      (selectedColor || product.colors![0]) === color;
-                    return (
-                      <button
-                        type="button"
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`${styles.colorOptionBtn} ${
-                          isSelected ? styles.colorOptionActive : ""
-                        }`}
-                      >
-                        {color}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Dynamic Purchase Actions & Inline Quantity Control */}
-          <div className={styles.actionsContainer}>
-            <div className={styles.buttonGroup}>
-              {cartQty === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => addToCart(product, 1, activeColor)}
-                  className={styles.addToCartMainBtn}
-                >
-                  <CartIcon />
-                  <span>Add to Cart</span>
-                </button>
-              ) : (
-                <div className={styles.inCartQuantityPill}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateQuantity(product.id, cartQty - 1, activeColor)
-                    }
-                    className={styles.pillQtyBtn}
-                    aria-label="Decrease quantity in cart"
-                  >
-                    -
-                  </button>
-                  <span className={styles.pillQtyValue}>
-                    <span>{cartQty}</span>
-                    <span
-                      style={{
-                        fontSize: "0.78rem",
-                        opacity: 0.8,
-                        fontWeight: 700,
-                      }}
+              <div className={styles.colorList}>
+                {product.colors.map((color: string) => {
+                  const isSelected =
+                    (selectedColor || product.colors![0]) === color;
+                  return (
+                    <button
+                      type="button"
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`${styles.colorOptionBtn} ${
+                        isSelected ? styles.colorOptionActive : ""
+                      }`}
                     >
-                      in Cart
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateQuantity(product.id, cartQty + 1, activeColor)
-                    }
-                    disabled={cartQty >= maxStock}
-                    className={styles.pillQtyBtn}
-                    aria-label="Increase quantity in cart"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
+                      {color}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
+        {/* Dynamic Purchase Actions & Inline Quantity Control */}
+        <div className={styles.actionsContainer}>
+          <div className={styles.buttonGroup}>
+            {cartQty === 0 ? (
               <button
                 type="button"
-                onClick={() => {
-                  if (cartQty === 0) {
-                    addToCart(product, 1, activeColor);
-                  }
-                  router.push("/cart");
-                }}
-                className={styles.buyNowBtn}
+                onClick={() => addToCart(product, 1, activeColor)}
+                className={styles.addToCartMainBtn}
+                disabled={product.status === "pending"}
               >
-                <span>Buy Now</span>
+                <CartIcon />
+                <span>{product.status === "pending" ? "Pending Review" : "Add to Cart"}</span>
               </button>
-            </div>
+            ) : (
+              <div className={styles.inCartQuantityPill}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuantity(product.id, cartQty - 1, activeColor)
+                  }
+                  className={styles.pillQtyBtn}
+                  aria-label="Decrease quantity in cart"
+                  disabled={product.status === "pending"}
+                >
+                  -
+                </button>
+                <span className={styles.pillQtyValue}>
+                  <span>{cartQty}</span>
+                  <span
+                    style={{
+                      fontSize: "0.78rem",
+                      opacity: 0.8,
+                      fontWeight: 700,
+                    }}
+                  >
+                    in Cart
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuantity(product.id, cartQty + 1, activeColor)
+                  }
+                  disabled={product.status === "pending" || cartQty >= maxStock}
+                  className={styles.pillQtyBtn}
+                  aria-label="Increase quantity in cart"
+                >
+                  +
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (cartQty === 0) {
+                  addToCart(product, 1, activeColor);
+                }
+                router.push("/cart");
+              }}
+              className={styles.buyNowBtn}
+              disabled={product.status === "pending"}
+            >
+              <span>{product.status === "pending" ? "Pending Approval" : "Buy Now"}</span>
+            </button>
           </div>
+        </div>
 
           {/* Trust Guarantee Badges */}
           <div className={styles.trustBadges}>
@@ -589,6 +675,147 @@ export default function ProductPage({ params }: ProductPageProps) {
             ))}
           </div>
         </section>
+      )}
+      {/* Edit Product Modal */}
+      {isEditModalOpen && (
+        <div
+          className={styles.modalBackdrop}
+          onClick={(e) =>
+            e.target === e.currentTarget && setIsEditModalOpen(false)
+          }
+        >
+          <div className={styles.productModal}>
+            <div className={styles.productModalHeader}>
+              <div>
+                <h2 className={styles.productModalTitle}>Edit Product Details</h2>
+                <p className={styles.productModalSubtitle}>
+                  Update the catalog information for this item
+                </p>
+              </div>
+              <button
+                className={styles.modalCloseBtn}
+                onClick={() => setIsEditModalOpen(false)}
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form className={styles.modalForm} onSubmit={handleEditSubmit}>
+              {updateError && (
+                <div
+                  style={{
+                    color: "#d93838",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                    marginBottom: "1rem",
+                  }}
+                >
+                  ⚠️ {updateError}
+                </div>
+              )}
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>Product Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className={styles.modalInputField}
+                />
+              </div>
+
+              <div className={styles.modalFormRow}>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Price (₦)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    className={styles.modalInputField}
+                  />
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Original Price (₦, Optional)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editOriginalPrice}
+                    onChange={(e) => setEditOriginalPrice(e.target.value)}
+                    className={styles.modalInputField}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.modalFormRow}>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Stock Level</label>
+                  <input
+                    type="number"
+                    value={editStock}
+                    onChange={(e) => setEditStock(e.target.value)}
+                    className={styles.modalInputField}
+                  />
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalFormLabel}>Condition</label>
+                  <select
+                    value={editCondition}
+                    onChange={(e) => setEditCondition(e.target.value)}
+                    className={styles.modalInputField}
+                    style={{ height: "46px" }}
+                  >
+                    <option value="New">New</option>
+                    <option value="Like New">Like New</option>
+                    <option value="Refurbished">Refurbished</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>Available Colors (Comma separated)</label>
+                <input
+                  type="text"
+                  value={editColors}
+                  onChange={(e) => setEditColors(e.target.value)}
+                  placeholder="e.g. Black, White, Silver"
+                  className={styles.modalInputField}
+                />
+              </div>
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>Product Description</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className={`${styles.modalInputField} ${styles.modalTextarea}`}
+                  placeholder="Describe your product details..."
+                />
+              </div>
+
+              <div className={styles.modalActionsRow}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className={styles.cancelModalBtn}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.submitModalBtn}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </main>
   );

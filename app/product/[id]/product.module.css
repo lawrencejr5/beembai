@@ -919,3 +919,225 @@
     gap: 0.5rem;
   }
 }
+
+.editProductBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: 99px;
+  background-color: var(--color-palm);
+  color: var(--color-coconut);
+  border: 1px solid var(--color-palm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  margin-top: 0.2rem;
+}
+
+.editProductBtn:hover {
+  opacity: 0.9;
+}
+
+.pendingReviewBanner {
+  background-color: rgba(234, 179, 8, 0.08);
+  border: 1.5px dashed #eab308;
+  color: #a16207;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+:global([data-theme="dark"]) .pendingReviewBanner {
+  background-color: rgba(234, 179, 8, 0.05);
+  color: #fef08a;
+  border-color: #ca8a04;
+}
+
+/* Edit Modal Backdrop and Frame */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.productModal {
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlide {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.productModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+}
+
+.productModalTitle {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--color-papyrus);
+  margin: 0;
+}
+
+:global([data-theme="dark"]) .productModalTitle {
+  color: var(--color-coconut);
+}
+
+.productModalSubtitle {
+  font-size: 0.82rem;
+  color: var(--color-olive-gray);
+  margin: 0.25rem 0 0 0;
+  font-weight: 600;
+}
+
+.modalCloseBtn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--color-olive-gray);
+  cursor: pointer;
+}
+
+.modalCloseBtn:hover {
+  color: var(--color-papyrus);
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.modalFormRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+
+@media (max-width: 576px) {
+  .modalFormRow {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+}
+
+.modalFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.modalFormLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-papyrus);
+  opacity: 0.85;
+}
+
+:global([data-theme="dark"]) .modalFormLabel {
+  color: var(--color-coconut);
+}
+
+.modalInputField {
+  background-color: var(--background);
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--foreground);
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.modalInputField:focus {
+  border-color: var(--color-palm);
+  outline: none;
+}
+
+.modalTextarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.modalActionsRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
+}
+
+.cancelModalBtn {
+  background: none;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-papyrus);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:global([data-theme="dark"]) .cancelModalBtn {
+  color: var(--color-coconut);
+}
+
+.cancelModalBtn:hover {
+  background-color: var(--color-sand);
+}
+
+.submitModalBtn {
+  background-color: var(--color-palm);
+  color: var(--color-coconut);
+  border: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.65rem 1.5rem;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.submitModalBtn:hover {
+  opacity: 0.9;
+}
+
+.submitModalBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

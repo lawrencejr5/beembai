@@ -181,3 +181,58 @@ export const getCategories = query({
     return await ctx.db.query("categories").take(20);
   },
 });
+
+// Update an existing product
+export const updateProduct = mutation({
+  args: {
+    productId: v.id("products"),
+    title: v.string(),
+    price: v.number(),
+    originalPrice: v.optional(v.number()),
+    description: v.optional(v.string()),
+    condition: v.optional(v.string()),
+    colors: v.optional(v.array(v.string())),
+    stock: v.optional(v.number()),
+    image: v.optional(v.string()),
+    images: v.optional(v.array(v.string())),
+    youtubeLink: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const product = await ctx.db.get(args.productId);
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    // Verify user owns the store that sells the product
+    if (product.storeId) {
+      const store = await ctx.db.get(product.storeId);
+      if (!store || store.userId !== userId) {
+        throw new Error("Unauthorized");
+      }
+    } else {
+      throw new Error("Unauthorized");
+    }
+
+    const patch: any = {
+      title: args.title,
+      price: args.price,
+      originalPrice: args.originalPrice,
+      description: args.description,
+      condition: args.condition,
+      colors: args.colors,
+      stock: args.stock,
+    };
+
+    if (args.image !== undefined) patch.image = args.image;
+    if (args.images !== undefined) patch.images = args.images;
+    if (args.youtubeLink !== undefined) patch.youtubeLink = args.youtubeLink;
+
+    await ctx.db.patch(args.productId, patch);
+    return args.productId;
+  },
+});
