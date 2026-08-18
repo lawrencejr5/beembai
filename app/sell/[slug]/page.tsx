@@ -13,6 +13,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useRef } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import ShareStoreModal from "./ShareStoreModal";
 
 // ─── Icons ──────────────────────────────────────────────────────────────────
 
@@ -1027,6 +1028,7 @@ function ApprovedDashboard({
   const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState("");
   const [domainPrefix, setDomainPrefix] = useState("beembai.lawjun.ng");
+  const [showSharePopover, setShowSharePopover] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -1054,12 +1056,14 @@ function ApprovedDashboard({
 
   const checkedSlugStore = useQuery(
     api.store.getStoreBySlug,
-    editSlug ? { slug: editSlug } : "skip"
+    editSlug ? { slug: editSlug } : "skip",
   );
 
   useEffect(() => {
     if (checkedSlugStore && checkedSlugStore._id !== store._id) {
-      setEditSlug((prev) => `${prev}-${Math.floor(1000 + Math.random() * 9000)}`);
+      setEditSlug(
+        (prev) => `${prev}-${Math.floor(1000 + Math.random() * 9000)}`,
+      );
     }
   }, [checkedSlugStore, store._id]);
 
@@ -1298,12 +1302,18 @@ function ApprovedDashboard({
             <h1 className={styles.dashStoreName}>
               <span>{store.name}</span>
               {(store.verified || store.verificationStatus === "verified") && (
-                <span className={styles.dashTitleVerifiedIcon} title="Verified Store">
+                <span
+                  className={styles.dashTitleVerifiedIcon}
+                  title="Verified Store"
+                >
                   <VerifiedIcon />
                 </span>
               )}
             </h1>
-            <div className={styles.dashRatingRow} style={{ flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+            <div
+              className={styles.dashRatingRow}
+              style={{ flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}
+            >
               <span className={styles.dashStarIcon}>
                 <StarIcon />
               </span>
@@ -1311,17 +1321,40 @@ function ApprovedDashboard({
                 {store.rating.toFixed(1)} / 5.0 rating
               </span>
               <span style={{ opacity: 0.5 }}>•</span>
-              <span style={{ fontSize: "0.85rem", color: "var(--color-olive-gray)" }}>
-                Slug:{" "}
-                <Link
-                  href={`/stores/${store.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "var(--color-palm)", textDecoration: "underline", fontWeight: 700 }}
+              <button
+                type="button"
+                onClick={() => setShowSharePopover(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  color: "var(--color-palm)",
+                  background: "none",
+                  border: "1px solid var(--color-palm)",
+                  borderRadius: 5,
+                  padding: "0.25rem 0.75rem",
+                  cursor: "pointer",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  {store.slug} ↗
-                </Link>
-              </span>
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+                Share Store
+              </button>
             </div>
             <div
               className={styles.dashBadgeRow}
@@ -1696,39 +1729,75 @@ function ApprovedDashboard({
                   />
                 </div>
                 <div className={styles.modalFormGroup}>
-                  <label className={styles.modalFormLabel}>Store Link Slug *</label>
-                  <div style={{ display: "flex", alignItems: "stretch", border: "1px solid var(--color-border)", borderRadius: 6, overflow: "hidden", background: "var(--color-bg-alt)" }}>
-                    <span style={{ padding: "0 0.75rem", fontSize: "0.85rem", color: "var(--color-olive-gray)", userSelect: "none", borderRight: "1px solid var(--color-border)", whiteSpace: "nowrap", display: "flex", alignItems: "center", backgroundColor: "var(--color-sand)" }}>
-                      {domainPrefix}/stores/
-                    </span>
-                    <input
-                      className={styles.modalInput}
-                      style={{ border: "none", borderRadius: 0, flex: 1, margin: 0 }}
-                      type="text"
-                      required
-                      value={editSlug}
-                      onChange={(e) => setEditSlug(slugify(e.target.value))}
-                    />
-                  </div>
+                  <label className={styles.modalFormLabel}>
+                    Primary Category
+                  </label>
+                  <select
+                    className={styles.modalSelect}
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                  >
+                    <option value="All Categories">All Categories</option>
+                    <option value="Phone & Tablets">Phone &amp; Tablets</option>
+                    <option value="Gadgets & Accessories">
+                      Gadgets &amp; Accessories
+                    </option>
+                    <option value="Apparel & Fashion">
+                      Apparel &amp; Fashion
+                    </option>
+                    <option value="Furniture & Living">
+                      Furniture &amp; Living
+                    </option>
+                    <option value="Beauty & Care">Beauty &amp; Care</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Home Appliances">Home Appliances</option>
+                  </select>
                 </div>
               </div>
 
               <div className={styles.modalFormGroup}>
-                <label className={styles.modalFormLabel}>Primary Category</label>
-                <select
-                  className={styles.modalSelect}
-                  value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value)}
+                <label className={styles.modalFormLabel}>
+                  Store Link Slug *
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "stretch",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 6,
+                    overflow: "hidden",
+                    background: "var(--color-bg-alt)",
+                  }}
                 >
-                  <option value="All Categories">All Categories</option>
-                  <option value="Phone & Tablets">Phone &amp; Tablets</option>
-                  <option value="Gadgets & Accessories">Gadgets &amp; Accessories</option>
-                  <option value="Apparel & Fashion">Apparel &amp; Fashion</option>
-                  <option value="Furniture & Living">Furniture &amp; Living</option>
-                  <option value="Beauty & Care">Beauty &amp; Care</option>
-                  <option value="Groceries">Groceries</option>
-                  <option value="Home Appliances">Home Appliances</option>
-                </select>
+                  <span
+                    style={{
+                      padding: "0 0.75rem",
+                      fontSize: "0.85rem",
+                      color: "var(--color-olive-gray)",
+                      userSelect: "none",
+                      borderRight: "1px solid var(--color-border)",
+                      whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center",
+                      backgroundColor: "var(--color-sand)",
+                    }}
+                  >
+                    {domainPrefix}/stores/
+                  </span>
+                  <input
+                    className={styles.modalInput}
+                    style={{
+                      border: "none",
+                      borderRadius: 0,
+                      flex: 1,
+                      margin: 0,
+                    }}
+                    type="text"
+                    required
+                    value={editSlug}
+                    onChange={(e) => setEditSlug(slugify(e.target.value))}
+                  />
+                </div>
               </div>
 
               <div className={styles.modalFormGroup}>
@@ -1821,6 +1890,14 @@ function ApprovedDashboard({
           onClose={() => setShowVerifyModal(false)}
         />
       )}
+
+      {/* Share Store Modal */}
+      <ShareStoreModal
+        isOpen={showSharePopover}
+        onClose={() => setShowSharePopover(false)}
+        slug={store.slug}
+        storeName={store.name}
+      />
     </>
   );
 }
