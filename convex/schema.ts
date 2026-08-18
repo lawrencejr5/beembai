@@ -131,6 +131,7 @@ export default defineSchema({
     items: v.array(
       v.object({
         productId: v.id("products"),
+        storeId: v.optional(v.id("stores")),
         title: v.string(),
         price: v.number(),
         quantity: v.number(),

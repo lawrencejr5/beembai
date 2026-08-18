@@ -1460,13 +1460,13 @@ function ApprovedDashboard({
               />
             </div>
             <button
-              id="add-product-btn"
+              id="my-orders-btn"
               type="button"
               className={styles.addProductBtn}
-              onClick={() => setShowAddModal(true)}
+              onClick={() => router.push(`/sell/${store.slug}/orders`)}
             >
-              <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>+</span>
-              Add Product
+              <span style={{ fontSize: "1.1rem", lineHeight: 1, display: "inline-flex", alignItems: "center" }}>📦</span>
+              My Orders
             </button>
           </div>
         </div>
