@@ -1148,7 +1148,7 @@ function ApprovedDashboard({
       return;
     }
     if (!editDescription.trim()) {
-      setDetailsError("Brand biography is required.");
+      setDetailsError("Store biography is required.");
       return;
     }
 
@@ -1394,14 +1394,14 @@ function ApprovedDashboard({
                 className={styles.dashSectionTitle}
                 style={{ marginBottom: 0 }}
               >
-                About the Brand
+                About the Store
               </h2>
               <button
                 type="button"
                 className={styles.editStoreDetailsBtn}
                 onClick={() => setShowEditDetailsModal(true)}
               >
-                ✏️ Edit Brand Info
+                ✏️ Edit Store Info
               </button>
             </div>
             <p className={styles.dashBioText}>{store.description}</p>
@@ -1681,7 +1681,7 @@ function ApprovedDashboard({
           <div className={styles.productModal} style={{ maxWidth: 640 }}>
             <div className={styles.productModalHeader}>
               <div>
-                <h2 className={styles.productModalTitle}>Edit Brand Details</h2>
+                <h2 className={styles.productModalTitle}>Edit Store Details</h2>
                 <p className={styles.productModalSubtitle}>
                   Update your public storefront information
                 </p>
@@ -1798,7 +1798,7 @@ function ApprovedDashboard({
 
               <div className={styles.modalFormGroup}>
                 <label className={styles.modalFormLabel}>
-                  Brand Biography / Description *
+                  Store Biography / Description *
                 </label>
                 <textarea
                   className={styles.modalTextarea}

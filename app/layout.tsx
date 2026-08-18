@@ -79,7 +79,7 @@ export default function RootLayout({
             <NavigationProvider>
               <CartProvider>
                 {children}
-                <AiShopper />
+                {/* <AiShopper /> */}
               </CartProvider>
             </NavigationProvider>
           </ConvexClientProvider>
