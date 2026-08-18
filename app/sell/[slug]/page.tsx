@@ -1007,6 +1007,7 @@ function ApprovedDashboard({
   // Edit details modal state
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
   const [editName, setEditName] = useState(store.name);
+  const [editSlug, setEditSlug] = useState(store.slug);
   const [editCategory, setEditCategory] = useState(store.category);
   const [editDescription, setEditDescription] = useState(store.description);
   const [editPhysicalAddress, setEditPhysicalAddress] = useState(
@@ -1039,6 +1040,7 @@ function ApprovedDashboard({
   // Sync form states when store changes (e.g., store navigation)
   useEffect(() => {
     setEditName(store.name);
+    setEditSlug(store.slug);
     setEditCategory(store.category);
     setEditDescription(store.description);
     setEditPhysicalAddress(store.physicalAddress || "");
@@ -1126,6 +1128,7 @@ function ApprovedDashboard({
       const result = await updateStoreDetails({
         storeId: store._id,
         name: editName,
+        slug: editSlug,
         category: editCategory,
         description: editDescription,
         physicalAddress: editPhysicalAddress,
@@ -1663,30 +1666,33 @@ function ApprovedDashboard({
                   />
                 </div>
                 <div className={styles.modalFormGroup}>
-                  <label className={styles.modalFormLabel}>
-                    Primary Category
-                  </label>
-                  <select
-                    className={styles.modalSelect}
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                  >
-                    <option value="All Categories">All Categories</option>
-                    <option value="Phone & Tablets">Phone &amp; Tablets</option>
-                    <option value="Gadgets & Accessories">
-                      Gadgets &amp; Accessories
-                    </option>
-                    <option value="Apparel & Fashion">
-                      Apparel &amp; Fashion
-                    </option>
-                    <option value="Furniture & Living">
-                      Furniture &amp; Living
-                    </option>
-                    <option value="Beauty & Care">Beauty &amp; Care</option>
-                    <option value="Groceries">Groceries</option>
-                    <option value="Home Appliances">Home Appliances</option>
-                  </select>
+                  <label className={styles.modalFormLabel}>Store Link Slug *</label>
+                  <input
+                    className={styles.modalInput}
+                    type="text"
+                    required
+                    value={editSlug}
+                    onChange={(e) => setEditSlug(e.target.value)}
+                  />
                 </div>
+              </div>
+
+              <div className={styles.modalFormGroup}>
+                <label className={styles.modalFormLabel}>Primary Category</label>
+                <select
+                  className={styles.modalSelect}
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                >
+                  <option value="All Categories">All Categories</option>
+                  <option value="Phone & Tablets">Phone &amp; Tablets</option>
+                  <option value="Gadgets & Accessories">Gadgets &amp; Accessories</option>
+                  <option value="Apparel & Fashion">Apparel &amp; Fashion</option>
+                  <option value="Furniture & Living">Furniture &amp; Living</option>
+                  <option value="Beauty & Care">Beauty &amp; Care</option>
+                  <option value="Groceries">Groceries</option>
+                  <option value="Home Appliances">Home Appliances</option>
+                </select>
               </div>
 
               <div className={styles.modalFormGroup}>

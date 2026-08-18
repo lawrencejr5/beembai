@@ -290,6 +290,7 @@ export const updateStoreDetails = mutation({
   args: {
     storeId: v.id("stores"),
     name: v.string(),
+    slug: v.optional(v.string()),
     category: v.string(),
     description: v.string(),
     physicalAddress: v.optional(v.string()),
@@ -308,7 +309,19 @@ export const updateStoreDetails = mutation({
     }
 
     let newSlug = store.slug;
-    if (store.name !== args.name) {
+    if (args.slug !== undefined && args.slug !== store.slug) {
+      newSlug = generateSlug(args.slug);
+      
+      // Ensure slug is unique
+      let slugExists = await ctx.db
+        .query("stores")
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
+        .first();
+
+      if (slugExists && slugExists._id !== args.storeId) {
+        newSlug = `${newSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+    } else if (store.name !== args.name) {
       newSlug = generateSlug(args.name);
       
       // Ensure slug is unique
