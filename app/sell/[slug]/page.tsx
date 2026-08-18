@@ -1301,7 +1301,7 @@ function ApprovedDashboard({
           <div className={styles.dashMetaBlock}>
             <h1 className={styles.dashStoreName}>
               <span>{store.name}</span>
-              {(store.verified || store.verificationStatus === "verified") && (
+              {store.verified && (
                 <span
                   className={styles.dashTitleVerifiedIcon}
                   title="Verified Store"
@@ -1361,12 +1361,8 @@ function ApprovedDashboard({
               style={{ flexWrap: "wrap", gap: "0.5rem" }}
             >
               <span className={styles.dashCategoryTag}>{store.category}</span>
-              {store.verified || store.verificationStatus === "verified" ? (
-                <span className={styles.dashVerifiedLabel}>
-                  <VerifiedIcon />
-                  <span>Verified Store</span>
-                </span>
-              ) : store.verificationStatus === "under_review" ? (
+              {store.verified ? null : store.verificationStatus ===
+                "under_review" ? (
                 <span className={styles.dashVerificationUnderReviewBadge}>
                   ⏳ Pending Verification
                 </span>

@@ -11,7 +11,6 @@ import Navbar from "@/app/components/Navbar";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-
 // Local SVG Icons
 const SearchIcon = () => (
   <svg
@@ -151,8 +150,7 @@ export default function StoresPage() {
   useEffect(() => {
     const activeTheme =
       (document.documentElement.getAttribute("data-theme") as
-        | "light"
-        | "dark") || "light";
+        "light" | "dark") || "light";
     setTheme(activeTheme);
   }, []);
 
@@ -250,11 +248,48 @@ export default function StoresPage() {
                 className={styles.storeCard}
                 style={{ height: "350px", opacity: 0.6, pointerEvents: "none" }}
               >
-                <div className={styles.cardBanner} style={{ backgroundColor: "var(--color-border)", height: "120px" }} />
-                <div className={styles.cardBody} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "1.5rem" }}>
-                  <div style={{ width: "80px", height: "15px", backgroundColor: "var(--color-border)", borderRadius: 4 }} />
-                  <div style={{ width: "160px", height: "24px", backgroundColor: "var(--color-border)", borderRadius: 4, marginTop: "0.5rem" }} />
-                  <div style={{ width: "100%", height: "40px", backgroundColor: "var(--color-border)", borderRadius: 4, marginTop: "0.5rem" }} />
+                <div
+                  className={styles.cardBanner}
+                  style={{
+                    backgroundColor: "var(--color-border)",
+                    height: "120px",
+                  }}
+                />
+                <div
+                  className={styles.cardBody}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                    padding: "1.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "80px",
+                      height: "15px",
+                      backgroundColor: "var(--color-border)",
+                      borderRadius: 4,
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: "160px",
+                      height: "24px",
+                      backgroundColor: "var(--color-border)",
+                      borderRadius: 4,
+                      marginTop: "0.5rem",
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "40px",
+                      backgroundColor: "var(--color-border)",
+                      borderRadius: 4,
+                      marginTop: "0.5rem",
+                    }}
+                  />
                 </div>
               </div>
             ))}
@@ -275,12 +310,15 @@ export default function StoresPage() {
                 <div
                   className={styles.cardBanner}
                   style={{
-                    backgroundImage: store.banner ? `url('${store.banner}')` : "none",
+                    backgroundImage: store.banner
+                      ? `url('${store.banner}')`
+                      : "none",
                     backgroundColor: "var(--color-sand)",
                   }}
                 >
                   <div className={styles.cardBannerOverlay} />
-                  {(store.slug === "beembai-official" || store.slug === "beembai") && (
+                  {(store.slug === "beembai-official" ||
+                    store.slug === "beembai") && (
                     <div className={styles.logoContainer}>
                       {store.logo ? (
                         <Image
@@ -305,26 +343,27 @@ export default function StoresPage() {
                 {/* Card Info Body */}
                 <div className={styles.cardBody}>
                   {/* Floating Store Logo for other stores */}
-                  {store.slug !== "beembai-official" && store.slug !== "beembai" && (
-                    <div className={styles.logoContainer}>
-                      {store.logo ? (
-                        <Image
-                          src={store.logo}
-                          alt={`${store.name} Logo`}
-                          width={64}
-                          height={64}
-                          className={styles.logoImage}
-                        />
-                      ) : (
-                        <span
-                          className={styles.logoPlaceholder}
-                          style={{ fontSize: "1.3rem" }}
-                        >
-                          {getStoreInitials(store.name)}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {store.slug !== "beembai-official" &&
+                    store.slug !== "beembai" && (
+                      <div className={styles.logoContainer}>
+                        {store.logo ? (
+                          <Image
+                            src={store.logo}
+                            alt={`${store.name} Logo`}
+                            width={64}
+                            height={64}
+                            className={styles.logoImage}
+                          />
+                        ) : (
+                          <span
+                            className={styles.logoPlaceholder}
+                            style={{ fontSize: "1.3rem" }}
+                          >
+                            {getStoreInitials(store.name)}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                   {/* Badge & Category Row */}
                   <div className={styles.badgeRow}>
@@ -335,10 +374,11 @@ export default function StoresPage() {
                   <div className={styles.storeMeta}>
                     <div className={styles.storeNameGroup}>
                       <h3 className={styles.storeCardName}>{store.name}</h3>
-                      {(store.verified || store.verificationStatus === "verified") && (
+                      {store.verified && (
                         <span
                           className={`${styles.verifiedBadge} ${
-                            store.slug === "beembai-official" || store.slug === "beembai"
+                            store.slug === "beembai-official" ||
+                            store.slug === "beembai"
                               ? styles.officialVerifiedBadge
                               : styles.otherVerifiedBadge
                           }`}
@@ -351,7 +391,8 @@ export default function StoresPage() {
 
                     <div
                       className={`${styles.ratingRow} ${
-                        store.slug === "beembai-official" || store.slug === "beembai"
+                        store.slug === "beembai-official" ||
+                        store.slug === "beembai"
                           ? styles.officialStoreRating
                           : ""
                       }`}
@@ -372,7 +413,8 @@ export default function StoresPage() {
                   <div className={styles.cardFooter}>
                     <span className={styles.visitText}>
                       <span>
-                        {store.slug === "beembai-official" || store.slug === "beembai"
+                        {store.slug === "beembai-official" ||
+                        store.slug === "beembai"
                           ? "Visit Official Store"
                           : "Visit Store"}
                       </span>

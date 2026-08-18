@@ -158,15 +158,14 @@ export default function StoreDetailPage({ params }: PageProps) {
   const store = useQuery(api.store.getStoreBySlug, { slug });
   const dbProducts = useQuery(
     api.store.getProductsByStore,
-    store ? { storeId: store._id } : "skip"
+    store ? { storeId: store._id } : "skip",
   );
 
   // Sync theme
   useEffect(() => {
     const activeTheme =
       (document.documentElement.getAttribute("data-theme") as
-        | "light"
-        | "dark") || "light";
+        "light" | "dark") || "light";
     setTheme(activeTheme);
   }, []);
 
@@ -178,8 +177,18 @@ export default function StoreDetailPage({ params }: PageProps) {
 
   if (store === undefined || dbProducts === undefined) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", background: "var(--background)" }}>
-        <p style={{ color: "var(--color-olive-gray)", fontWeight: 600 }}>Loading brand storefront...</p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "80vh",
+          background: "var(--background)",
+        }}
+      >
+        <p style={{ color: "var(--color-olive-gray)", fontWeight: 600 }}>
+          Loading brand storefront...
+        </p>
       </div>
     );
   }
@@ -200,8 +209,11 @@ export default function StoreDetailPage({ params }: PageProps) {
     (product) =>
       product.title.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
       (product.description &&
-        product.description.toLowerCase().includes(searchQuery.toLowerCase().trim())) ||
-      (product.tag && product.tag.toLowerCase().includes(searchQuery.toLowerCase().trim())),
+        product.description
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase().trim())) ||
+      (product.tag &&
+        product.tag.toLowerCase().includes(searchQuery.toLowerCase().trim())),
   );
 
   // Get unique categories list from raw store catalog products
@@ -266,11 +278,18 @@ export default function StoreDetailPage({ params }: PageProps) {
               <span className={styles.categoryTag}>{store.category}</span>
             </div>
 
-            <div className={styles.storeNameGroup} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              className={styles.storeNameGroup}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
               <h1 className={styles.storeTitleName}>{store.name}</h1>
-              {(store.verified || store.verificationStatus === "verified") && (
+              {store.verified && (
                 <span
-                  style={{ color: "var(--color-palm)", display: "inline-flex", alignItems: "center" }}
+                  style={{
+                    color: "var(--color-palm)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
                   title="Verified Store"
                 >
                   <VerifiedIcon />
