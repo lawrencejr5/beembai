@@ -13,10 +13,40 @@ import {
 } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
+import Navbar from "@/app/components/Navbar";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 // SVG Components
+const SpinnerIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ animation: "spin 1s linear infinite", marginRight: "0.4rem" }}
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+      style={{ opacity: 0.25 }}
+    />
+    <path
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    />
+    <style>{`
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </svg>
+);
+
 const CartIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -121,6 +151,8 @@ interface ProductPageProps {
 export default function ProductPage({ params }: ProductPageProps) {
   const router = useRouter();
   const { cart, addToCart, updateQuantity } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
+  const [updatingAction, setUpdatingAction] = useState<"increase" | "decrease" | null>(null);
   // Unwrap params if promise
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const productId = resolvedParams?.id;
@@ -385,7 +417,9 @@ export default function ProductPage({ params }: ProductPageProps) {
   };
 
   return (
-    <main className={styles.productPage}>
+    <div style={{ paddingTop: "110px" }}>
+      <Navbar />
+      <main className={styles.productPage}>
       {/* Top Back Navigation Bar */}
       <div className={styles.topBackHeader}>
         <button
@@ -581,23 +615,41 @@ export default function ProductPage({ params }: ProductPageProps) {
               {cartQty === 0 ? (
                 <button
                   type="button"
-                  onClick={() => addToCart(product, 1, activeColor)}
+                  onClick={async () => {
+                    setIsAdding(true);
+                    try {
+                      await addToCart(product, 1, activeColor);
+                    } catch (err) {
+                      console.error(err);
+                    } finally {
+                      setIsAdding(false);
+                    }
+                  }}
+                  disabled={isAdding}
                   className={styles.addToCartMainBtn}
                 >
-                  <CartIcon />
-                  <span>Add to Cart</span>
+                  {isAdding ? <SpinnerIcon /> : <CartIcon />}
+                  <span>{isAdding ? "Adding..." : "Add to Cart"}</span>
                 </button>
               ) : (
                 <div className={styles.inCartQuantityPill}>
                   <button
                     type="button"
-                    onClick={() =>
-                      updateQuantity(product.id, cartQty - 1, activeColor)
-                    }
+                    onClick={async () => {
+                      setUpdatingAction("decrease");
+                      try {
+                        await updateQuantity(product.id, cartQty - 1, activeColor);
+                      } catch (err) {
+                        console.error(err);
+                      } finally {
+                        setUpdatingAction(null);
+                      }
+                    }}
+                    disabled={updatingAction !== null}
                     className={styles.pillQtyBtn}
                     aria-label="Decrease quantity in cart"
                   >
-                    -
+                    {updatingAction === "decrease" ? <SpinnerIcon /> : "-"}
                   </button>
                   <span className={styles.pillQtyValue}>
                     <span>{cartQty}</span>
@@ -613,14 +665,21 @@ export default function ProductPage({ params }: ProductPageProps) {
                   </span>
                   <button
                     type="button"
-                    onClick={() =>
-                      updateQuantity(product.id, cartQty + 1, activeColor)
-                    }
-                    disabled={cartQty >= maxStock}
+                    onClick={async () => {
+                      setUpdatingAction("increase");
+                      try {
+                        await updateQuantity(product.id, cartQty + 1, activeColor);
+                      } catch (err) {
+                        console.error(err);
+                      } finally {
+                        setUpdatingAction(null);
+                      }
+                    }}
+                    disabled={updatingAction !== null || cartQty >= maxStock}
                     className={styles.pillQtyBtn}
                     aria-label="Increase quantity in cart"
                   >
-                    +
+                    {updatingAction === "increase" ? <SpinnerIcon /> : "+"}
                   </button>
                 </div>
               )}
@@ -1063,5 +1122,6 @@ export default function ProductPage({ params }: ProductPageProps) {
         </div>
       )}
     </main>
+    </div>
   );
 }

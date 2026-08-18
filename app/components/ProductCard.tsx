@@ -83,6 +83,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     : 0;
 
   const [isAdding, setIsAdding] = useState(false);
+  const [updatingAction, setUpdatingAction] = useState<"increase" | "decrease" | null>(null);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -97,33 +98,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleDecrease = (e: React.MouseEvent) => {
+  const handleDecrease = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (cartItems.length > 0) {
       const targetItem = cartItems[0];
-      updateQuantity(
-        product.id,
-        targetItem.quantity - 1,
-        targetItem.selectedColor,
-      );
+      setUpdatingAction("decrease");
+      try {
+        await updateQuantity(
+          product.id,
+          targetItem.quantity - 1,
+          targetItem.selectedColor,
+        );
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setUpdatingAction(null);
+      }
     }
   };
 
-  const handleIncrease = (e: React.MouseEvent) => {
+  const handleIncrease = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (totalQtyInCart >= maxStock) return;
 
-    if (cartItems.length > 0) {
-      const targetItem = cartItems[0];
-      updateQuantity(
-        product.id,
-        targetItem.quantity + 1,
-        targetItem.selectedColor,
-      );
-    } else {
-      addToCart(product, 1);
+    setUpdatingAction("increase");
+    try {
+      if (cartItems.length > 0) {
+        const targetItem = cartItems[0];
+        await updateQuantity(
+          product.id,
+          targetItem.quantity + 1,
+          targetItem.selectedColor,
+        );
+      } else {
+        await addToCart(product, 1);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingAction(null);
     }
   };
 
@@ -184,20 +199,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <button
                 type="button"
                 onClick={handleDecrease}
+                disabled={updatingAction !== null}
                 className={styles.cardQtyBtn}
                 aria-label={`Decrease ${product.title} quantity`}
               >
-                -
+                {updatingAction === "decrease" ? <SpinnerIcon /> : "-"}
               </button>
               <span className={styles.cardQtyValue}>{totalQtyInCart}</span>
               <button
                 type="button"
                 onClick={handleIncrease}
-                disabled={totalQtyInCart >= maxStock}
+                disabled={updatingAction !== null || totalQtyInCart >= maxStock}
                 className={styles.cardQtyBtn}
                 aria-label={`Increase ${product.title} quantity`}
               >
-                +
+                {updatingAction === "increase" ? <SpinnerIcon /> : "+"}
               </button>
             </div>
           )}

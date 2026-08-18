@@ -254,3 +254,32 @@ export const updateProduct = mutation({
     return args.productId;
   },
 });
+
+// Fetch a single category by its slug
+export const getCategoryBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("categories")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+  },
+});
+
+// Fetch all approved products for a specific category slug
+export const getProductsByCategorySlug = query({
+  args: { categorySlug: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("products")
+      .withIndex("by_categorySlug", (q) => q.eq("categorySlug", args.categorySlug))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "approved"),
+          q.eq(q.field("status"), undefined)
+        )
+      )
+      .collect();
+  },
+});
+

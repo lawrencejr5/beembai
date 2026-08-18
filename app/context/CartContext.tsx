@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useMemo,
+  useCallback,
 } from "react";
 import { Product, getProductById, PRODUCTS_DATA } from "@/app/data/data";
 import { useQuery, useMutation } from "convex/react";
@@ -24,12 +25,12 @@ export interface CartContextType {
     quantity?: number,
     selectedColor?: string,
   ) => Promise<any> | void;
-  removeFromCart: (productId: string, selectedColor?: string) => void;
+  removeFromCart: (productId: string, selectedColor?: string) => Promise<any> | void;
   updateQuantity: (
     productId: string,
     quantity: number,
     selectedColor?: string,
-  ) => void;
+  ) => Promise<any> | void;
   clearCart: () => void;
   totalItemsCount: number;
   subtotalPrice: number;
@@ -87,6 +88,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     return map;
   }, [dbProducts]);
 
+  const getConvexProductId = useCallback((productId: string) => {
+    return dummyIdToConvexIdMap.get(productId) || (productId && productId.length > 5 ? productId : null);
+  }, [dummyIdToConvexIdMap]);
+
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [cartBounce, setCartBounce] = useState(false);
@@ -136,7 +142,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           if (Array.isArray(parsed) && parsed.length > 0) {
             const itemsToMerge = parsed
               .map((item: CartItem) => {
-                const convexProductId = dummyIdToConvexIdMap.get(item.product.id);
+                const convexProductId = getConvexProductId(item.product.id);
                 if (!convexProductId) return null;
                 return {
                   productId: convexProductId as any,
@@ -168,7 +174,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         setCart([]);
       }
     }
-  }, [user, mergeDbCart, dbProducts, dummyIdToConvexIdMap]);
+  }, [user, mergeDbCart, dbProducts, getConvexProductId]);
 
   // Map database cart items to frontend CartItem structures
   const mappedDbCart = useMemo(() => {
@@ -176,7 +182,34 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     return dbCartItems
       .map((item): CartItem | null => {
         const dummyId = convexIdToDummyIdMap.get(item.productId);
-        const product = getProductById(dummyId || item.productId);
+        let product = getProductById(dummyId || item.productId);
+        
+        // If not found in mock data, resolve from loaded database products
+        if (!product) {
+          const dbProd = dbProducts.find((p) => p._id === item.productId);
+          if (dbProd) {
+            product = {
+              id: dbProd._id,
+              title: dbProd.title,
+              price: dbProd.price,
+              originalPrice: dbProd.originalPrice,
+              image: dbProd.image,
+              categorySlug: dbProd.categorySlug,
+              categoryName: dbProd.categoryName,
+              colors: dbProd.colors,
+              description: dbProd.description,
+              tag: dbProd.tag,
+              stock: dbProd.stock,
+              storeId: dbProd.storeId,
+              images: dbProd.images,
+              youtubeLink: dbProd.youtubeLink,
+              status: dbProd.status,
+              brand: dbProd.brand,
+              condition: dbProd.condition || "New",
+            } as any;
+          }
+        }
+
         if (!product) return null;
         return {
           product,
@@ -254,7 +287,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (user) {
       selectedItems.forEach((item) => {
-        const convexProductId = dummyIdToConvexIdMap.get(item.product.id);
+        const convexProductId = getConvexProductId(item.product.id);
         if (convexProductId) {
           void removeDbCart({ productId: convexProductId as any, selectedColor: item.selectedColor });
         }
@@ -303,7 +336,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     triggerBounce();
 
     if (user) {
-      const convexProductId = dummyIdToConvexIdMap.get(product.id);
+      const convexProductId = getConvexProductId(product.id);
       if (convexProductId) {
         return addDbCart({
           productId: convexProductId as any,
@@ -344,10 +377,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const removeFromCart = (productId: string, selectedColor?: string) => {
     if (user) {
-      const convexProductId = dummyIdToConvexIdMap.get(productId);
+      const convexProductId = getConvexProductId(productId);
       if (convexProductId) {
-        void removeDbCart({ productId: convexProductId as any, selectedColor });
+        return removeDbCart({ productId: convexProductId as any, selectedColor });
       }
+      return Promise.resolve();
     } else {
       setCart((prevCart) =>
         prevCart.filter(
@@ -358,6 +392,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
             ),
         ),
       );
+      return Promise.resolve();
     }
   };
 
@@ -367,15 +402,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     selectedColor?: string,
   ) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId, selectedColor);
-      return;
+      return removeFromCart(productId, selectedColor);
     }
 
     if (user) {
-      const convexProductId = dummyIdToConvexIdMap.get(productId);
+      const convexProductId = getConvexProductId(productId);
       if (convexProductId) {
-        void updateDbQty({ productId: convexProductId as any, selectedColor, quantity: newQuantity });
+        return updateDbQty({ productId: convexProductId as any, selectedColor, quantity: newQuantity });
       }
+      return Promise.resolve();
     } else {
       setCart((prevCart) => {
         const targetItem = prevCart.find(
@@ -398,6 +433,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           return item;
         });
       });
+      return Promise.resolve();
     }
   };
 

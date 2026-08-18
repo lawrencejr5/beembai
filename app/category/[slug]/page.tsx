@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useMemo, use } from "react";
+import React, { useState, useMemo, use, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import styles from "./category.module.css";
 import {
-  getCategoryBySlug,
-  getProductsByCategory,
   Product,
   formatPrice,
   formatNumber,
 } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 import ProductCard from "@/app/components/ProductCard";
+import Navbar from "@/app/components/Navbar";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // SVG Components
 const SearchIcon = () => (
@@ -112,11 +113,41 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const slug = resolvedParams?.slug;
 
-  const category = getCategoryBySlug(slug);
-  const rawProducts = useMemo(
-    () => (category ? getProductsByCategory(category.slug) : []),
-    [category],
+  // 1. Fetch category from database
+  const category = useQuery(
+    api.products.getCategoryBySlug,
+    slug ? { slug } : "skip"
   );
+
+  // 2. Fetch products for this category from database
+  const dbProducts = useQuery(
+    api.products.getProductsByCategorySlug,
+    slug ? { categorySlug: slug } : "skip"
+  );
+
+  // Map database products to the frontend Product structure
+  const rawProducts: any[] = useMemo(() => {
+    if (!dbProducts) return [];
+    return dbProducts.map((p) => ({
+      id: p._id,
+      title: p.title,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      image: p.image,
+      categorySlug: p.categorySlug,
+      categoryName: p.categoryName,
+      colors: p.colors,
+      description: p.description,
+      tag: p.tag,
+      stock: p.stock,
+      storeId: p.storeId,
+      images: p.images,
+      youtubeLink: p.youtubeLink,
+      status: p.status,
+      brand: p.brand,
+      condition: p.condition || "New",
+    }));
+  }, [dbProducts]);
 
   // Extract min and max prices from category products
   const categoryPrices = useMemo(() => {
@@ -141,7 +172,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     const colorsSet = new Set<string>();
     rawProducts.forEach((p) => {
       if (p.colors && Array.isArray(p.colors)) {
-        p.colors.forEach((c) => colorsSet.add(c));
+        p.colors.forEach((c: string) => colorsSet.add(c));
       }
     });
     return Array.from(colorsSet).sort();
@@ -192,6 +223,13 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     setSelectedColors([]);
     setDiscountedOnly(false);
   };
+
+  // Synchronize max price filter when database products load
+  useEffect(() => {
+    if (categoryPrices.max > 0) {
+      setMaxPriceFilter(categoryPrices.max);
+    }
+  }, [categoryPrices.max]);
 
   const handleBrandToggle = (brand: string) => {
     setSelectedBrands((prev) =>
@@ -249,7 +287,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
       if (selectedColors.length > 0) {
         if (
           !product.colors ||
-          !product.colors.some((c) => selectedColors.includes(c))
+          !product.colors.some((c: string) => selectedColors.includes(c))
         )
           return false;
       }
@@ -272,7 +310,18 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     discountedOnly,
   ]);
 
-  if (!category) {
+  // Loading state
+  const isLoading = category === undefined || dbProducts === undefined;
+
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", background: "var(--background)" }}>
+        <p style={{ color: "var(--color-olive-gray)", fontWeight: 600 }}>Loading category storefront...</p>
+      </div>
+    );
+  }
+
+  if (category === null) {
     return notFound();
   }
 
@@ -384,8 +433,10 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   );
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "var(--background)" }}>
-      {/* Category Banner with Category Image Background & Bold Title */}
+    <div style={{ paddingTop: "110px" }}>
+      <Navbar />
+      <main style={{ minHeight: "100vh", backgroundColor: "var(--background)" }}>
+        {/* Category Banner with Category Image Background & Bold Title */}
       <section
         className={styles.categoryBanner}
         style={{ backgroundImage: `url('${category.bannerImage}')` }}
@@ -563,5 +614,6 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         </div>
       )}
     </main>
+    </div>
   );
 }
