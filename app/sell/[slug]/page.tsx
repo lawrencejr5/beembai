@@ -1050,7 +1050,7 @@ function ApprovedDashboard({
   const updateStoreBanner = useMutation(api.store.updateStoreBanner);
   const updateStoreDetails = useMutation(api.store.updateStoreDetails);
 
-  const storeProducts = useQuery(api.store.getProductsByStore, {
+  const storeProducts = useQuery(api.store.getProductsByStoreForOwner, {
     storeId: store._id,
   });
 

@@ -54,9 +54,29 @@ export const getProductsByStore = query({
       .filter((q) =>
         q.or(
           q.eq(q.field("status"), "approved"),
-          q.eq(q.field("status"), undefined)
-        )
+          q.eq(q.field("status"), undefined),
+        ),
       )
+      .collect();
+  },
+});
+
+// Get all products belonging to a specific store for the owner (including pending ones)
+export const getProductsByStoreForOwner = query({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("products")
+      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
+      .order("desc")
       .collect();
   },
 });
@@ -87,8 +107,6 @@ export const getStoreById = query({
     return store;
   },
 });
-
-
 
 // Helper slug generator
 function generateSlug(name: string): string {
@@ -311,7 +329,7 @@ export const updateStoreDetails = mutation({
     let newSlug = store.slug;
     if (args.slug !== undefined && args.slug !== store.slug) {
       newSlug = generateSlug(args.slug);
-      
+
       // Ensure slug is unique
       let slugExists = await ctx.db
         .query("stores")
@@ -323,7 +341,7 @@ export const updateStoreDetails = mutation({
       }
     } else if (store.name !== args.name) {
       newSlug = generateSlug(args.name);
-      
+
       // Ensure slug is unique
       let slugExists = await ctx.db
         .query("stores")
@@ -349,7 +367,6 @@ export const updateStoreDetails = mutation({
     return { storeId: args.storeId, slug: newSlug };
   },
 });
-
 
 // Mutation to save the generated OTP
 export const saveOTP = mutation({
@@ -439,7 +456,7 @@ export const sendEmailOTP = action({
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -492,4 +509,3 @@ export const submitStoreVerification = mutation({
     return args.storeId;
   },
 });
-
