@@ -307,8 +307,24 @@ export const updateStoreDetails = mutation({
       throw new Error("Unauthorized or Store not found");
     }
 
+    let newSlug = store.slug;
+    if (store.name !== args.name) {
+      newSlug = generateSlug(args.name);
+      
+      // Ensure slug is unique
+      let slugExists = await ctx.db
+        .query("stores")
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
+        .first();
+
+      if (slugExists && slugExists._id !== args.storeId) {
+        newSlug = `${newSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+    }
+
     await ctx.db.patch(args.storeId, {
       name: args.name,
+      slug: newSlug,
       category: args.category,
       description: args.description,
       physicalAddress: args.physicalAddress,
@@ -317,7 +333,7 @@ export const updateStoreDetails = mutation({
       country: args.country,
     });
 
-    return args.storeId;
+    return { storeId: args.storeId, slug: newSlug };
   },
 });
 

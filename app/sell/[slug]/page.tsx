@@ -1123,7 +1123,7 @@ function ApprovedDashboard({
     setIsSubmittingDetails(true);
     setDetailsError("");
     try {
-      await updateStoreDetails({
+      const result = await updateStoreDetails({
         storeId: store._id,
         name: editName,
         category: editCategory,
@@ -1134,6 +1134,9 @@ function ApprovedDashboard({
         country: editCountry,
       });
       setShowEditDetailsModal(false);
+      if (result && result.slug !== store.slug) {
+        router.push(`/sell/${result.slug}`);
+      }
     } catch (err: any) {
       setDetailsError(
         err.message || "An error occurred while updating store details.",
@@ -1271,12 +1274,24 @@ function ApprovedDashboard({
                 </span>
               )}
             </h1>
-            <div className={styles.dashRatingRow}>
+            <div className={styles.dashRatingRow} style={{ flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
               <span className={styles.dashStarIcon}>
                 <StarIcon />
               </span>
               <span className={styles.dashRatingValue}>
                 {store.rating.toFixed(1)} / 5.0 rating
+              </span>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span style={{ fontSize: "0.85rem", color: "var(--color-olive-gray)" }}>
+                Slug:{" "}
+                <Link
+                  href={`/stores/${store.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--color-palm)", textDecoration: "underline", fontWeight: 700 }}
+                >
+                  {store.slug} ↗
+                </Link>
               </span>
             </div>
             <div
