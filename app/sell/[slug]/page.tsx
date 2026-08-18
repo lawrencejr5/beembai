@@ -143,6 +143,14 @@ const getStoreInitials = (name: string): string => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
+const slugify = (text: string): string => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+};
+
 // ─── Add Product Modal ────────────────────────────────────────────────────────
 
 function AddProductModal({
@@ -1037,6 +1045,17 @@ function ApprovedDashboard({
     storeId: store._id,
   });
 
+  const checkedSlugStore = useQuery(
+    api.store.getStoreBySlug,
+    editSlug ? { slug: editSlug } : "skip"
+  );
+
+  useEffect(() => {
+    if (checkedSlugStore && checkedSlugStore._id !== store._id) {
+      setEditSlug((prev) => `${prev}-${Math.floor(1000 + Math.random() * 9000)}`);
+    }
+  }, [checkedSlugStore, store._id]);
+
   // Sync form states when store changes (e.g., store navigation)
   useEffect(() => {
     setEditName(store.name);
@@ -1662,7 +1681,11 @@ function ApprovedDashboard({
                     type="text"
                     required
                     value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditName(val);
+                      setEditSlug(slugify(val));
+                    }}
                   />
                 </div>
                 <div className={styles.modalFormGroup}>
@@ -1672,7 +1695,7 @@ function ApprovedDashboard({
                     type="text"
                     required
                     value={editSlug}
-                    onChange={(e) => setEditSlug(e.target.value)}
+                    onChange={(e) => setEditSlug(slugify(e.target.value))}
                   />
                 </div>
               </div>
