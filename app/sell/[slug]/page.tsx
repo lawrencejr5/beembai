@@ -1026,6 +1026,13 @@ function ApprovedDashboard({
   const [editCountry, setEditCountry] = useState(store.country || "");
   const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState("");
+  const [domainPrefix, setDomainPrefix] = useState("beembai.lawjun.ng");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setDomainPrefix(window.location.host);
+    }
+  }, []);
 
   // File upload states
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -1690,13 +1697,19 @@ function ApprovedDashboard({
                 </div>
                 <div className={styles.modalFormGroup}>
                   <label className={styles.modalFormLabel}>Store Link Slug *</label>
-                  <input
-                    className={styles.modalInput}
-                    type="text"
-                    required
-                    value={editSlug}
-                    onChange={(e) => setEditSlug(slugify(e.target.value))}
-                  />
+                  <div style={{ display: "flex", alignItems: "stretch", border: "1px solid var(--color-border)", borderRadius: 6, overflow: "hidden", background: "var(--color-bg-alt)" }}>
+                    <span style={{ padding: "0 0.75rem", fontSize: "0.85rem", color: "var(--color-olive-gray)", userSelect: "none", borderRight: "1px solid var(--color-border)", whiteSpace: "nowrap", display: "flex", alignItems: "center", backgroundColor: "var(--color-sand)" }}>
+                      {domainPrefix}/stores/
+                    </span>
+                    <input
+                      className={styles.modalInput}
+                      style={{ border: "none", borderRadius: 0, flex: 1, margin: 0 }}
+                      type="text"
+                      required
+                      value={editSlug}
+                      onChange={(e) => setEditSlug(slugify(e.target.value))}
+                    />
+                  </div>
                 </div>
               </div>
 
