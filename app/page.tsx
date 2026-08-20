@@ -384,6 +384,62 @@ export default function Home() {
   const featuredRowRef = useRef<HTMLDivElement>(null);
   const categoryRowRef = useRef<HTMLDivElement>(null);
 
+  const dbProducts = useQuery(api.products.getProducts);
+
+  // Helper mapper to normalize db product details
+  const mapDbProduct = (p: any) => ({
+    id: p._id,
+    title: p.title,
+    price: p.price,
+    originalPrice: p.originalPrice,
+    image: p.image,
+    categorySlug: p.categorySlug,
+    categoryName: p.categoryName,
+    colors: p.colors,
+    description: p.description,
+    tag: p.tag,
+    stock: p.stock,
+    storeId: p.storeId,
+    images: p.images,
+    youtubeLink: p.youtubeLink,
+    status: p.status,
+    brand: p.brand,
+    condition: p.condition || "New",
+  });
+
+  const advertSlides = useMemo(() => {
+    if (!dbProducts) return [];
+    const sponsored = dbProducts.filter((p) => p.isSponsored);
+    if (sponsored.length === 0) return [];
+    
+    return sponsored.map((product, index) => {
+      const gradients = [
+        "linear-gradient(135deg, #241c0e 0%, #3d2f16 50%, #140f07 100%)",
+        "linear-gradient(135deg, #160f26 0%, #2b1747 50%, #0c0716 100%)",
+        "linear-gradient(135deg, #0e192b 0%, #1a2f4c 50%, #080f1a 100%)",
+        "linear-gradient(135deg, #1c1813 0%, #332a1e 50%, #110e0a 100%)",
+      ];
+      return {
+        id: product._id,
+        type: "product" as const,
+        tag: "Sponsored",
+        title: product.title,
+        subtitle: product.description || "",
+        image: product.image,
+        imageAlt: `${product.title} Showcase`,
+        ctaText: `Shop ${product.brand || ""}`,
+        ctaLink: `/product/${product._id}`,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        bgGradient: gradients[index % gradients.length],
+        isLightSlide: false,
+        isTransparentImage: false,
+      };
+    });
+  }, [dbProducts]);
+
+  const activeSlides = advertSlides.length > 0 ? advertSlides : ADVERT_SLIDES;
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("beembai_recent_searches");
@@ -491,36 +547,44 @@ export default function Home() {
 
   // Auto-advance advert slides every 15 seconds
   React.useEffect(() => {
-    if (!isAutoPlaying) return;
+    if (!isAutoPlaying || activeSlides.length === 0) return;
     const interval = setInterval(() => {
-      setCurrentSlideIndex((prev) => (prev + 1) % ADVERT_SLIDES.length);
+      setCurrentSlideIndex((prev) => (prev + 1) % activeSlides.length);
     }, 15000);
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, activeSlides.length]);
 
   const handlePrevSlide = () => {
+    if (activeSlides.length === 0) return;
     setCurrentSlideIndex(
-      (prev) => (prev - 1 + ADVERT_SLIDES.length) % ADVERT_SLIDES.length,
+      (prev) => (prev - 1 + activeSlides.length) % activeSlides.length,
     );
   };
 
   const handleNextSlide = () => {
-    setCurrentSlideIndex((prev) => (prev + 1) % ADVERT_SLIDES.length);
+    if (activeSlides.length === 0) return;
+    setCurrentSlideIndex((prev) => (prev + 1) % activeSlides.length);
   };
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
-  // Featured products (horizontal line fetched from app/data/products.tsx)
-  const featuredProducts = useMemo(() => {
-    return getFeaturedProducts();
-  }, []);
 
-  // New arrivals (fetched from app/data/products.tsx)
+
+  // Featured products (horizontal line fetched from database with mock fallback)
+  const featuredProducts = useMemo(() => {
+    if (!dbProducts) return getFeaturedProducts();
+    const dbFeatured = dbProducts.filter((p) => p.isFeatured).map(mapDbProduct);
+    return dbFeatured.length > 0 ? dbFeatured : getFeaturedProducts();
+  }, [dbProducts]);
+
+  // New arrivals (fetched from database with mock fallback)
   const newArrivalsProducts = useMemo(() => {
-    return getNewArrivalsProducts();
-  }, []);
+    if (!dbProducts) return getNewArrivalsProducts();
+    const dbNew = dbProducts.filter((p) => p.isNewArrival).map(mapDbProduct);
+    return dbNew.length > 0 ? dbNew : getNewArrivalsProducts();
+  }, [dbProducts]);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product, 1);
@@ -754,7 +818,7 @@ export default function Home() {
         onMouseLeave={() => setIsAutoPlaying(true)}
       >
         <div className={styles.advertTrack}>
-          {ADVERT_SLIDES.map((slide, index) => (
+          {activeSlides.map((slide, index) => (
             <Link
               href={slide.ctaLink}
               key={slide.id}
@@ -814,7 +878,7 @@ export default function Home() {
         {/* Banner Bottom Controls: Dots + Flex-End Next/Prev Navigation */}
         <div className={styles.bannerBottomRow}>
           <div className={styles.carouselDots}>
-            {ADVERT_SLIDES.map((slide, index) => (
+            {activeSlides.map((slide, index) => (
               <button
                 key={slide.id}
                 type="button"

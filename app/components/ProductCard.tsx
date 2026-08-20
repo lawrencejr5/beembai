@@ -69,7 +69,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { cart, addToCart, updateQuantity } = useCart();
 
-  const cartItems = cart.filter((item) => item.product.id === product.id);
+  const productId = product.id || (product as any)._id;
+
+  const cartItems = cart.filter((item) => item.product.id === productId);
   const totalQtyInCart = cartItems.reduce(
     (total, item) => total + item.quantity,
     0,
@@ -106,7 +108,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       setUpdatingAction("decrease");
       try {
         await updateQuantity(
-          product.id,
+          productId,
           targetItem.quantity - 1,
           targetItem.selectedColor,
         );
@@ -128,7 +130,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       if (cartItems.length > 0) {
         const targetItem = cartItems[0];
         await updateQuantity(
-          product.id,
+          productId,
           targetItem.quantity + 1,
           targetItem.selectedColor,
         );
@@ -144,7 +146,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <Link
-      href={`/product/${product.id}`}
+      href={`/product/${productId}`}
       className={styles.productCard}
       style={cardStyle}
     >
