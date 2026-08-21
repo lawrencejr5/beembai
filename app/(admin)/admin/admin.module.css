@@ -345,66 +345,77 @@
   background: var(--admin-card-bg);
   border: 1px solid var(--admin-card-border);
   border-radius: var(--admin-radius);
-  padding: 20px;
+  padding: 24px;
   box-shadow: var(--admin-shadow);
   position: relative;
   overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.2s ease, 
+              background-color 0.2s ease;
 }
 
 .statCard:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--admin-shadow-md);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(40, 38, 0, 0.08), 
+              0 8px 16px -6px rgba(40, 38, 0, 0.05);
 }
 
-.statCard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: var(--admin-radius) var(--admin-radius) 0 0;
-}
+/* Accent borders and subtle backgrounds on hover */
+.statCard.green:hover { border-color: #636d21; background: linear-gradient(135deg, #ffffff 0%, rgba(99, 109, 33, 0.02) 100%); }
+.statCard.amber:hover { border-color: #c99320; background: linear-gradient(135deg, #ffffff 0%, rgba(201, 147, 32, 0.02) 100%); }
+.statCard.red:hover { border-color: #a63e26; background: linear-gradient(135deg, #ffffff 0%, rgba(166, 62, 38, 0.02) 100%); }
+.statCard.blue:hover { border-color: #2563eb; background: linear-gradient(135deg, #ffffff 0%, rgba(37, 99, 235, 0.02) 100%); }
+.statCard.purple:hover { border-color: #7c3aed; background: linear-gradient(135deg, #ffffff 0%, rgba(124, 58, 237, 0.02) 100%); }
 
-.statCard.green::before { background: linear-gradient(90deg, #3e5c1e, #636d21); }
-.statCard.amber::before { background: linear-gradient(90deg, #c99320, #e8ad2e); }
-.statCard.red::before { background: linear-gradient(90deg, #a63e26, #d65b40); }
-.statCard.blue::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.statCard.purple::before { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
-
-.statCardIcon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+.statCardContent {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-  font-size: 18px;
+  flex-direction: column;
 }
-
-.statCardIcon.green { background: var(--admin-success-light); }
-.statCardIcon.amber { background: var(--admin-warning-light); }
-.statCardIcon.red { background: var(--admin-danger-light); }
-.statCardIcon.blue { background: rgba(37, 99, 235, 0.08); }
-.statCardIcon.purple { background: rgba(124, 58, 237, 0.08); }
 
 .statCardValue {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 800;
   color: #1a1900;
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -1px;
 }
 
 .statCardLabel {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: #6b6540;
-  margin-top: 6px;
-  letter-spacing: 0.2px;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
+
+.statCardIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+}
+
+.statCard:hover .statCardIcon {
+  transform: scale(1.1);
+}
+
+.statCardIcon.green { background: rgba(99, 109, 33, 0.08); color: #636d21; border: 1px solid rgba(99, 109, 33, 0.15); }
+.statCardIcon.amber { background: rgba(201, 147, 32, 0.08); color: #c99320; border: 1px solid rgba(201, 147, 32, 0.15); }
+.statCardIcon.red { background: rgba(166, 62, 38, 0.08); color: #a63e26; border: 1px solid rgba(166, 62, 38, 0.15); }
+.statCardIcon.blue { background: rgba(37, 99, 235, 0.08); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.15); }
+.statCardIcon.purple { background: rgba(124, 58, 237, 0.08); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.15); }
 
 /* ── Admin Card ─────────────────────────────────────── */
 .adminCard {

@@ -28,9 +28,11 @@ function StatCard({
 }) {
   const card = (
     <div className={`${styles.statCard} ${styles[color]}`}>
+      <div className={styles.statCardContent}>
+        <div className={styles.statCardValue}>{value}</div>
+        <div className={styles.statCardLabel}>{label}</div>
+      </div>
       <div className={`${styles.statCardIcon} ${styles[color]}`}>{icon}</div>
-      <div className={styles.statCardValue}>{value}</div>
-      <div className={styles.statCardLabel}>{label}</div>
     </div>
   );
   return href ? (
