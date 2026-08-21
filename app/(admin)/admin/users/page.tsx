@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -10,6 +10,93 @@ import Link from "next/link";
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 }
+
+const UserRow = React.memo(({
+  user,
+  actionLoading,
+  handleToggleAdmin,
+  handleToggleBan,
+}: {
+  user: any;
+  actionLoading: string | null;
+  handleToggleAdmin: (userId: Id<"users">, current: boolean) => void;
+  handleToggleBan: (userId: Id<"users">, current: boolean) => void;
+}) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return "?";
+    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  return (
+    <tr style={{ opacity: user.isBanned ? 0.6 : 1 }}>
+      <td>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {user.image ? (
+            <img src={user.image} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "1px solid #e8e2d0" }} />
+          ) : (
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%",
+              background: "linear-gradient(135deg, #636d21, #3e5c1e)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 700, fontSize: 13, color: "#fff8ea", flexShrink: 0
+            }}>
+              {getInitials(user.name)}
+            </div>
+          )}
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: "#282600" }}>{user.name ?? "—"}</div>
+            <div style={{ fontSize: 12, color: "#6b6540" }}>{user.email ?? "—"}</div>
+          </div>
+        </div>
+      </td>
+      <td style={{ fontSize: 12, color: "#6b6540" }}>{formatDate(user._creationTime)}</td>
+      <td style={{ fontWeight: 600, fontSize: 13 }}>{user.orderCount}</td>
+      <td>
+        {user.hasStore ? (
+          <div>
+            <span className={`${styles.badge} ${styles[user.storeStatus ?? "approved"]}`} style={{ fontSize: 11 }}>
+              {user.storeName ?? "Seller"}
+            </span>
+          </div>
+        ) : (
+          <span className={styles.textMuted} style={{ fontSize: 12 }}>—</span>
+        )}
+      </td>
+      <td>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {user.isAdmin && <span className={`${styles.badge} ${styles.admin}`} style={{ fontSize: 10 }}>Admin</span>}
+          {user.isBanned && <span className={`${styles.badge} ${styles.rejected}`} style={{ fontSize: 10 }}>Banned</span>}
+        </div>
+      </td>
+      <td>
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={!!user.isAdmin}
+            onChange={() => handleToggleAdmin(user._id, !!user.isAdmin)}
+            disabled={actionLoading === `admin-${user._id}`}
+            id={`admin-toggle-${user._id}`}
+          />
+          <span className={styles.toggleSlider} />
+        </label>
+      </td>
+      <td>
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={!!user.isBanned}
+            onChange={() => handleToggleBan(user._id, !!user.isBanned)}
+            disabled={actionLoading === `ban-${user._id}`}
+            id={`ban-toggle-${user._id}`}
+          />
+          <span className={styles.toggleSlider} />
+        </label>
+      </td>
+    </tr>
+  );
+});
+
+UserRow.displayName = "UserRow";
 
 export default function AdminUsersPage() {
   const { results: users, status, loadMore } = usePaginatedQuery(
@@ -48,31 +135,35 @@ export default function AdminUsersPage() {
   const [filter, setFilter] = useState<"all" | "admin" | "seller" | "banned">("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const filtered = (users ?? []).filter((u) => {
-    const matchesSearch =
-      (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (u.email ?? "").toLowerCase().includes(search.toLowerCase());
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase().trim();
+    return (users ?? []).filter((u) => {
+      const matchesSearch =
+        !term ||
+        (u.name ?? "").toLowerCase().includes(term) ||
+        (u.email ?? "").toLowerCase().includes(term);
 
-    const matchesFilter =
-      filter === "all" ||
-      (filter === "admin" && u.isAdmin) ||
-      (filter === "seller" && u.hasStore) ||
-      (filter === "banned" && u.isBanned);
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "admin" && u.isAdmin) ||
+        (filter === "seller" && u.hasStore) ||
+        (filter === "banned" && u.isBanned);
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    });
+  }, [users, search, filter]);
 
-  const handleToggleAdmin = async (userId: Id<"users">, current: boolean) => {
+  const handleToggleAdmin = useCallback(async (userId: Id<"users">, current: boolean) => {
     setActionLoading(`admin-${userId}`);
     await setAdminRole({ userId, isAdmin: !current });
     setActionLoading(null);
-  };
+  }, [setAdminRole]);
 
-  const handleToggleBan = async (userId: Id<"users">, current: boolean) => {
+  const handleToggleBan = useCallback(async (userId: Id<"users">, current: boolean) => {
     setActionLoading(`ban-${userId}`);
     await setBanned({ userId, isBanned: !current });
     setActionLoading(null);
-  };
+  }, [setBanned]);
 
   const getInitials = (name?: string | null) => {
     if (!name) return "?";
@@ -163,71 +254,13 @@ export default function AdminUsersPage() {
               </thead>
               <tbody>
                 {filtered.map((user) => (
-                  <tr key={user._id} style={{ opacity: user.isBanned ? 0.6 : 1 }}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        {user.image ? (
-                          <img src={user.image} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "1px solid #e8e2d0" }} />
-                        ) : (
-                          <div style={{
-                            width: 36, height: 36, borderRadius: "50%",
-                            background: "linear-gradient(135deg, #636d21, #3e5c1e)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontWeight: 700, fontSize: 13, color: "#fff8ea", flexShrink: 0
-                          }}>
-                            {getInitials(user.name)}
-                          </div>
-                        )}
-                        <div>
-                          <div style={{ fontSize: 13.5, fontWeight: 600, color: "#282600" }}>{user.name ?? "—"}</div>
-                          <div style={{ fontSize: 12, color: "#6b6540" }}>{user.email ?? "—"}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ fontSize: 12, color: "#6b6540" }}>{formatDate(user._creationTime)}</td>
-                    <td style={{ fontWeight: 600, fontSize: 13 }}>{user.orderCount}</td>
-                    <td>
-                      {user.hasStore ? (
-                        <div>
-                          <span className={`${styles.badge} ${styles[user.storeStatus ?? "approved"]}`} style={{ fontSize: 11 }}>
-                            {user.storeName ?? "Seller"}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className={styles.textMuted} style={{ fontSize: 12 }}>—</span>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {user.isAdmin && <span className={`${styles.badge} ${styles.admin}`} style={{ fontSize: 10 }}>Admin</span>}
-                        {user.isBanned && <span className={`${styles.badge} ${styles.rejected}`} style={{ fontSize: 10 }}>Banned</span>}
-                      </div>
-                    </td>
-                    <td>
-                      <label className={styles.toggle}>
-                        <input
-                          type="checkbox"
-                          checked={!!user.isAdmin}
-                          onChange={() => handleToggleAdmin(user._id, !!user.isAdmin)}
-                          disabled={actionLoading === `admin-${user._id}`}
-                          id={`admin-toggle-${user._id}`}
-                        />
-                        <span className={styles.toggleSlider} />
-                      </label>
-                    </td>
-                    <td>
-                      <label className={styles.toggle}>
-                        <input
-                          type="checkbox"
-                          checked={!!user.isBanned}
-                          onChange={() => handleToggleBan(user._id, !!user.isBanned)}
-                          disabled={actionLoading === `ban-${user._id}`}
-                          id={`ban-toggle-${user._id}`}
-                        />
-                        <span className={styles.toggleSlider} />
-                      </label>
-                    </td>
-                  </tr>
+                  <UserRow
+                    key={user._id}
+                    user={user}
+                    actionLoading={actionLoading}
+                    handleToggleAdmin={handleToggleAdmin}
+                    handleToggleBan={handleToggleBan}
+                  />
                 ))}
               </tbody>
             </table>

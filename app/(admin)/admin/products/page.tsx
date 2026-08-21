@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -54,6 +54,125 @@ function RejectModal({ productTitle, onConfirm, onClose }: {
   );
 }
 
+const ProductRow = React.memo(({
+  product,
+  actionLoading,
+  handleToggle,
+  handleApprove,
+  setRejectTarget,
+}: {
+  product: any;
+  actionLoading: string | null;
+  handleToggle: (productId: Id<"products">, field: "featured" | "sponsored", current: boolean) => void;
+  handleApprove: (productId: Id<"products">) => void;
+  setRejectTarget: (target: { id: Id<"products">; title: string }) => void;
+}) => {
+  return (
+    <tr>
+      <td>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src={product.image} alt="" className={styles.productThumb} />
+          <div>
+            <Link
+              href={`/admin/products/${product._id}`}
+              style={{
+                fontWeight: 600,
+                color: "#282600",
+                fontSize: 13,
+                display: "block",
+                maxWidth: 180,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {product.title}
+            </Link>
+            {product.brand && <div style={{ fontSize: 11, color: "#9e9970" }}>{product.brand}</div>}
+          </div>
+        </div>
+      </td>
+      <td>
+        <span className={styles.textMuted} style={{ fontSize: 13 }}>
+          {product.storeName}
+        </span>
+      </td>
+      <td>
+        <span className={styles.textMuted} style={{ fontSize: 13 }}>
+          {product.categoryName}
+        </span>
+      </td>
+      <td style={{ fontWeight: 700, fontSize: 13 }}>₦{product.price.toLocaleString()}</td>
+      <td>
+        <span className={`${styles.badge} ${styles[product.status ?? "approved"]}`}>
+          {product.status ?? "active"}
+        </span>
+      </td>
+      <td>
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={!!product.isFeatured}
+            onChange={() => handleToggle(product._id, "featured", !!product.isFeatured)}
+            disabled={actionLoading === `featured-${product._id}`}
+            id={`featured-toggle-${product._id}`}
+          />
+          <span className={styles.toggleSlider} />
+        </label>
+      </td>
+      <td>
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={!!product.isSponsored}
+            onChange={() => handleToggle(product._id, "sponsored", !!product.isSponsored)}
+            disabled={actionLoading === `sponsored-${product._id}`}
+            id={`sponsored-toggle-${product._id}`}
+          />
+          <span className={styles.toggleSlider} />
+        </label>
+      </td>
+      <td>
+        <div className={styles.flexRow}>
+          <Link href={`/admin/products/${product._id}`} className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>
+            View
+          </Link>
+          {product.status === "pending" && (
+            <>
+              <button
+                className={`${styles.btn} ${styles.btnSuccess} ${styles.btnSm}`}
+                onClick={() => handleApprove(product._id)}
+                disabled={actionLoading === product._id}
+                id={`approve-product-${product._id}`}
+              >
+                {actionLoading === product._id ? "…" : "Approve"}
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
+                onClick={() => setRejectTarget({ id: product._id, title: product.title })}
+                id={`reject-product-${product._id}`}
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {product.status === "rejected" && (
+            <button
+              className={`${styles.btn} ${styles.btnSuccess} ${styles.btnSm}`}
+              onClick={() => handleApprove(product._id)}
+              disabled={actionLoading === product._id}
+            >
+              Re-approve
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+});
+
+ProductRow.displayName = "ProductRow";
+
 export default function AdminProductsPage() {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as StatusFilter) ?? "all";
@@ -97,11 +216,15 @@ export default function AdminProductsPage() {
   const setFeatured = useMutation(api.admin.setProductFeatured);
   const setSponsored = useMutation(api.admin.setProductSponsored);
 
-  const filtered = (products ?? []).filter((p) =>
-    p.title.toLowerCase().includes(search.toLowerCase()) ||
-    p.storeName.toLowerCase().includes(search.toLowerCase()) ||
-    p.categoryName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase().trim();
+    if (!term) return products ?? [];
+    return (products ?? []).filter((p) =>
+      p.title.toLowerCase().includes(term) ||
+      p.storeName.toLowerCase().includes(term) ||
+      p.categoryName.toLowerCase().includes(term)
+    );
+  }, [products, search]);
 
   const tabs = [
     { label: "All", value: "all" as StatusFilter },
@@ -110,21 +233,21 @@ export default function AdminProductsPage() {
     { label: "Rejected", value: "rejected" as StatusFilter },
   ];
 
-  const handleApprove = async (productId: Id<"products">) => {
+  const handleApprove = useCallback(async (productId: Id<"products">) => {
     setActionLoading(productId);
     await approveProduct({ productId });
     setActionLoading(null);
-  };
+  }, [approveProduct]);
 
-  const handleReject = async (reason: string) => {
+  const handleReject = useCallback(async (reason: string) => {
     if (!rejectTarget) return;
     setActionLoading(rejectTarget.id);
     await rejectProduct({ productId: rejectTarget.id, reason });
     setRejectTarget(null);
     setActionLoading(null);
-  };
+  }, [rejectTarget, rejectProduct]);
 
-  const handleToggle = async (
+  const handleToggle = useCallback(async (
     productId: Id<"products">,
     field: "featured" | "sponsored",
     current: boolean
@@ -133,7 +256,7 @@ export default function AdminProductsPage() {
     if (field === "featured") await setFeatured({ productId, isFeatured: !current });
     else await setSponsored({ productId, isSponsored: !current });
     setActionLoading(null);
-  };
+  }, [setFeatured, setSponsored]);
 
   return (
     <div className={styles.adminContent}>
@@ -231,83 +354,14 @@ export default function AdminProductsPage() {
               </thead>
               <tbody>
                 {filtered.map((product) => (
-                  <tr key={product._id}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <img src={product.image} alt="" className={styles.productThumb} />
-                        <div>
-                          <Link href={`/admin/products/${product._id}`} style={{ fontWeight: 600, color: "#282600", fontSize: 13, display: "block", maxWidth: 180, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {product.title}
-                          </Link>
-                          {product.brand && <div style={{ fontSize: 11, color: "#9e9970" }}>{product.brand}</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td><span className={styles.textMuted} style={{ fontSize: 13 }}>{product.storeName}</span></td>
-                    <td><span className={styles.textMuted} style={{ fontSize: 13 }}>{product.categoryName}</span></td>
-                    <td style={{ fontWeight: 700, fontSize: 13 }}>₦{product.price.toLocaleString()}</td>
-                    <td>
-                      <span className={`${styles.badge} ${styles[product.status ?? "approved"]}`}>
-                        {product.status ?? "active"}
-                      </span>
-                    </td>
-                    <td>
-                      <label className={styles.toggle}>
-                        <input
-                          type="checkbox"
-                          checked={!!product.isFeatured}
-                          onChange={() => handleToggle(product._id, "featured", !!product.isFeatured)}
-                          disabled={actionLoading === `featured-${product._id}`}
-                          id={`featured-toggle-${product._id}`}
-                        />
-                        <span className={styles.toggleSlider} />
-                      </label>
-                    </td>
-                    <td>
-                      <label className={styles.toggle}>
-                        <input
-                          type="checkbox"
-                          checked={!!product.isSponsored}
-                          onChange={() => handleToggle(product._id, "sponsored", !!product.isSponsored)}
-                          disabled={actionLoading === `sponsored-${product._id}`}
-                          id={`sponsored-toggle-${product._id}`}
-                        />
-                        <span className={styles.toggleSlider} />
-                      </label>
-                    </td>
-                    <td>
-                      <div className={styles.flexRow}>
-                        <Link href={`/admin/products/${product._id}`} className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>View</Link>
-                        {product.status === "pending" && (
-                          <>
-                            <button
-                              className={`${styles.btn} ${styles.btnSuccess} ${styles.btnSm}`}
-                              onClick={() => handleApprove(product._id)}
-                              disabled={actionLoading === product._id}
-                              id={`approve-product-${product._id}`}
-                            >
-                              {actionLoading === product._id ? "…" : "Approve"}
-                            </button>
-                            <button
-                              className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
-                              onClick={() => setRejectTarget({ id: product._id, title: product.title })}
-                              id={`reject-product-${product._id}`}
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        {product.status === "rejected" && (
-                          <button
-                            className={`${styles.btn} ${styles.btnSuccess} ${styles.btnSm}`}
-                            onClick={() => handleApprove(product._id)}
-                          >
-                            Re-approve
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                  <ProductRow
+                    key={product._id}
+                    product={product}
+                    actionLoading={actionLoading}
+                    handleToggle={handleToggle}
+                    handleApprove={handleApprove}
+                    setRejectTarget={setRejectTarget}
+                  />
                 ))}
               </tbody>
             </table>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import styles from "../admin.module.css";
@@ -16,6 +16,46 @@ function formatDate(ts: number) {
 
 type OrderStatus = "placed" | "processing" | "shipped" | "delivered" | "cancelled" | "all";
 type PaymentStatus = "paid" | "unpaid" | "failed" | "all";
+
+const OrderRow = React.memo(({
+  order,
+}: {
+  order: any;
+}) => {
+  return (
+    <tr>
+      <td>
+        <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#636d21" }}>
+          #{order._id.slice(-8).toUpperCase()}
+        </span>
+      </td>
+      <td>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>{order.buyerName}</div>
+        <div style={{ fontSize: 11, color: "#6b6540" }}>{order.buyerEmail}</div>
+      </td>
+      <td style={{ fontSize: 13, fontWeight: 600, color: "#282600" }}>{order.items.length}</td>
+      <td style={{ fontSize: 13, fontWeight: 700 }}>{formatCurrency(order.totalAmount)}</td>
+      <td>
+        <span className={`${styles.badge} ${styles[order.paymentStatus]}`}>
+          {order.paymentStatus}
+        </span>
+      </td>
+      <td>
+        <span className={`${styles.badge} ${styles[order.status]}`}>
+          {order.status}
+        </span>
+      </td>
+      <td style={{ fontSize: 12, color: "#6b6540" }}>{formatDate(order.createdAt)}</td>
+      <td>
+        <Link href={`/admin/orders/${order._id}`} className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>
+          View
+        </Link>
+      </td>
+    </tr>
+  );
+});
+
+OrderRow.displayName = "OrderRow";
 
 export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus>("all");
@@ -54,11 +94,15 @@ export default function AdminOrdersPage() {
     };
   }, [status, loadMore]);
 
-  const filtered = (orders ?? []).filter((o) =>
-    o._id.toLowerCase().includes(search.toLowerCase()) ||
-    o.buyerName.toLowerCase().includes(search.toLowerCase()) ||
-    o.buyerEmail.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase().trim();
+    if (!term) return orders ?? [];
+    return (orders ?? []).filter((o) =>
+      o._id.toLowerCase().includes(term) ||
+      o.buyerName.toLowerCase().includes(term) ||
+      o.buyerEmail.toLowerCase().includes(term)
+    );
+  }, [orders, search]);
 
   const statusOptions: { label: string; value: OrderStatus }[] = [
     { label: "All Statuses", value: "all" },
@@ -151,35 +195,10 @@ export default function AdminOrdersPage() {
               </thead>
               <tbody>
                 {filtered.map((order) => (
-                  <tr key={order._id}>
-                    <td>
-                      <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#636d21" }}>
-                        #{order._id.slice(-8).toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: 13, fontWeight: 600 }}>{order.buyerName}</div>
-                      <div style={{ fontSize: 11, color: "#6b6540" }}>{order.buyerEmail}</div>
-                    </td>
-                    <td style={{ fontSize: 13, fontWeight: 600, color: "#282600" }}>{order.items.length}</td>
-                    <td style={{ fontSize: 13, fontWeight: 700 }}>{formatCurrency(order.totalAmount)}</td>
-                    <td>
-                      <span className={`${styles.badge} ${styles[order.paymentStatus]}`}>
-                        {order.paymentStatus}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`${styles.badge} ${styles[order.status]}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: 12, color: "#6b6540" }}>{formatDate(order.createdAt)}</td>
-                    <td>
-                      <Link href={`/admin/orders/${order._id}`} className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>
-                        View
-                      </Link>
-                    </td>
-                  </tr>
+                  <OrderRow
+                    key={order._id}
+                    order={order}
+                  />
                 ))}
               </tbody>
             </table>
