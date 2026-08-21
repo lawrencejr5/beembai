@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import styles from "../admin.module.css";
@@ -62,7 +62,35 @@ export default function AdminProductsPage() {
   const [rejectTarget, setRejectTarget] = useState<{ id: Id<"products">; title: string } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const products = useQuery(api.admin.getAllProducts, { status: activeTab });
+  const { results: products, status, loadMore } = usePaginatedQuery(
+    api.admin.getAllProducts,
+    { status: activeTab },
+    { initialNumItems: 10 }
+  );
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (status !== "CanLoadMore") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore(10);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [status, loadMore]);
+
   const counts = useQuery(api.admin.getDashboardStats);
   const approveProduct = useMutation(api.admin.approveProduct);
   const rejectProduct = useMutation(api.admin.rejectProduct);
@@ -161,7 +189,7 @@ export default function AdminProductsPage() {
         </div>
 
         <div className={styles.tableWrapper}>
-          {!products ? (
+          {status === "LoadingFirstPage" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "20px 24px" }}>
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} style={{ display: "flex", gap: 16, alignItems: "center" }}>
@@ -283,6 +311,15 @@ export default function AdminProductsPage() {
                 ))}
               </tbody>
             </table>
+          )}
+          {/* Infinite Scroll Trigger */}
+          {status === "CanLoadMore" && (
+            <div ref={loadMoreRef} style={{ height: 20, margin: "16px 0" }} />
+          )}
+          {status === "LoadingMore" && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "16px", color: "#6b6540" }}>
+              <div className={styles.skeleton} style={{ width: 120, height: 16, borderRadius: 4 }} />
+            </div>
           )}
         </div>
       </div>

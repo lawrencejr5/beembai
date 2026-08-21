@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 
 // ── Admin Guard Helper ────────────────────────────────────
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
@@ -82,19 +83,24 @@ export const getAllStores = query({
       v.literal("rejected"),
       v.literal("all")
     )),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    let stores = await ctx.db.query("stores").collect();
+    let query = ctx.db.query("stores");
+
+    let baseQuery = query.order("desc");
 
     if (args.status && args.status !== "all") {
-      stores = stores.filter((s) => s.status === args.status);
+      baseQuery = baseQuery.filter((q) => q.eq(q.field("status"), args.status)) as any;
     }
 
-    // Attach owner info
-    const storesWithOwner = await Promise.all(
-      stores.map(async (store) => {
+    const results = await baseQuery.paginate(args.paginationOpts);
+
+    // Resolve owner info
+    const page = await Promise.all(
+      results.page.map(async (store) => {
         const owner = store.userId ? await ctx.db.get(store.userId) : null;
         const productCount = await ctx.db
           .query("products")
@@ -109,7 +115,10 @@ export const getAllStores = query({
       })
     );
 
-    return storesWithOwner.sort((a, b) => b._creationTime - a._creationTime);
+    return {
+      ...results,
+      page,
+    };
   },
 });
 
@@ -179,19 +188,22 @@ export const getAllProducts = query({
       v.literal("rejected"),
       v.literal("all")
     )),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    let products = await ctx.db.query("products").order("desc").collect();
+    let query = ctx.db.query("products").order("desc");
 
     if (args.status && args.status !== "all") {
-      products = products.filter((p) => p.status === args.status);
+      query = query.filter((q) => q.eq(q.field("status"), args.status)) as any;
     }
 
+    const results = await query.paginate(args.paginationOpts);
+
     // Attach store name
-    const productsWithStore = await Promise.all(
-      products.map(async (product) => {
+    const page = await Promise.all(
+      results.page.map(async (product) => {
         const store = product.storeId ? await ctx.db.get(product.storeId) : null;
         return {
           ...product,
@@ -200,7 +212,10 @@ export const getAllProducts = query({
       })
     );
 
-    return productsWithStore;
+    return {
+      ...results,
+      page,
+    };
   },
 });
 
@@ -355,22 +370,25 @@ export const getAllOrdersAdmin = query({
       v.literal("failed"),
       v.literal("all")
     )),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    let orders = await ctx.db.query("orders").order("desc").collect();
+    let query = ctx.db.query("orders").order("desc");
 
     if (args.status && args.status !== "all") {
-      orders = orders.filter((o) => o.status === args.status);
+      query = query.filter((q) => q.eq(q.field("status"), args.status)) as any;
     }
     if (args.paymentStatus && args.paymentStatus !== "all") {
-      orders = orders.filter((o) => o.paymentStatus === args.paymentStatus);
+      query = query.filter((q) => q.eq(q.field("paymentStatus"), args.paymentStatus)) as any;
     }
 
+    const results = await query.paginate(args.paginationOpts);
+
     // Attach buyer info
-    const ordersWithBuyer = await Promise.all(
-      orders.map(async (order) => {
+    const page = await Promise.all(
+      results.page.map(async (order) => {
         const buyer = await ctx.db.get(order.userId);
         return {
           ...order,
@@ -380,7 +398,10 @@ export const getAllOrdersAdmin = query({
       })
     );
 
-    return ordersWithBuyer;
+    return {
+      ...results,
+      page,
+    };
   },
 });
 
@@ -437,14 +458,16 @@ export const adminUpdateOrderStatus = mutation({
 // ── User Management ───────────────────────────────────────
 
 export const getAllUsers = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    const users = await ctx.db.query("users").collect();
+    const results = await ctx.db.query("users").order("desc").paginate(args.paginationOpts);
 
-    const usersWithDetails = await Promise.all(
-      users.map(async (user) => {
+    const page = await Promise.all(
+      results.page.map(async (user) => {
         const store = await ctx.db
           .query("stores")
           .withIndex("by_userId", (q) => q.eq("userId", user._id))
@@ -465,7 +488,10 @@ export const getAllUsers = query({
       })
     );
 
-    return usersWithDetails.sort((a, b) => b._creationTime - a._creationTime);
+    return {
+      ...results,
+      page,
+    };
   },
 });
 
