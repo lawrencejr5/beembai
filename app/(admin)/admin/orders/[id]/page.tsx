@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -17,8 +17,9 @@ function formatDate(ts: number) {
 
 type OrderStatus = "placed" | "processing" | "shipped" | "delivered" | "cancelled";
 
-export default function OrderDetailPage({ params }: { params: { id: string } }) {
-  const orderId = params.id as Id<"orders">;
+export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = React.use(params);
+  const orderId = unwrappedParams.id as Id<"orders">;
   const order = useQuery(api.admin.getOrderByIdAdmin, { orderId });
   const updateStatus = useMutation(api.admin.adminUpdateOrderStatus);
 

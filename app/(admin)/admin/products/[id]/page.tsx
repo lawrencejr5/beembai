@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -8,8 +8,9 @@ import styles from "../../admin.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
-  const productId = params.id as Id<"products">;
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = React.use(params);
+  const productId = unwrappedParams.id as Id<"products">;
   const router = useRouter();
   const product = useQuery(api.admin.getProductByIdAdmin, { productId });
   const approveProduct = useMutation(api.admin.approveProduct);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -8,8 +8,9 @@ import styles from "../../../../admin.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function EditCategoryPage({ params }: { params: { id: string } }) {
-  const categoryId = params.id as Id<"categories">;
+export default function EditCategoryPage({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = React.use(params);
+  const categoryId = unwrappedParams.id as Id<"categories">;
   const router = useRouter();
   const category = useQuery(api.admin.getCategoryByIdAdmin, { categoryId });
   const updateCategory = useMutation(api.admin.updateCategory);
