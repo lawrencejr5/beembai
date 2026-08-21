@@ -80,7 +80,23 @@ export default function AdminCategoriesPage() {
         </div>
 
         {!categories ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#6b6540" }}>Loading…</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16, padding: 20 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} style={{ border: "1px solid #e8e2d0", borderRadius: 12, overflow: "hidden", background: "#fafaf5", padding: 16 }}>
+                <div className={styles.skeleton} style={{ height: 100, borderRadius: 8, marginBottom: 12 }} />
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                  <div className={styles.skeleton} style={{ width: "50%", height: 16 }} />
+                  <div className={styles.skeleton} style={{ width: "20%", height: 12 }} />
+                </div>
+                <div className={styles.skeleton} style={{ width: "90%", height: 12, marginBottom: 6 }} />
+                <div className={styles.skeleton} style={{ width: "70%", height: 12, marginBottom: 16 }} />
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div className={styles.skeleton} style={{ flex: 1, height: 32, borderRadius: 8 }} />
+                  <div className={styles.skeleton} style={{ width: 80, height: 32, borderRadius: 8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyStateIcon}>🏷️</div>

@@ -85,7 +85,23 @@ export default function AdminOrdersPage() {
 
         <div className={styles.tableWrapper}>
           {!orders ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#6b6540" }}>Loading…</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "20px 24px" }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                  <div className={styles.skeleton} style={{ width: 80, height: 16 }} />
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div className={styles.skeleton} style={{ width: "30%", height: 14 }} />
+                    <div className={styles.skeleton} style={{ width: "15%", height: 10 }} />
+                  </div>
+                  <div className={styles.skeleton} style={{ width: 40, height: 14 }} />
+                  <div className={styles.skeleton} style={{ width: 80, height: 14 }} />
+                  <div className={styles.skeleton} style={{ width: 60, height: 20, borderRadius: 100 }} />
+                  <div className={styles.skeleton} style={{ width: 60, height: 20, borderRadius: 100 }} />
+                  <div className={styles.skeleton} style={{ width: 80, height: 14 }} />
+                  <div className={styles.skeleton} style={{ width: 80, height: 32, borderRadius: 8 }} />
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyStateIcon}>🛒</div>
