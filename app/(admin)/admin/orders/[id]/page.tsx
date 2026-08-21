@@ -85,12 +85,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       )}
 
       <div className={styles.detailLayout}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className={styles.detailMain}>
           {/* Items */}
           <div className={styles.adminCard}>
             <div className={styles.adminCardHeader}><h3 className={styles.adminCardTitle}>Order Items ({order.items.length})</h3></div>
             <div className={styles.tableWrapper}>
-              <table className={styles.adminTable}>
+              <table className={`${styles.adminTable} ${styles.smallTable}`}>
                 <thead>
                   <tr>
                     <th>Product</th>
@@ -106,7 +106,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <img src={item.image} alt="" className={styles.productThumb} />
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "#282600" }}>{item.title}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#282600", maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
                             {item.color && <div style={{ fontSize: 11, color: "#9e9970" }}>Color: {item.color}</div>}
                           </div>
                         </div>

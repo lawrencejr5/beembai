@@ -134,7 +134,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       <div className={styles.detailLayout}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className={styles.detailMain}>
           {/* Images */}
           <div className={styles.adminCard}>
             <div className={styles.adminCardHeader}><h3 className={styles.adminCardTitle}>Images</h3></div>

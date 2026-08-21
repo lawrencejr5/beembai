@@ -460,6 +460,10 @@
   min-width: 900px;
 }
 
+.adminTable.smallTable {
+  min-width: 100%;
+}
+
 .adminTable th {
   padding: 10px 16px;
   text-align: left;
@@ -955,9 +959,16 @@
 /* ── Product/Store Detail Layout ────────────────────── */
 .detailLayout {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 20px;
   align-items: start;
+}
+
+.detailMain {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
 }
 
 .detailSidebar {
@@ -1201,10 +1212,36 @@
 
 @media (max-width: 1024px) {
   .detailLayout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .formGrid3 {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .flexRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .detailImageGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .detailMainImage {
+    grid-column: span 1;
+    aspect-ratio: 4/3;
+  }
+
+  .infoRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .infoRowValue {
+    text-align: left;
   }
 }
 
