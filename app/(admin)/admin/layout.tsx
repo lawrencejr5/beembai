@@ -39,7 +39,17 @@ const navItems = [
   },
 ];
 
-function Sidebar({ isCollapsed, toggleCollapse }: { isCollapsed: boolean; toggleCollapse: () => void }) {
+function Sidebar({
+  isCollapsed,
+  toggleCollapse,
+  isMobile,
+  onClose,
+}: {
+  isCollapsed: boolean;
+  toggleCollapse: () => void;
+  isMobile: boolean;
+  onClose: () => void;
+}) {
   const pathname = usePathname();
   const viewer = useQuery(api.users.viewer);
   const stats = useQuery(api.admin.getDashboardStats);
@@ -82,24 +92,39 @@ function Sidebar({ isCollapsed, toggleCollapse }: { isCollapsed: boolean; toggle
           <span className={styles.sidebarSubBrand}>Admin Panel</span>
         </div>
         <button
-          onClick={toggleCollapse}
+          onClick={isMobile ? onClose : toggleCollapse}
           className={styles.collapseToggleBtn}
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          title={isMobile ? "Close Menu" : (isCollapsed ? "Expand Sidebar" : "Collapse Sidebar")}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ transform: isCollapsed ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <line x1="9" y1="3" x2="9" y2="21" />
-            <path d="M16 15l-3-3 3-3" />
-          </svg>
+          {isMobile ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ transform: isCollapsed ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <path d="M16 15l-3-3 3-3" />
+            </svg>
+          )}
         </button>
       </div>
 
@@ -116,6 +141,9 @@ function Sidebar({ isCollapsed, toggleCollapse }: { isCollapsed: boolean; toggle
                   href={link.href}
                   className={`${styles.sidebarLink} ${isActive(link.href, link.exact) ? styles.active : ""}`}
                   title={isCollapsed ? link.label : undefined}
+                  onClick={() => {
+                    if (isMobile) onClose();
+                  }}
                 >
                   <span className={styles.sidebarLinkIcon}>{link.icon}</span>
                   <span className={styles.sidebarLinkText}>{link.label}</span>
@@ -157,12 +185,21 @@ function Sidebar({ isCollapsed, toggleCollapse }: { isCollapsed: boolean; toggle
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("admin-sidebar-collapsed");
     if (saved === "true") {
       setIsCollapsed(true);
     }
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const toggleCollapse = () => {
@@ -175,8 +212,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AdminGuard>
-      <div className={`${styles.adminRoot} ${isCollapsed ? styles.collapsed : ""}`}>
-        <Sidebar isCollapsed={isCollapsed} toggleCollapse={toggleCollapse} />
+      <div
+        className={`${styles.adminRoot} ${isCollapsed ? styles.collapsed : ""} ${
+          isMobileOpen ? styles.mobileOpen : ""
+        }`}
+      >
+        {/* Mobile Top Bar */}
+        <div className={styles.mobileTopBar}>
+          <button
+            className={styles.menuToggleBtn}
+            onClick={() => setIsMobileOpen(true)}
+            id="mobile-menu-toggle"
+            title="Open Menu"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ width: 20, height: 20 }}
+            >
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span className={styles.mobileBrand}>Beembai Admin</span>
+        </div>
+
+        {/* Backdrop Overlay */}
+        <div className={styles.backdrop} onClick={() => setIsMobileOpen(false)} />
+
+        <Sidebar
+          isCollapsed={isCollapsed}
+          toggleCollapse={toggleCollapse}
+          isMobile={isMobile}
+          onClose={() => setIsMobileOpen(false)}
+        />
         <div className={styles.adminMain}>
           {children}
         </div>

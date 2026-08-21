@@ -305,14 +305,7 @@ export default function AdminDashboard() {
 
       {/* Recent Activity */}
       {activity && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 20,
-            marginTop: 8,
-          }}
-        >
+        <div className={styles.recentGrid}>
           {/* Recent Orders */}
           <div className={styles.adminCard}>
             <div className={styles.adminCardHeader}>
