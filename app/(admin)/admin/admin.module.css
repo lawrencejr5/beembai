@@ -47,6 +47,8 @@
   z-index: 100;
   border-right: 1px solid rgba(255, 246, 160, 0.06);
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebarLogo {
@@ -254,6 +256,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .adminTopBar {
@@ -1177,3 +1180,140 @@
     padding: 16px;
   }
 }
+
+/* ── Sidebar Collapse Support ────────────────────────── */
+.adminRoot.collapsed {
+  --admin-sidebar-width: 72px;
+}
+
+.sidebarLogoText,
+.sidebarUserInfo,
+.sidebarLinkText,
+.signOutText {
+  opacity: 1;
+  max-width: 180px;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.sidebarLogoText {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarUserInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarSection {
+  padding: 16px 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255, 248, 234, 0.28);
+  opacity: 1;
+  max-height: 36px;
+  transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+  overflow: hidden;
+}
+
+.adminRoot.collapsed .sidebarLogoText,
+.adminRoot.collapsed .sidebarUserInfo,
+.adminRoot.collapsed .sidebarLinkText,
+.adminRoot.collapsed .signOutText {
+  opacity: 0;
+  max-width: 0px;
+}
+
+.adminRoot.collapsed .sidebarSection {
+  opacity: 0;
+  max-height: 0px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.adminRoot.collapsed .sidebarLogo {
+  padding: 20px 0;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.adminRoot.collapsed .sidebarLink {
+  justify-content: center;
+  padding: 12px;
+  margin: 0 10px;
+  gap: 0;
+}
+
+.adminRoot.collapsed .sidebarLinkIcon {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.adminRoot.collapsed .sidebarLink .sidebarBadge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  margin-left: 0;
+  font-size: 8px;
+  padding: 1px 4px;
+  min-width: 14px;
+  border: 1.5px solid var(--admin-sidebar-bg);
+}
+
+.adminRoot.collapsed .sidebarFooter {
+  padding: 16px 10px;
+  align-items: center;
+}
+
+.adminRoot.collapsed .sidebarUser {
+  padding: 4px;
+  justify-content: center;
+}
+
+.adminRoot.collapsed .signOutBtn {
+  padding: 10px;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+}
+
+.collapseToggleBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 246, 160, 0.2);
+  color: var(--admin-sidebar-text);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.collapseToggleBtn:hover {
+  background: var(--admin-sidebar-hover);
+  color: #fff8ea;
+  border-color: rgba(255, 246, 160, 0.4);
+}
+
+.collapseToggleBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.adminRoot.collapsed .collapseToggleBtn {
+  margin: 0 auto;
+}
+

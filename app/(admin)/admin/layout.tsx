@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
@@ -38,7 +39,7 @@ const navItems = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ isCollapsed, toggleCollapse }: { isCollapsed: boolean; toggleCollapse: () => void }) {
   const pathname = usePathname();
   const viewer = useQuery(api.users.viewer);
   const stats = useQuery(api.admin.getDashboardStats);
@@ -80,6 +81,26 @@ function Sidebar() {
           <span className={styles.sidebarBrand}>Beembai</span>
           <span className={styles.sidebarSubBrand}>Admin Panel</span>
         </div>
+        <button
+          onClick={toggleCollapse}
+          className={styles.collapseToggleBtn}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: isCollapsed ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+            <path d="M16 15l-3-3 3-3" />
+          </svg>
+        </button>
       </div>
 
       {/* Nav */}
@@ -94,9 +115,10 @@ function Sidebar() {
                   key={link.href}
                   href={link.href}
                   className={`${styles.sidebarLink} ${isActive(link.href, link.exact) ? styles.active : ""}`}
+                  title={isCollapsed ? link.label : undefined}
                 >
                   <span className={styles.sidebarLinkIcon}>{link.icon}</span>
-                  {link.label}
+                  <span className={styles.sidebarLinkText}>{link.label}</span>
                   {badge !== null && (
                     <span className={`${styles.sidebarBadge} ${styles.pending}`}>
                       {badge}
@@ -124,8 +146,9 @@ function Sidebar() {
             <span className={styles.sidebarUserRole}>Administrator</span>
           </div>
         </div>
-        <button className={styles.signOutBtn} onClick={handleSignOut} id="admin-sign-out">
-          <span>🚪</span> Sign out
+        <button className={styles.signOutBtn} onClick={handleSignOut} id="admin-sign-out" title={isCollapsed ? "Sign out" : undefined}>
+          <span>🚪</span>
+          <span className={styles.signOutText}> Sign out</span>
         </button>
       </div>
     </aside>
@@ -133,10 +156,27 @@ function Sidebar() {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("admin-sidebar-collapsed");
+    if (saved === "true") {
+      setIsCollapsed(true);
+    }
+  }, []);
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("admin-sidebar-collapsed", String(next));
+      return next;
+    });
+  };
+
   return (
     <AdminGuard>
-      <div className={styles.adminRoot}>
-        <Sidebar />
+      <div className={`${styles.adminRoot} ${isCollapsed ? styles.collapsed : ""}`}>
+        <Sidebar isCollapsed={isCollapsed} toggleCollapse={toggleCollapse} />
         <div className={styles.adminMain}>
           {children}
         </div>
