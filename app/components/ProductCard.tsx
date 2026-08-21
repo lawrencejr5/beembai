@@ -85,7 +85,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     : 0;
 
   const [isAdding, setIsAdding] = useState(false);
-  const [updatingAction, setUpdatingAction] = useState<"increase" | "decrease" | null>(null);
+  const [updatingAction, setUpdatingAction] = useState<
+    "increase" | "decrease" | null
+  >(null);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();

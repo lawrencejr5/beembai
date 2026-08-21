@@ -25,7 +25,10 @@ export interface CartContextType {
     quantity?: number,
     selectedColor?: string,
   ) => Promise<any> | void;
-  removeFromCart: (productId: string, selectedColor?: string) => Promise<any> | void;
+  removeFromCart: (
+    productId: string,
+    selectedColor?: string,
+  ) => Promise<any> | void;
   updateQuantity: (
     productId: string,
     quantity: number,
@@ -67,7 +70,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!dbProducts) return new Map<string, string>();
     const map = new Map<string, string>();
     for (const dbProduct of dbProducts) {
-      const localProduct = PRODUCTS_DATA.find((p) => p.title === dbProduct.title);
+      const localProduct = PRODUCTS_DATA.find(
+        (p) => p.title === dbProduct.title,
+      );
       if (localProduct) {
         map.set(localProduct.id, dbProduct._id);
       }
@@ -80,7 +85,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!dbProducts) return new Map<string, string>();
     const map = new Map<string, string>();
     for (const dbProduct of dbProducts) {
-      const localProduct = PRODUCTS_DATA.find((p) => p.title === dbProduct.title);
+      const localProduct = PRODUCTS_DATA.find(
+        (p) => p.title === dbProduct.title,
+      );
       if (localProduct) {
         map.set(dbProduct._id, localProduct.id);
       }
@@ -88,17 +95,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     return map;
   }, [dbProducts]);
 
-  const getConvexProductId = useCallback((productId: string) => {
-    return dummyIdToConvexIdMap.get(productId) || (productId && productId.length > 5 ? productId : null);
-  }, [dummyIdToConvexIdMap]);
-
+  const getConvexProductId = useCallback(
+    (productId: string) => {
+      return (
+        dummyIdToConvexIdMap.get(productId) ||
+        (productId && productId.length > 5 ? productId : null)
+      );
+    },
+    [dummyIdToConvexIdMap],
+  );
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [cartBounce, setCartBounce] = useState(false);
 
   // Selection states
-  const [selectedItemKeys, setSelectedItemKeys] = useState<Record<string, boolean>>({});
+  const [selectedItemKeys, setSelectedItemKeys] = useState<
+    Record<string, boolean>
+  >({});
 
   const triggerBounce = () => {
     setCartBounce(true);
@@ -176,19 +190,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user, mergeDbCart, dbProducts, getConvexProductId]);
 
-  // Map database cart items to frontend CartItem structures
   const mappedDbCart = useMemo(() => {
     if (!user || !dbCartItems || !dbProducts) return [];
     return dbCartItems
       .map((item): CartItem | null => {
         const dummyId = convexIdToDummyIdMap.get(item.productId);
-        let product = getProductById(dummyId || item.productId);
-        
-        // If not found in mock data, resolve from loaded database products
-        if (!product) {
-          const dbProd = dbProducts.find((p) => p._id === item.productId);
-          if (dbProd) {
-            product = {
+        const mockProduct = getProductById(dummyId || item.productId);
+        const dbProd = dbProducts.find((p) => p._id === item.productId);
+
+        if (!dbProd && !mockProduct) return null;
+
+        // Always use the Convex _id as product.id so ProductCard comparisons
+        // (item.product.id === productId) work correctly against DB-sourced grids.
+        const product: any = dbProd
+          ? {
               id: dbProd._id,
               title: dbProd.title,
               price: dbProd.price,
@@ -206,11 +221,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
               status: dbProd.status,
               brand: dbProd.brand,
               condition: dbProd.condition || "New",
-            } as any;
-          }
-        }
+            }
+          : { ...mockProduct, id: item.productId }; // override mock id with Convex _id
 
-        if (!product) return null;
         return {
           product,
           selectedColor: item.selectedColor,
@@ -236,7 +249,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Keep track of active item keys
       const activeKeys = new Set(
-        activeCart.map((item) => `${item.product.id}-${item.selectedColor || "default"}`)
+        activeCart.map(
+          (item) => `${item.product.id}-${item.selectedColor || "default"}`,
+        ),
       );
 
       // 1. Initialize newly added items as selected (true)
@@ -289,7 +304,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       selectedItems.forEach((item) => {
         const convexProductId = getConvexProductId(item.product.id);
         if (convexProductId) {
-          void removeDbCart({ productId: convexProductId as any, selectedColor: item.selectedColor });
+          void removeDbCart({
+            productId: convexProductId as any,
+            selectedColor: item.selectedColor,
+          });
         }
       });
     } else {
@@ -298,7 +316,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         prevCart.filter((item) => {
           const key = `${item.product.id}-${item.selectedColor || "default"}`;
           return selectedItemKeys[key] !== true;
-        })
+        }),
       );
     }
   };
@@ -379,7 +397,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     if (user) {
       const convexProductId = getConvexProductId(productId);
       if (convexProductId) {
-        return removeDbCart({ productId: convexProductId as any, selectedColor });
+        return removeDbCart({
+          productId: convexProductId as any,
+          selectedColor,
+        });
       }
       return Promise.resolve();
     } else {
@@ -408,7 +429,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     if (user) {
       const convexProductId = getConvexProductId(productId);
       if (convexProductId) {
-        return updateDbQty({ productId: convexProductId as any, selectedColor, quantity: newQuantity });
+        return updateDbQty({
+          productId: convexProductId as any,
+          selectedColor,
+          quantity: newQuantity,
+        });
       }
       return Promise.resolve();
     } else {
