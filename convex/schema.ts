@@ -13,6 +13,8 @@ export default defineSchema({
     phone: v.optional(v.string()),
     emailVerificationTime: v.optional(v.number()),
     phoneVerificationTime: v.optional(v.number()),
+    isAdmin: v.optional(v.boolean()),
+    isBanned: v.optional(v.boolean()),
   }).index("email", ["email"]),
 
   cart: defineTable({
@@ -52,7 +54,8 @@ export default defineSchema({
     storeId: v.optional(v.id("stores")),
     images: v.optional(v.array(v.string())),
     youtubeLink: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("pending"), v.literal("approved"))),
+    status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))),
+    rejectionReason: v.optional(v.string()),
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"])
@@ -72,7 +75,8 @@ export default defineSchema({
     description: v.string(),
     bannerMessage: v.optional(v.string()),
     userId: v.optional(v.id("users")),
-    status: v.optional(v.union(v.literal("pending"), v.literal("approved"))),
+    status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))),
+    rejectionReason: v.optional(v.string()),
     physicalAddress: v.optional(v.string()),
     city: v.optional(v.string()),
     stateName: v.optional(v.string()),
