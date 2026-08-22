@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import styles from "../../../../admin.module.css";
+import styles from "../../../admin.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
