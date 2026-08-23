@@ -269,3 +269,116 @@ export const updateOrderShippingStatus = mutation({
   },
 });
 
+/** Get all orders across all stores owned by the currently authenticated seller */
+export const getSellerOrdersAllStores = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    // Fetch user's stores
+    const stores = await ctx.db
+      .query("stores")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    if (stores.length === 0) return [];
+    const storeIds = new Set(stores.map((s) => s._id));
+
+    // Fetch all orders
+    const allOrders = await ctx.db.query("orders").collect();
+
+    // Filter to orders containing items belonging to any of the user's stores
+    const sellerOrders = allOrders
+      .filter((order) =>
+        order.items.some((item) => item.storeId && storeIds.has(item.storeId))
+      )
+      .map((order) => {
+        // Filter items to show only this seller's products
+        const sellerItems = order.items.filter(
+          (item) => item.storeId && storeIds.has(item.storeId)
+        );
+
+        // Calculate subtotal for this seller
+        const sellerSubtotal = sellerItems.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0
+        );
+
+        return {
+          _id: order._id,
+          _creationTime: order._creationTime,
+          userId: order.userId,
+          items: sellerItems,
+          address: order.address,
+          shippingMethod: order.shippingMethod,
+          shippingFee: order.shippingFee,
+          totalAmount: order.totalAmount,
+          sellerSubtotal,
+          paymentStatus: order.paymentStatus,
+          status: order.status,
+          statusHistory: order.statusHistory,
+          createdAt: order.createdAt,
+        };
+      })
+      .sort((a, b) => b.createdAt - a.createdAt);
+
+    return sellerOrders;
+  },
+});
+
+/** Get a single order detail if it contains items belonging to any stores owned by the seller */
+export const getSellerOrderById = query({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order) return null;
+
+    // Fetch user's stores
+    const stores = await ctx.db
+      .query("stores")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    if (stores.length === 0) return null;
+    const storeIds = new Set(stores.map((s) => s._id));
+
+    // Verify if this order contains items from the user's stores
+    const sellerItems = order.items.filter(
+      (item) => item.storeId && storeIds.has(item.storeId)
+    );
+    if (sellerItems.length === 0) return null;
+
+    // Calculate subtotal for this seller
+    const sellerSubtotal = sellerItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    // Find the first storeId in the seller's items to facilitate status updates
+    const storeId = sellerItems[0].storeId;
+
+    return {
+      _id: order._id,
+      _creationTime: order._creationTime,
+      userId: order.userId,
+      items: sellerItems,
+      address: order.address,
+      shippingMethod: order.shippingMethod,
+      shippingFee: order.shippingFee,
+      totalAmount: order.totalAmount,
+      sellerSubtotal,
+      paymentStatus: order.paymentStatus,
+      status: order.status,
+      statusHistory: order.statusHistory,
+      createdAt: order.createdAt,
+      storeId,
+    };
+  },
+});
+
+
+

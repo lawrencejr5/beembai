@@ -509,3 +509,137 @@ export const submitStoreVerification = mutation({
     return args.storeId;
   },
 });
+
+// Get aggregated analytics across all stores owned by the user
+export const getSellerAnalyticsAllStores = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return {
+        totalSales: 0,
+        totalOrders: 0,
+        totalProducts: 0,
+        averageRating: 5.0,
+      };
+    }
+
+    const stores = await ctx.db
+      .query("stores")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    if (stores.length === 0) {
+      return {
+        totalSales: 0,
+        totalOrders: 0,
+        totalProducts: 0,
+        averageRating: 5.0,
+      };
+    }
+
+    const storeIds = new Set(stores.map((s) => s._id));
+
+    // Get all products count
+    const allProducts = await ctx.db.query("products").collect();
+    const sellerProducts = allProducts.filter((p) => p.storeId && storeIds.has(p.storeId));
+
+    // Get all orders and calculate total sales + order counts
+    const allOrders = await ctx.db.query("orders").collect();
+    const paidOrders = allOrders.filter(
+      (order) =>
+        order.paymentStatus === "paid" &&
+        order.items.some((item) => item.storeId && storeIds.has(item.storeId))
+    );
+
+    let totalSales = 0;
+    for (const order of paidOrders) {
+      const sellerItems = order.items.filter(
+        (item) => item.storeId && storeIds.has(item.storeId)
+      );
+      const subtotal = sellerItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      totalSales += subtotal;
+    }
+
+    // Average rating
+    const ratedStores = stores.filter((s) => s.rating > 0);
+    const averageRating =
+      ratedStores.length > 0
+        ? ratedStores.reduce((sum, s) => sum + s.rating, 0) / ratedStores.length
+        : 5.0;
+
+    return {
+      totalSales,
+      totalOrders: paidOrders.length,
+      totalProducts: sellerProducts.length,
+      averageRating,
+    };
+  },
+});
+
+// Get all products across all stores owned by the user
+export const getSellerProductsAllStores = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const stores = await ctx.db
+      .query("stores")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    if (stores.length === 0) return [];
+    const storeIds = new Set(stores.map((s) => s._id));
+
+    const allProducts = await ctx.db.query("products").collect();
+    return allProducts
+      .filter((p) => p.storeId && storeIds.has(p.storeId))
+      .sort((a, b) => b._creationTime - a._creationTime);
+  },
+});
+
+// Get store analytics for a single store owned by the user
+export const getStoreAnalyticsForOwner = query({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return { totalSales: 0, totalOrders: 0, totalProducts: 0, averageRating: 5.0 };
+    }
+
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) {
+      throw new Error("Unauthorized or Store not found");
+    }
+
+    // Fetch products count
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
+      .collect();
+
+    // Fetch orders and calculate total sales
+    const allOrders = await ctx.db.query("orders").collect();
+    const paidOrders = allOrders.filter(
+      (order) =>
+        order.paymentStatus === "paid" &&
+        order.items.some((item) => item.storeId === args.storeId)
+    );
+
+    let totalSales = 0;
+    for (const order of paidOrders) {
+      const sellerItems = order.items.filter((item) => item.storeId === args.storeId);
+      const subtotal = sellerItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      totalSales += subtotal;
+    }
+
+    return {
+      totalSales,
+      totalOrders: paidOrders.length,
+      totalProducts: products.length,
+      averageRating: store.rating || 5.0,
+    };
+  },
+});
+
