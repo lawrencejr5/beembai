@@ -186,7 +186,12 @@ export default function StoresPage() {
               and start selling.
             </p>
           </div>
-          <Link href="/sell" className={styles.heroActionBtn}>
+          <Link
+            href="/sell"
+            className={styles.heroActionBtn}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Open Your Store
           </Link>
         </section>

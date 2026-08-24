@@ -157,6 +157,20 @@ function Sidebar({
             })}
           </div>
         ))}
+        <div className={styles.sidebarDivider} />
+        <Link
+          href="/"
+          className={styles.sidebarLink}
+          title={isCollapsed ? "Back to Storefront" : undefined}
+          onClick={() => {
+            if (isMobile) onClose();
+          }}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span className={styles.sidebarLinkIcon}>🌍</span>
+          <span className={styles.sidebarLinkText}>Back to Storefront</span>
+        </Link>
       </nav>
 
       {/* Footer */}

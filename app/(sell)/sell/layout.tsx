@@ -236,6 +236,17 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                 <span className={styles.sidebarLinkText}>{item.label}</span>
               </Link>
             ))}
+            <div className={styles.sidebarDivider} />
+            <Link
+              href="/"
+              className={styles.sidebarLink}
+              onClick={() => setIsMobileOpen(false)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className={styles.sidebarLinkIcon}>🏠</span>
+              <span className={styles.sidebarLinkText}>Back to Storefront</span>
+            </Link>
           </nav>
 
           {/* Sidebar Footer */}

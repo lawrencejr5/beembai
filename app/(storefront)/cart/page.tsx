@@ -158,7 +158,7 @@ export default function CartPage() {
               borderRadius: "99px",
               backgroundColor: "var(--color-sand)",
               border: "1px solid var(--color-border)",
-              color: "var(--color-papyrus)",
+              color: "var(--foreground)",
               fontSize: "0.85rem",
               fontWeight: 700,
               cursor: "pointer",
