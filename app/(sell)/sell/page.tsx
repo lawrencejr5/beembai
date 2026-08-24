@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useSellerStore } from "./layout";
 import styles from "./seller.module.css";
@@ -28,6 +28,48 @@ const formatDate = (timestamp: number) => {
 export default function SellerDashboardPage() {
   const router = useRouter();
   const { stores, activeStoreId, setActiveStoreId } = useSellerStore();
+
+  const generateUploadUrl = useMutation(api.store.generateUploadUrl);
+  const updateLogo = useMutation(api.store.updateStoreLogo);
+  const updateBanner = useMutation(api.store.updateStoreBanner);
+
+  const [updatingLogo, setUpdatingLogo] = useState(false);
+  const [updatingBanner, setUpdatingBanner] = useState(false);
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "banner") => {
+    const file = e.target.files?.[0];
+    if (!file || !activeStoreId) return;
+
+    if (type === "logo") setUpdatingLogo(true);
+    else setUpdatingBanner(true);
+
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) throw new Error("Upload failed");
+      const { storageId } = await uploadResponse.json();
+
+      if (type === "logo") {
+        await updateLogo({ storeId: activeStoreId as any, storageId });
+      } else {
+        await updateBanner({ storeId: activeStoreId as any, storageId });
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to update store ${type}.`);
+    } finally {
+      if (type === "logo") setUpdatingLogo(false);
+      else setUpdatingBanner(false);
+    }
+  };
 
   // 1. Fetch Analytics based on active store context
   const allStoresAnalytics = useQuery(
@@ -99,6 +141,119 @@ export default function SellerDashboardPage() {
           + New Store Application
         </Link>
       </div>
+
+      {/* Store Banner and Profile Section */}
+      {activeStoreId !== null && (() => {
+        const activeStore = stores.find((s) => s._id === activeStoreId);
+        if (!activeStore) return null;
+
+        return (
+          <div className={styles.storeCustomizationBannerSection} style={{ marginBottom: 28 }}>
+            <input
+              type="file"
+              ref={bannerInputRef}
+              style={{ display: "none" }}
+              accept="image/*"
+              onChange={(e) => handleUploadImage(e, "banner")}
+            />
+            <input
+              type="file"
+              ref={logoInputRef}
+              style={{ display: "none" }}
+              accept="image/*"
+              onChange={(e) => handleUploadImage(e, "logo")}
+            />
+            
+            {/* Banner block */}
+            <div
+              className={styles.storeCustomizationBanner}
+              style={{
+                height: 200,
+                borderRadius: "var(--seller-radius)",
+                background: activeStore.banner 
+                  ? `linear-gradient(rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${activeStore.banner}) center/cover no-repeat` 
+                  : "linear-gradient(135deg, #d6983a, #485c2c)",
+                position: "relative",
+                display: "flex",
+                alignItems: "flex-end",
+                padding: "20px 24px",
+                boxShadow: "var(--seller-shadow)",
+              }}
+            >
+              {/* Change Banner overlay/button */}
+              <button
+                className={`${styles.btn} ${styles.btnGhost}`}
+                style={{
+                  position: "absolute",
+                  top: 16,
+                  right: 16,
+                  background: "rgba(255, 255, 255, 0.85)",
+                  backdropFilter: "blur(4px)",
+                  border: "none",
+                  fontSize: 12,
+                  boxShadow: "var(--seller-shadow)",
+                }}
+                disabled={updatingBanner}
+                onClick={() => bannerInputRef.current?.click()}
+              >
+                📷 {updatingBanner ? "Uploading..." : "Update Banner"}
+              </button>
+
+              {/* Logo / Profile picture overlap */}
+              <div
+                className={styles.storeCustomizationLogo}
+                style={{
+                  width: 84,
+                  height: 84,
+                  borderRadius: "50%",
+                  border: "4px solid #ffffff",
+                  background: "#d6983a",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 24,
+                  fontWeight: "bold",
+                  position: "absolute",
+                  bottom: -32,
+                  left: 24,
+                  boxShadow: "var(--seller-shadow-md)",
+                  overflow: "hidden",
+                  cursor: "pointer",
+                }}
+                onClick={() => !updatingLogo && logoInputRef.current?.click()}
+              >
+                {activeStore.logo ? (
+                  <img src={activeStore.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  activeStore.name.charAt(0).toUpperCase()
+                )}
+                
+                {/* Upload overlay on hover */}
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: 0,
+                  transition: "opacity 0.2s ease",
+                  fontSize: 10,
+                  color: "#fff",
+                }}
+                className={styles.logoHoverOverlay}
+                >
+                  Edit
+                </div>
+              </div>
+            </div>
+
+            {/* Adjust space for overlapping profile image */}
+            <div style={{ height: 44 }} />
+          </div>
+        );
+      })()}
 
       {/* Analytics Stats Grid */}
       <div className={styles.statsGrid}>
