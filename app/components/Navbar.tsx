@@ -125,7 +125,12 @@ export default function Navbar() {
         >
           Stores
         </Link>
-
+        <Link
+          href="/buy-from-abroad"
+          className={`${styles.navLink} ${isActive("/buy-from-abroad") ? styles.activeNavLink : ""}`}
+        >
+          Buy from Abroad
+        </Link>
       </nav>
 
       <div className={styles.navActions}>

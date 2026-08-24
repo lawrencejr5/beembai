@@ -312,4 +312,39 @@ export const sellerDeleteProduct = mutation({
   },
 });
 
+// Create a new simulated foreign product in the database so that it has a valid Convex ID for the cart
+export const createForeignProduct = mutation({
+  args: {
+    title: v.string(),
+    price: v.number(),
+    image: v.string(),
+    description: v.optional(v.string()),
+    brand: v.optional(v.string()),
+    originalPrice: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const productId = await ctx.db.insert("products", {
+      title: args.title,
+      categorySlug: "foreign-import",
+      categoryName: "Foreign Import",
+      price: args.price,
+      originalPrice: args.originalPrice,
+      image: args.image,
+      tag: "import",
+      description: args.description,
+      brand: args.brand || "Amazon",
+      condition: "New",
+      colors: [],
+      productDetails: [],
+      isFeatured: false,
+      isNewArrival: false,
+      isSponsored: false,
+      stock: 999,
+      status: "approved", // Auto-approved for simulation
+    });
+    return productId;
+  },
+});
+
+
 
