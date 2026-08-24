@@ -142,6 +142,7 @@ export default function SellerOrdersPage() {
                   <th>Items Included</th>
                   <th>Fulfillment Value</th>
                   <th>Shipping Status</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -164,6 +165,15 @@ export default function SellerOrdersPage() {
                       <span className={`${styles.badge} ${styles[order.status || "placed"]}`}>
                         {order.status}
                       </span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <Link
+                        href={`/sell/orders/${order._id}`}
+                        className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSm}`}
+                        style={{ textDecoration: "none", display: "inline-flex" }}
+                      >
+                        Manage & Fulfill →
+                      </Link>
                     </td>
                   </tr>
                 ))}
