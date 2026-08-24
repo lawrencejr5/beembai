@@ -12,7 +12,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     // viewer === null means not authenticated
     if (viewer === null) {
-      router.replace("/login");
+      router.replace("/login?redirectTo=/admin");
       return;
     }
     // viewer loaded but not admin
