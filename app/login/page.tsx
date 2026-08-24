@@ -172,7 +172,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { totalItemsCount, cartBounce } = useCart();
   const { signIn } = useAuthActions();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+
 
   // Tab State
   const [isLogin, setIsLogin] = useState(true);
@@ -196,14 +196,7 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Sync theme
-  useEffect(() => {
-    const activeTheme =
-      (document.documentElement.getAttribute("data-theme") as
-        | "light"
-        | "dark") || "light";
-    setTheme(activeTheme);
-  }, []);
+
 
   // Reset loading states when returning from browser back/forward cache (bfcache)
   useEffect(() => {
@@ -219,11 +212,7 @@ export default function LoginPage() {
     };
   }, []);
 
-  const toggleTheme = () => {
-    const nextTheme = theme === "light" ? "dark" : "light";
-    setTheme(nextTheme);
-    document.documentElement.setAttribute("data-theme", nextTheme);
-  };
+
 
   const handleTabChange = (loginState: boolean) => {
     setIsLogin(loginState);

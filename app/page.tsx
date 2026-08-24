@@ -370,7 +370,6 @@ const POPULAR_CATEGORIES_DATA: PopularCategory[] = [
 export default function Home() {
   const { totalItemsCount, addToCart, cartBounce } = useCart();
   const router = useRouter();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -540,10 +539,7 @@ export default function Home() {
     }
   };
 
-  // Apply theme to document element
-  React.useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
+
 
   // Auto-advance advert slides every 15 seconds
   React.useEffect(() => {
@@ -566,9 +562,7 @@ export default function Home() {
     setCurrentSlideIndex((prev) => (prev + 1) % activeSlides.length);
   };
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
+
 
 
 

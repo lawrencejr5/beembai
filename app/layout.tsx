@@ -6,6 +6,7 @@ import AiShopper from "@/app/components/AiShopper";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { NavigationProvider } from "@/app/context/NavigationContext";
+import { ThemeProvider } from "@/app/context/ThemeContext";
 
 const figtree = localFont({
   src: [
@@ -73,13 +74,33 @@ export default function RootLayout({
 }>) {
   return (
     <ConvexAuthNextjsServerProvider>
-      <html lang="en" className={figtree.variable}>
+      <html lang="en" className={figtree.variable} suppressHydrationWarning>
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  try {
+                    var theme = localStorage.getItem('beembai_theme');
+                    if (theme === 'dark') {
+                      document.documentElement.setAttribute('data-theme', 'dark');
+                    } else {
+                      document.documentElement.setAttribute('data-theme', 'light');
+                    }
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
+        </head>
         <body>
           <ConvexClientProvider>
             <NavigationProvider>
               <CartProvider>
-                {children}
-                {/* <AiShopper /> */}
+                <ThemeProvider>
+                  {children}
+                  {/* <AiShopper /> */}
+                </ThemeProvider>
               </CartProvider>
             </NavigationProvider>
           </ConvexClientProvider>

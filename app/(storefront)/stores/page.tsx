@@ -143,22 +143,9 @@ const getStoreInitials = (name: string): string => {
 
 export default function StoresPage() {
   const { totalItemsCount, cartBounce } = useCart();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Sync theme
-  useEffect(() => {
-    const activeTheme =
-      (document.documentElement.getAttribute("data-theme") as
-        "light" | "dark") || "light";
-    setTheme(activeTheme);
-  }, []);
 
-  const toggleTheme = () => {
-    const nextTheme = theme === "light" ? "dark" : "light";
-    setTheme(nextTheme);
-    document.documentElement.setAttribute("data-theme", nextTheme);
-  };
 
   const dbStores = useQuery(api.products.getStores);
   const stores = dbStores || [];

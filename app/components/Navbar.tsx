@@ -8,6 +8,7 @@ import { formatNumber } from "@/app/data/data";
 
 import UserMenu from "./UserMenu";
 import styles from "./Navbar.module.css";
+import { useTheme } from "@/app/context/ThemeContext";
 
 // SVG Components
 const CartIcon = () => (
@@ -71,22 +72,12 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { totalItemsCount, cartBounce } = useCart();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-
-
-  // Sync theme state with document element attribute
   useEffect(() => {
-    const activeTheme =
-      (document.documentElement.getAttribute("data-theme") as "light" | "dark") || "light";
-    setTheme(activeTheme);
+    setMounted(true);
   }, []);
-
-  const toggleTheme = () => {
-    const nextTheme = theme === "light" ? "dark" : "light";
-    setTheme(nextTheme);
-    document.documentElement.setAttribute("data-theme", nextTheme);
-  };
 
   // Helper to determine if a link is active
   const isActive = (path: string) => {
@@ -139,9 +130,9 @@ export default function Navbar() {
         <button
           onClick={toggleTheme}
           className={styles.themeToggleBtn}
-          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          aria-label={mounted ? `Switch to ${theme === "light" ? "dark" : "light"} mode` : "Switch theme"}
         >
-          {theme === "light" ? <MoonIcon /> : <SunIcon />}
+          {mounted ? (theme === "light" ? <MoonIcon /> : <SunIcon />) : <div style={{ width: 18, height: 18 }} />}
         </button>
 
         <Link
