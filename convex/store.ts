@@ -113,6 +113,7 @@ function generateSlug(name: string): string {
   return name
     .toLowerCase()
     .trim()
+    .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
@@ -193,6 +194,7 @@ export const updateStore = mutation({
   args: {
     storeId: v.id("stores"),
     name: v.string(),
+    slug: v.optional(v.string()),
     category: v.string(),
     description: v.string(),
     physicalAddress: v.string(),
@@ -217,9 +219,25 @@ export const updateStore = mutation({
       throw new Error("Unauthorized or Store not found");
     }
 
+    // Use manually provided slug or fallback to name generator
+    let slug = generateSlug(args.slug || args.name);
+    if (slug !== store.slug) {
+      const slugExists = await ctx.db
+        .query("stores")
+        .withIndex("by_slug", (q) => q.eq("slug", slug))
+        .first();
+
+      if (slugExists && slugExists._id !== args.storeId) {
+        slug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+    } else {
+      slug = store.slug;
+    }
+
     // Update the store
     await ctx.db.patch(args.storeId, {
       name: args.name,
+      slug,
       category: args.category,
       description: args.description,
       physicalAddress: args.physicalAddress,
@@ -232,7 +250,6 @@ export const updateStore = mutation({
       accountName: args.accountName,
       accountNumber: args.accountNumber,
       routingNumber: args.routingNumber,
-      status: "pending", // Reset status back to pending upon edit
     });
 
     return args.storeId;
@@ -642,4 +659,36 @@ export const getStoreAnalyticsForOwner = query({
     };
   },
 });
+
+// Delete a store owned by the user, along with all its products
+export const sellerDeleteStore = mutation({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const store = await ctx.db.get(args.storeId);
+    if (!store || store.userId !== userId) {
+      throw new Error("Unauthorized or Store not found");
+    }
+
+    // Delete all products associated with this store
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
+      .collect();
+
+    for (const product of products) {
+      await ctx.db.delete(product._id);
+    }
+
+    // Delete the store itself
+    await ctx.db.delete(args.storeId);
+
+    return { success: true };
+  },
+});
+
 

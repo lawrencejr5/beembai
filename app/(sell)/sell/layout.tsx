@@ -24,6 +24,16 @@ interface Store {
   rating: number;
   logo?: string;
   banner?: string;
+  physicalAddress?: string;
+  city?: string;
+  stateName?: string;
+  country?: string;
+  email?: string;
+  phone?: string;
+  bankName?: string;
+  accountName?: string;
+  accountNumber?: string;
+  routingNumber?: string;
 }
 
 interface SellerStoreContextType {
@@ -48,7 +58,7 @@ const navItems = [
   { href: "/sell", label: "Overview", icon: "🏪", exact: true },
   { href: "/sell/products", label: "Products", icon: "📦", exact: false },
   { href: "/sell/orders", label: "Orders", icon: "🛒", exact: false },
-  { href: "/sell/analytics", label: "Analytics", icon: "📈", exact: false },
+  { href: "/sell/settings", label: "Settings", icon: "⚙️", exact: false },
 ];
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
