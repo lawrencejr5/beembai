@@ -1505,6 +1505,11 @@
   line-height: 1.5;
 }
 
+:global([data-theme="dark"]) .subscribeSubtitle {
+  color: var(--color-coconut);
+  opacity: 0.8;
+}
+
 .subscribeForm {
   display: flex;
   width: 100%;
@@ -1527,6 +1532,11 @@
   outline: none;
   border-color: var(--color-palm);
   box-shadow: 0 0 0 3px rgba(99, 109, 33, 0.1);
+}
+
+.subscribeInput::placeholder {
+  color: var(--color-olive-gray);
+  opacity: 0.6;
 }
 
 .subscribeBtn {
@@ -1582,7 +1592,7 @@
 
 :global([data-theme="dark"]) .footer {
   background-color: var(--color-cream);
-  color: var(--color-papyrus);
+  color: var(--color-coconut);
   border-top: 1px solid var(--color-border);
 }
 
@@ -1610,7 +1620,7 @@
 }
 
 :global([data-theme="dark"]) .footerLogo {
-  color: var(--color-papyrus);
+  color: var(--color-coconut);
 }
 
 .footerDescription {
@@ -1638,8 +1648,8 @@
 }
 
 :global([data-theme="dark"]) .socialBtn {
-  background-color: rgba(40, 38, 0, 0.1);
-  color: var(--color-papyrus);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-coconut);
 }
 
 .socialBtn:hover {
