@@ -19,7 +19,7 @@ const formatCurrency = (amount: number) => {
 
 // ─── Add Product Modal Component ──────────────────────────────────────────────
 
-function AddProductModal({
+export function AddProductModal({
   onClose,
   preSelectedStoreId,
   allowedStores,
@@ -581,21 +581,23 @@ export default function SellerProductsPage() {
                     <tr key={p._id}>
                       <td>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <img
-                            src={p.image}
-                            alt=""
-                            style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", background: "var(--seller-content-bg)" }}
-                          />
-                          <div style={{ display: "flex", flexDirection: "column" }}>
-                            <span style={{ fontWeight: 700, color: "var(--seller-text-primary)", display: "block", maxWidth: 280, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {p.title}
-                            </span>
-                            {activeStoreId === null && p.brand && (
-                              <span style={{ fontSize: 11, color: "var(--seller-text-secondary)" }}>
-                                Store: {p.brand}
+                          <Link href={`/sell/products/${p._id}`} style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "inherit" }}>
+                            <img
+                              src={p.image}
+                              alt=""
+                              style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", background: "var(--seller-content-bg)", cursor: "pointer" }}
+                            />
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <span style={{ fontWeight: 700, color: "var(--seller-text-primary)", display: "block", maxWidth: 280, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}>
+                                {p.title}
                               </span>
-                            )}
-                          </div>
+                              {activeStoreId === null && p.brand && (
+                                <span style={{ fontSize: 11, color: "var(--seller-text-secondary)" }}>
+                                  Store: {p.brand}
+                                </span>
+                              )}
+                            </div>
+                          </Link>
                         </div>
                       </td>
                       <td>{p.categoryName}</td>
@@ -623,14 +625,6 @@ export default function SellerProductsPage() {
                       </td>
                       <td style={{ textAlign: "right" }}>
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                          <Link
-                            href={`/product/${p._id}`}
-                            target="_blank"
-                            className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
-                            style={{ display: "inline-flex", padding: "4px 8px", textDecoration: "none" }}
-                          >
-                            👁️ View
-                          </Link>
                           <button
                             onClick={() => {
                               setProductToEdit(p);
