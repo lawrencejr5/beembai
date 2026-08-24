@@ -23,30 +23,32 @@ function AddProductModal({
   onClose,
   preSelectedStoreId,
   allowedStores,
+  productToEdit,
 }: {
   onClose: () => void;
   preSelectedStoreId: string | null;
   allowedStores: any[];
+  productToEdit?: any;
 }) {
   const [step, setStep] = useState(1);
   const [selectedStoreId, setSelectedStoreId] = useState<string>(
-    preSelectedStoreId || (allowedStores[0]?._id as string) || ""
+    productToEdit?.storeId || preSelectedStoreId || (allowedStores[0]?._id as string) || ""
   );
 
   // Step 1 Form fields
-  const [productTitle, setProductTitle] = useState("");
-  const [productCategory, setProductCategory] = useState("Phone & Tablets");
-  const [productPrice, setProductPrice] = useState("");
-  const [originalPrice, setOriginalPrice] = useState("");
-  const [productDesc, setProductDesc] = useState("");
-  const [productCondition, setProductCondition] = useState("New");
-  const [productColors, setProductColors] = useState("");
-  const [productStock, setProductStock] = useState("");
-  const [youtubeLink, setYoutubeLink] = useState("");
+  const [productTitle, setProductTitle] = useState(productToEdit?.title || "");
+  const [productCategory, setProductCategory] = useState(productToEdit?.categoryName || "Phone & Tablets");
+  const [productPrice, setProductPrice] = useState(productToEdit?.price ? String(productToEdit.price) : "");
+  const [originalPrice, setOriginalPrice] = useState(productToEdit?.originalPrice ? String(productToEdit.originalPrice) : "");
+  const [productDesc, setProductDesc] = useState(productToEdit?.description || "");
+  const [productCondition, setProductCondition] = useState(productToEdit?.condition || "New");
+  const [productColors, setProductColors] = useState(productToEdit?.colors ? productToEdit.colors.join(", ") : "");
+  const [productStock, setProductStock] = useState(productToEdit?.stock ? String(productToEdit.stock) : "");
+  const [youtubeLink, setYoutubeLink] = useState(productToEdit?.youtubeLink || "");
 
   // Step 2 Upload fields
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [mainImage, setMainImage] = useState<string>("");
+  const [uploadedImages, setUploadedImages] = useState<string[]>(productToEdit?.images || []);
+  const [mainImage, setMainImage] = useState<string>(productToEdit?.image || "");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +60,7 @@ function AddProductModal({
   const generateUploadUrl = useMutation(api.store.generateUploadUrl);
   const resolveStorageUrl = useMutation(api.products.resolveStorageUrl);
   const createProductMut = useMutation(api.products.createProduct);
+  const updateProductMut = useMutation(api.products.updateProduct);
 
   const categories = useQuery(api.products.getCategories);
 
@@ -130,28 +133,45 @@ function AddProductModal({
 
     try {
       const colorsArr = productColors
-        ? productColors.split(",").map((c) => c.trim()).filter((c) => c.length > 0)
+        ? productColors.split(",").map((c: string) => c.trim()).filter((c: string) => c.length > 0)
         : [];
 
-      await createProductMut({
-        title: productTitle,
-        price: parseFloat(productPrice),
-        originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
-        categoryName: productCategory,
-        description: productDesc || undefined,
-        condition: productCondition || undefined,
-        colors: colorsArr.length > 0 ? colorsArr : undefined,
-        stock: productStock ? parseInt(productStock) : undefined,
-        storeId: selectedStoreId as Id<"stores">,
-        image: mainImage,
-        images: uploadedImages,
-        youtubeLink: youtubeLink || undefined,
-      });
+      if (productToEdit) {
+        await updateProductMut({
+          productId: productToEdit._id,
+          title: productTitle,
+          price: parseFloat(productPrice),
+          originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+          categoryName: productCategory,
+          description: productDesc || undefined,
+          condition: productCondition || undefined,
+          colors: colorsArr.length > 0 ? colorsArr : undefined,
+          stock: productStock ? parseInt(productStock) : undefined,
+          image: mainImage,
+          images: uploadedImages,
+          youtubeLink: youtubeLink || undefined,
+        });
+      } else {
+        await createProductMut({
+          title: productTitle,
+          price: parseFloat(productPrice),
+          originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+          categoryName: productCategory,
+          description: productDesc || undefined,
+          condition: productCondition || undefined,
+          colors: colorsArr.length > 0 ? colorsArr : undefined,
+          stock: productStock ? parseInt(productStock) : undefined,
+          storeId: selectedStoreId as Id<"stores">,
+          image: mainImage,
+          images: uploadedImages,
+          youtubeLink: youtubeLink || undefined,
+        });
+      }
 
       onClose();
     } catch (err: any) {
       console.error(err);
-      setSubmitError(err.message || "Failed to create product listing.");
+      setSubmitError(err.message || "Failed to save product listing.");
     } finally {
       setIsSubmitting(false);
     }
@@ -163,7 +183,9 @@ function AddProductModal({
     <div className={styles.modalOverlay}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>List New Product</h3>
+          <h3 className={styles.modalTitle}>
+            {productToEdit ? "Edit Product Details" : "List New Product"}
+          </h3>
           <button className={styles.modalClose} onClick={onClose}>×</button>
         </div>
         <div className={styles.modalBody}>
@@ -414,6 +436,22 @@ export default function SellerProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "pending" | "rejected">("all");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<any>(null);
+
+  const deleteProductMut = useMutation(api.products.sellerDeleteProduct);
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this product listing? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await deleteProductMut({ productId: productId as Id<"products"> });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete product. Please try again.");
+    }
+  };
 
   // Fetch products conditionally
   const allStoresProducts = useQuery(
@@ -533,6 +571,7 @@ export default function SellerProductsPage() {
                   <th>Stock Levels</th>
                   <th>Unit Price</th>
                   <th>Listing Status</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -582,6 +621,35 @@ export default function SellerProductsPage() {
                           {status.replace("_", " ")}
                         </span>
                       </td>
+                      <td style={{ textAlign: "right" }}>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                          <Link
+                            href={`/product/${p._id}`}
+                            target="_blank"
+                            className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
+                            style={{ display: "inline-flex", padding: "4px 8px", textDecoration: "none" }}
+                          >
+                            👁️ View
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setProductToEdit(p);
+                              setShowAddModal(true);
+                            }}
+                            className={`${styles.btn} ${styles.btnSuccess} ${styles.btnSm}`}
+                            style={{ padding: "4px 8px" }}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p._id)}
+                            className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
+                            style={{ padding: "4px 8px" }}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -596,7 +664,11 @@ export default function SellerProductsPage() {
         <AddProductModal
           preSelectedStoreId={activeStoreId}
           allowedStores={stores}
-          onClose={() => setShowAddModal(false)}
+          productToEdit={productToEdit}
+          onClose={() => {
+            setShowAddModal(false);
+            setProductToEdit(null);
+          }}
         />
       )}
     </div>

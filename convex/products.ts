@@ -283,3 +283,33 @@ export const getProductsByCategorySlug = query({
   },
 });
 
+// Delete an existing product owned by the current user
+export const sellerDeleteProduct = mutation({
+  args: { productId: v.id("products") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const product = await ctx.db.get(args.productId);
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    // Verify user owns the store that sells this product
+    if (product.storeId) {
+      const store = await ctx.db.get(product.storeId);
+      if (!store || store.userId !== userId) {
+        throw new Error("Unauthorized");
+      }
+    } else {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.delete(args.productId);
+    return { success: true };
+  },
+});
+
+
