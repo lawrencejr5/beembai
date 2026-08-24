@@ -271,15 +271,21 @@ export default function BuyFromAbroad() {
       <main className={styles.mainContent}>
         {/* Hero Section */}
         <section className={styles.hero}>
-          <div className={styles.heroTag}>
-            <SparklesIcon />
-            <span>Beembai Global Reach</span>
+          <div className={styles.heroContent}>
+            <div className={styles.heroTag}>
+              <SparklesIcon />
+              <span>Beembai Global Reach</span>
+            </div>
+            <h1 className={styles.heroTitle}>Shop from Stores Abroad</h1>
+            <p className={`${styles.heroSubtitle} ${styles.desktopText}`}>
+              Copy and paste links from international retailers like Amazon, eBay, and Zara. 
+              We calculate duty fees, conversion rates, and cargo shipping so you pay in Naira.
+            </p>
+            <p className={`${styles.heroSubtitle} ${styles.mobileText}`}>
+              Copy links from international stores like Amazon, eBay, and Zara. 
+              We handle customs, currency conversion, and shipping to Nigeria.
+            </p>
           </div>
-          <h1 className={styles.heroTitle}>Shop from Stores Abroad</h1>
-          <p className={styles.heroSubtitle}>
-            Copy and paste links from international retailers like Amazon, eBay, and Zara. 
-            We calculate duty fees, conversion rates, and cargo shipping so you pay in Naira.
-          </p>
         </section>
 
         {/* Input Section */}
