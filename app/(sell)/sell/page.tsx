@@ -35,6 +35,16 @@ export default function SellerDashboardPage() {
 
   const [updatingLogo, setUpdatingLogo] = useState(false);
   const [updatingBanner, setUpdatingBanner] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = (slug: string) => {
+    if (typeof window !== "undefined") {
+      const fullUrl = `${window.location.origin}/stores/${slug}`;
+      navigator.clipboard.writeText(fullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -251,6 +261,58 @@ export default function SellerDashboardPage() {
 
             {/* Adjust space for overlapping profile image */}
             <div style={{ height: 44 }} />
+          </div>
+        );
+      })()}
+
+      {/* Storefront Link Card */}
+      {activeStoreId !== null && (() => {
+        const activeStore = stores.find((s) => s._id === activeStoreId);
+        if (!activeStore) return null;
+
+        const livePath = `/stores/${activeStore.slug}`;
+
+        return (
+          <div
+            className={styles.sellerCard}
+            style={{
+              marginBottom: 28,
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 20 }}>🔗</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--seller-text-secondary)", letterSpacing: 0.5 }}>
+                  Storefront Live Link
+                </span>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--seller-accent)", fontFamily: "monospace", wordBreak: "break-all" }}>
+                  {typeof window !== "undefined" ? `${window.location.origin}/stores/${activeStore.slug}` : `/stores/${activeStore.slug}`}
+                </span>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() => handleCopyLink(activeStore.slug)}
+                className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
+                style={{ padding: "6px 12px", border: "1px solid var(--seller-content-bg)", fontSize: 12.5 }}
+              >
+                {copied ? "✓ Copied" : "📋 Copy Link"}
+              </button>
+              <Link
+                href={livePath}
+                target="_blank"
+                className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSm}`}
+                style={{ textDecoration: "none", display: "inline-flex", padding: "6px 12px", fontSize: 12.5 }}
+              >
+                ↗ Go to Store
+              </Link>
+            </div>
           </div>
         );
       })()}
