@@ -158,7 +158,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <div className={styles.adminCardHeader}><h3 className={styles.adminCardTitle}>Buyer</h3></div>
             <div className={styles.adminCardBody}>
               <div className={styles.infoRow}><span className={styles.infoRowLabel}>Name</span><span className={styles.infoRowValue}>{(order as any).buyer?.name ?? order.address.fullName}</span></div>
-              <div className={styles.infoRow}><span className={styles.infoRowLabel}>Email</span><span className={styles.infoRowValue} style={{ fontSize: 12 }}>{(order as any).buyer?.email ?? "—"}</span></div>
+              <div className={styles.infoRow}><span className={styles.infoRowLabel}>Email</span><span className={styles.infoRowValue} style={{ fontSize: 12 }}>{(order as any).buyer?.email ?? order.email ?? "—"}</span></div>
               {(order as any).paystackReference && (
                 <div className={styles.infoRow}>
                   <span className={styles.infoRowLabel}>Ref</span>

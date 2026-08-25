@@ -270,6 +270,10 @@ export default function SellerOrderDetailPage() {
                 <span className={styles.infoRowValue}>{order.address?.fullName || "—"}</span>
               </div>
               <div className={styles.infoRow}>
+                <span className={styles.infoRowLabel}>Buyer Email</span>
+                <span className={styles.infoRowValue}>{(order as any).buyerEmail || "—"}</span>
+              </div>
+              <div className={styles.infoRow}>
                 <span className={styles.infoRowLabel}>Contact Phone</span>
                 <span className={styles.infoRowValue}>{order.address?.phone || "—"}</span>
               </div>

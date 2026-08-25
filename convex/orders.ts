@@ -392,10 +392,15 @@ export const getSellerOrderById = query({
     // Find the first storeId in the seller's items to facilitate status updates
     const storeId = sellerItems[0].storeId;
 
+    // Fetch buyer info
+    const buyer = order.userId ? await ctx.db.get(order.userId) : null;
+
     return {
       _id: order._id,
       _creationTime: order._creationTime,
       userId: order.userId,
+      buyerEmail: buyer?.email ?? order.email ?? "Guest",
+      buyerName: buyer?.name ?? order.address.fullName,
       items: sellerItems,
       address: order.address,
       shippingMethod: order.shippingMethod,
