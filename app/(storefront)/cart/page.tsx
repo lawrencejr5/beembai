@@ -116,11 +116,7 @@ export default function CartPage() {
 
   const handleGoBack = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
+    router.push("/");
   };
 
   const handleApplyPromo = (e: React.FormEvent) => {

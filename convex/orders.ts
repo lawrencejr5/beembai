@@ -24,11 +24,14 @@ export const getUserOrders = query({
 /** Get details of a guest order if ID and email match */
 export const getGuestOrder = query({
   args: {
-    orderId: v.id("orders"),
+    orderId: v.string(),
     email: v.string(),
   },
   handler: async (ctx, args) => {
-    const order = await ctx.db.get(args.orderId);
+    const parsedId = ctx.db.normalizeId("orders", args.orderId);
+    if (!parsedId) return null;
+
+    const order = await ctx.db.get(parsedId);
     if (!order) return null;
     if (!order.email || order.email.toLowerCase() !== args.email.toLowerCase()) {
       return null;

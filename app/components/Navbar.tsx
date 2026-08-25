@@ -122,6 +122,12 @@ export default function Navbar() {
         >
           Buy from Abroad
         </Link>
+        <Link
+          href="/orders"
+          className={`${styles.navLink} ${isActive("/orders") ? styles.activeNavLink : ""}`}
+        >
+          Track Order
+        </Link>
       </nav>
 
       <div className={styles.navActions}>
