@@ -775,7 +775,7 @@
 .moreItemsLabel {
   font-size: 0.72rem;
   font-weight: 800;
-  color: var(--color-olive-gray);
+  color: var(--color-palm);
   background-color: var(--color-sand);
   border: 1.5px solid var(--color-border);
   padding: 2px 6px;
@@ -789,6 +789,23 @@
   z-index: 5;
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.08);
   transform: rotate(3deg);
+}
+
+.changeBtn {
+  background-color: var(--color-sand);
+  border: 1.5px solid var(--color-border);
+  color: var(--foreground);
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.changeBtn:hover {
+  background-color: var(--color-border);
 }
 
 

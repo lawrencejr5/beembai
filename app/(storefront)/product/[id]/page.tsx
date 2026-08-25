@@ -217,6 +217,8 @@ export default function ProductPage({ params }: ProductPageProps) {
         youtubeLink: dbProduct.youtubeLink,
         status: dbProduct.status,
         brand: dbProduct.brand,
+        rating: dbProduct.rating,
+        numReviews: dbProduct.numReviews,
       };
     }
     return undefined;
