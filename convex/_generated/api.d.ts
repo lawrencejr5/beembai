@@ -18,6 +18,7 @@ import type * as orders from "../orders.js";
 import type * as paystackActions from "../paystackActions.js";
 import type * as paystackBilling from "../paystackBilling.js";
 import type * as products from "../products.js";
+import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
 import type * as store from "../store.js";
 import type * as users from "../users.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   paystackActions: typeof paystackActions;
   paystackBilling: typeof paystackBilling;
   products: typeof products;
+  reviews: typeof reviews;
   seed: typeof seed;
   store: typeof store;
   users: typeof users;

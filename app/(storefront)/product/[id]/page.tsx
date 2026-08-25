@@ -144,6 +144,37 @@ const ArrowLeftIcon = () => (
   </svg>
 );
 
+const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+  return (
+    <div style={{ display: "inline-flex", gap: "2px", alignItems: "center" }}>
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <svg key={`full-${i}`} width={size} height={size} viewBox="0 0 24 24" fill="#FBBF24">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+      {hasHalfStar && (
+        <div style={{ width: size, height: size, position: "relative" }}>
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="#E5E7EB" style={{ position: "absolute", top: 0, left: 0 }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="#FBBF24" style={{ position: "absolute", top: 0, left: 0, clipPath: "polygon(0 0, 50% 0, 50% 100%, 0 100%)" }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        </div>
+      )}
+      {Array.from({ length: emptyStars }).map((_, i) => (
+        <svg key={`empty-${i}`} width={size} height={size} viewBox="0 0 24 24" fill="#E5E7EB">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+    </div>
+  );
+};
+
 interface ProductPageProps {
   params: Promise<{ id: string }> | { id: string };
 }
@@ -212,6 +243,12 @@ export default function ProductPage({ params }: ProductPageProps) {
     product?.storeId ? { storeId: product.storeId } : "skip"
   );
   const isOwner = !!store;
+
+  // Query reviews for product
+  const productReviews = useQuery(
+    api.reviews.getProductReviews,
+    !mockProduct && product?.id ? { productId: product.id } : "skip"
+  );
 
   const updateProductMut = useMutation(api.products.updateProduct);
 
@@ -519,6 +556,19 @@ export default function ProductPage({ params }: ProductPageProps) {
           )}
         </div>
 
+        {/* Rating summary */}
+        {product.rating !== undefined && product.rating > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem", marginTop: "-0.25rem" }}>
+            <StarRating rating={product.rating} />
+            <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--color-papyrus)" }}>
+              {product.rating.toFixed(1)}
+            </span>
+            <span style={{ fontSize: "0.85rem", color: "var(--color-olive-gray)" }}>
+              ({product.numReviews} {product.numReviews === 1 ? "review" : "reviews"})
+            </span>
+          </div>
+        )}
+
         {product.status === "pending" && (
           <div className={styles.pendingReviewBanner}>
             ⚠️ This product is pending review. Buy now and Add to cart are disabled until approval.
@@ -813,6 +863,104 @@ export default function ProductPage({ params }: ProductPageProps) {
                 </p>
               );
             })()}
+          </div>
+        )}
+      </section>
+
+      {/* Customer Reviews Section */}
+      <section className={styles.reviewsSection}>
+        <div className={styles.reviewsHeader}>
+          <span className={styles.sectionTag}>Feedback</span>
+          <h2 className={styles.sectionTitle}>Customer Reviews</h2>
+        </div>
+
+        {productReviews && productReviews.length > 0 ? (
+          (() => {
+            // Calculate rating counts
+            const counts = [0, 0, 0, 0, 0]; // 1 to 5 stars
+            productReviews.forEach((r) => {
+              const idx = Math.max(1, Math.min(5, Math.floor(r.rating))) - 1;
+              counts[idx] += 1;
+            });
+            const total = productReviews.length;
+
+            return (
+              <div className={styles.reviewsGrid}>
+                {/* Left Side: Rating summary card */}
+                <div className={styles.ratingSummaryCard}>
+                  <span className={styles.bigRatingNumber}>
+                    {product.rating ? product.rating.toFixed(1) : "0.0"}
+                  </span>
+                  <StarRating rating={product.rating || 0} size={22} />
+                  <span className={styles.ratingCountLabel}>
+                    Based on {total} {total === 1 ? "review" : "reviews"}
+                  </span>
+
+                  {/* Distribution list */}
+                  <div className={styles.distributionList}>
+                    {[5, 4, 3, 2, 1].map((stars) => {
+                      const count = counts[stars - 1];
+                      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                      return (
+                        <div key={stars} className={styles.distributionRow}>
+                          <span className={styles.starLabel}>{stars} Star</span>
+                          <div className={styles.progressBarContainer}>
+                            <div
+                              className={styles.progressBarFill}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className={styles.percentageLabel}>{pct}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Right Side: Reviews list */}
+                <div className={styles.reviewsList}>
+                  {productReviews.map((review: any) => (
+                    <div key={review._id} className={styles.reviewCard}>
+                      <div className={styles.reviewUserRow}>
+                        <div className={styles.userInfoBlock}>
+                          <div className={styles.userAvatar}>
+                            {review.userImage ? (
+                              <img
+                                src={review.userImage}
+                                alt={review.userName}
+                                className={styles.avatarImage}
+                              />
+                            ) : (
+                              review.userName[0].toUpperCase()
+                            )}
+                          </div>
+                          <div>
+                            <div className={styles.userNameText}>{review.userName}</div>
+                            <span className={styles.reviewDate}>
+                              {new Date(review._creationTime).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        <StarRating rating={review.rating} size={14} />
+                      </div>
+                      <p className={styles.reviewComment}>{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()
+        ) : (
+          <div className={styles.noReviewsCard}>
+            <div className={styles.noReviewsIcon}>💬</div>
+            <h3 className={styles.noReviewsTitle}>No reviews yet</h3>
+            <p className={styles.noReviewsText}>
+              There are no customer reviews for this product yet. Only customers who have purchased this product can leave a review.
+            </p>
           </div>
         )}
       </section>

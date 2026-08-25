@@ -168,6 +168,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       <div className={styles.productDetails}>
         <span className={styles.productCategory}>{product.categoryName}</span>
+        
+        {/* Rating display */}
+        <div style={{ display: "flex", alignItems: "center", gap: "4px", margin: "2px 0 6px 0" }}>
+          {product.rating !== undefined && product.rating > 0 ? (
+            <>
+              <span style={{ color: "#FBBF24", fontSize: "0.85rem", lineHeight: 1 }}>★</span>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--foreground)" }}>
+                {product.rating.toFixed(1)}
+              </span>
+              <span style={{ fontSize: "0.72rem", color: "var(--color-olive-gray)" }}>
+                ({product.numReviews})
+              </span>
+            </>
+          ) : (
+            <span style={{ fontSize: "0.72rem", color: "var(--color-olive-gray)", opacity: 0.6 }}>
+              No reviews yet
+            </span>
+          )}
+        </div>
+
         <h3 className={styles.productTitle}>{product.title}</h3>
 
         <div className={styles.cardFooter}>

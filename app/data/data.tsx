@@ -17,6 +17,8 @@ export interface Product {
   isSponsored?: boolean;
   stock?: number;
   storeId?: string;
+  rating?: number;
+  numReviews?: number;
 }
 
 export interface Store {

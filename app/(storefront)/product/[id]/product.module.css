@@ -1166,3 +1166,232 @@
   cursor: not-allowed;
 }
 
+/* Reviews Section */
+.reviewsSection {
+  margin-top: 4.5rem;
+  border-top: 1.5px solid var(--color-border);
+  padding-top: 3rem;
+  margin-bottom: 4rem;
+}
+
+.reviewsHeader {
+  margin-bottom: 2rem;
+}
+
+.reviewsGrid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 3.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .reviewsGrid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+.ratingSummaryCard {
+  background-color: var(--color-sand);
+  border: 1.5px solid var(--color-border);
+  border-radius: 24px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+:global([data-theme="dark"]) .ratingSummaryCard {
+  background-color: rgba(30, 28, 5, 0.3);
+}
+
+.bigRatingNumber {
+  font-size: 3.5rem;
+  font-weight: 850;
+  color: var(--color-papyrus);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+:global([data-theme="dark"]) .bigRatingNumber {
+  color: var(--color-coconut);
+}
+
+.ratingCountLabel {
+  font-size: 0.85rem;
+  color: var(--color-olive-gray);
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.distributionList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.distributionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.starLabel {
+  width: 48px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .starLabel {
+  color: var(--color-coconut);
+}
+
+.progressBarContainer {
+  flex: 1;
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.06);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+:global([data-theme="dark"]) .progressBarContainer {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.progressBarFill {
+  height: 100%;
+  background-color: #FBBF24;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.percentageLabel {
+  width: 36px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--color-olive-gray);
+}
+
+/* Reviews List */
+.reviewsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.reviewCard {
+  background-color: var(--color-cream);
+  border: 1.5px solid var(--color-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+}
+
+.reviewUserRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.userInfoBlock {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-palm);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  overflow: hidden;
+  border: 1.5px solid var(--color-border);
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.userNameText {
+  font-weight: 750;
+  font-size: 0.92rem;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .userNameText {
+  color: var(--color-coconut);
+}
+
+.reviewDate {
+  font-size: 0.78rem;
+  color: var(--color-olive-gray);
+  font-weight: 600;
+}
+
+.reviewComment {
+  font-size: 0.9rem;
+  color: var(--color-papyrus);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+:global([data-theme="dark"]) .reviewComment {
+  color: var(--color-coconut);
+}
+
+.noReviewsCard {
+  border: 1.5px dashed var(--color-border);
+  border-radius: 24px;
+  padding: 3.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.noReviewsIcon {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.noReviewsTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .noReviewsTitle {
+  color: var(--color-coconut);
+}
+
+.noReviewsText {
+  font-size: 0.88rem;
+  color: var(--color-olive-gray);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatPrice } from "@/app/data/data";
@@ -146,8 +146,67 @@ export default function OrdersPage() {
     isAuthenticated ? {} : "skip"
   );
 
+  const userReviews = useQuery(
+    api.reviews.getUserReviews,
+    isAuthenticated ? {} : "skip"
+  );
+
+  const addOrUpdateReview = useMutation(api.reviews.addOrUpdateReview);
+
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+  // Review states
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewProductId, setReviewProductId] = useState<string | null>(null);
+  const [reviewProductTitle, setReviewProductTitle] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+  const reviewsMap = useMemo(() => {
+    const map = new Map<string, any>();
+    if (userReviews) {
+      userReviews.forEach(r => {
+        map.set(r.productId, r);
+      });
+    }
+    return map;
+  }, [userReviews]);
+
+  const handleOpenReviewModal = (productId: string, productTitle: string) => {
+    const existing = reviewsMap.get(productId);
+    setReviewProductId(productId);
+    setReviewProductTitle(productTitle);
+    setReviewRating(existing ? existing.rating : 5);
+    setReviewComment(existing ? existing.comment : "");
+    setReviewError("");
+    setIsReviewModalOpen(true);
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewProductId) return;
+
+    setIsSubmittingReview(true);
+    setReviewError("");
+
+    try {
+      await addOrUpdateReview({
+        productId: reviewProductId as any,
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      setIsReviewModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      setReviewError(err.message || "Failed to submit review. Please try again.");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // Redirect if unauthenticated
   if (!authLoading && !isAuthenticated) {
@@ -263,24 +322,38 @@ export default function OrdersPage() {
                       <div className={styles.detailSection}>
                         <h4 className={styles.detailSectionTitle}>Ordered Items ({order.items.length})</h4>
                         <div className={styles.itemsList}>
-                          {order.items.map((item: any, idx: number) => (
-                            <div key={idx} className={styles.itemRow}>
-                              <img
-                                src={item.image}
-                                alt={item.title}
-                                className={styles.itemRowImg}
-                              />
-                              <div className={styles.itemRowInfo}>
-                                <span className={styles.itemRowTitle}>{item.title}</span>
-                                <span className={styles.itemRowMeta}>
-                                  Qty: {item.quantity} {item.color ? `| Color: ${item.color}` : ""}
-                                </span>
+                          {order.items.map((item: any, idx: number) => {
+                            const hasReviewed = reviewsMap.has(item.productId);
+                            return (
+                              <div key={idx} className={styles.itemRow}>
+                                <img
+                                  src={item.image}
+                                  alt={item.title}
+                                  className={styles.itemRowImg}
+                                />
+                                <div className={styles.itemRowInfo}>
+                                  <span className={styles.itemRowTitle}>{item.title}</span>
+                                  <span className={styles.itemRowMeta}>
+                                    Qty: {item.quantity} {item.color ? `| Color: ${item.color}` : ""}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+                                  <span className={styles.itemRowPrice}>
+                                    ₦{formatPrice(item.price * item.quantity)}
+                                  </span>
+                                  {order.status === "delivered" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenReviewModal(item.productId, item.title)}
+                                      className={styles.reviewBtn}
+                                    >
+                                      {hasReviewed ? "Edit Review" : "Review Product"}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <span className={styles.itemRowPrice}>
-                                ₦{formatPrice(item.price * item.quantity)}
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -377,6 +450,82 @@ export default function OrdersPage() {
         )}
 
       </main>
+
+      {/* Review Modal Dialog */}
+      {isReviewModalOpen && (
+        <div className={styles.modalBackdrop} onClick={() => setIsReviewModalOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                {reviewsMap.has(reviewProductId || "") ? "Edit Review" : "Write Review"}
+              </h3>
+              <button className={styles.modalCloseBtn} onClick={() => setIsReviewModalOpen(false)}>
+                ✕
+              </button>
+            </div>
+            
+            <p style={{ fontSize: "0.85rem", color: "var(--color-olive-gray)", marginTop: "-4px" }}>
+              How would you rate <strong style={{ color: "var(--foreground)" }}>{reviewProductTitle}</strong>?
+            </p>
+
+            <form onSubmit={handleReviewSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {reviewError && (
+                <div style={{ color: "var(--color-error)", fontSize: "0.82rem", fontWeight: 700 }}>
+                  ⚠️ {reviewError}
+                </div>
+              )}
+
+              {/* Star selection */}
+              <div className={styles.ratingSelector}>
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const isFilled = hoverRating !== null ? star <= hoverRating : star <= reviewRating;
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(null)}
+                      className={styles.starButton}
+                    >
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill={isFilled ? "#FBBF24" : "#E5E7EB"}>
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                      </svg>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Review Comment textarea */}
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Write your review here. What did you like or dislike about the product?"
+                required
+                className={styles.reviewTextarea}
+              />
+
+              <div className={styles.modalActionsRow}>
+                <button
+                  type="button"
+                  onClick={() => setIsReviewModalOpen(false)}
+                  className={styles.cancelBtn}
+                  disabled={isSubmittingReview}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={isSubmittingReview}
+                >
+                  {isSubmittingReview ? "Submitting..." : "Submit Review"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

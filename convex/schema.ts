@@ -56,6 +56,8 @@ export default defineSchema({
     youtubeLink: v.optional(v.string()),
     status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))),
     rejectionReason: v.optional(v.string()),
+    rating: v.optional(v.number()),
+    numReviews: v.optional(v.number()),
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"])
@@ -174,4 +176,15 @@ export default defineSchema({
     paystackReference: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  reviews: defineTable({
+    userId: v.id("users"),
+    productId: v.id("products"),
+    storeId: v.id("stores"),
+    rating: v.number(),
+    comment: v.string(),
+  })
+    .index("by_productId", ["productId"])
+    .index("by_storeId", ["storeId"])
+    .index("by_userId_and_productId", ["userId", "productId"]),
 });

@@ -8,11 +8,43 @@ import styles from "../../admin.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+  return (
+    <div style={{ display: "inline-flex", gap: "2px", alignItems: "center" }}>
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <svg key={`full-${i}`} width={size} height={size} viewBox="0 0 24 24" fill="#FBBF24">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+      {hasHalfStar && (
+        <div style={{ width: size, height: size, position: "relative" }}>
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="#E5E7EB" style={{ position: "absolute", top: 0, left: 0 }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="#FBBF24" style={{ position: "absolute", top: 0, left: 0, clipPath: "polygon(0 0, 50% 0, 50% 100%, 0 100%)" }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        </div>
+      )}
+      {Array.from({ length: emptyStars }).map((_, i) => (
+        <svg key={`empty-${i}`} width={size} height={size} viewBox="0 0 24 24" fill="#E5E7EB">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+    </div>
+  );
+};
+
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = React.use(params);
   const productId = unwrappedParams.id as Id<"products">;
   const router = useRouter();
   const product = useQuery(api.admin.getProductByIdAdmin, { productId });
+  const reviews = useQuery(api.reviews.getProductReviews, { productId });
   const approveProduct = useMutation(api.admin.approveProduct);
   const rejectProduct = useMutation(api.admin.rejectProduct);
   const setFeatured = useMutation(api.admin.setProductFeatured);
@@ -107,9 +139,20 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div style={{ marginBottom: 6 }}>
             <Link href="/admin/products" style={{ fontSize: 13, color: "#6b6540" }}>← Products</Link>
           </div>
-          <h1 className={styles.pageTitle} style={{ fontSize: 22, maxWidth: 600 }}>{product.title}</h1>
-          <p className={styles.pageSubtitle}>{product.categoryName} · {product.store?.name ?? "No store"}</p>
-        </div>
+            <h1 className={styles.pageTitle} style={{ fontSize: 22, maxWidth: 600 }}>{product.title}</h1>
+            <p className={styles.pageSubtitle}>{product.categoryName} · {product.store?.name ?? "No store"}</p>
+            {product.rating !== undefined && product.rating > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                <StarRating rating={product.rating} size={14} />
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "#282600" }}>
+                  {product.rating.toFixed(1)} / 5.0
+                </span>
+                <span style={{ fontSize: "12px", color: "#6b6540" }}>
+                  ({product.numReviews} {product.numReviews === 1 ? "review" : "reviews"})
+                </span>
+              </div>
+            )}
+          </div>
         <div className={styles.flexRow}>
           {status === "pending" && (
             <>
@@ -173,6 +216,62 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0ebe0" }}>
                   <div className={styles.infoRowLabel} style={{ marginBottom: 8 }}>Description</div>
                   <p style={{ fontSize: 13.5, color: "#282600", lineHeight: 1.6 }}>{product.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reviews list for Admin */}
+          <div className={styles.adminCard}>
+            <div className={styles.adminCardHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 className={styles.adminCardTitle}>Reviews & Feedback</h3>
+              {product.rating !== undefined && product.rating > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <StarRating rating={product.rating} size={14} />
+                  <span style={{ fontSize: "13px", fontWeight: 700 }}>
+                    {product.rating.toFixed(1)} ({product.numReviews})
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className={styles.adminCardBody}>
+              {reviews && reviews.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {reviews.map((review: any) => (
+                    <div key={review._id} style={{ paddingBottom: "16px", borderBottom: "1px solid #f0ebe0", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <div style={{
+                            width: "32px", height: "32px", borderRadius: "50%", background: "#636d21",
+                            color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                            fontWeight: 800, fontSize: "12px", overflow: "hidden"
+                          }}>
+                            {review.userImage ? (
+                              <img src={review.userImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              review.userName ? review.userName[0].toUpperCase() : "A"
+                            )}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: "13px", color: "#282600" }}>{review.userName}</div>
+                            <span style={{ fontSize: "10px", color: "#6b6540" }}>
+                              {new Date(review._creationTime).toLocaleDateString("en-NG", {
+                                year: "numeric", month: "short", day: "numeric"
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        <StarRating rating={review.rating} size={12} />
+                      </div>
+                      <p style={{ fontSize: "13px", color: "#6b6540", margin: 0, lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+                        {review.comment}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", padding: "16px 0", color: "#6b6540", fontSize: "13px" }}>
+                  💬 No reviews for this product yet.
                 </div>
               )}
             </div>
