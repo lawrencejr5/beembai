@@ -107,6 +107,7 @@ export default function CartPage() {
     text: string;
     isError: boolean;
   } | null>(null);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
   const shippingFee = selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10;
   const finalTotal = Math.max(
@@ -413,7 +414,7 @@ export default function CartPage() {
               <button type="button" className={styles.checkoutBtn} disabled>
                 Proceed to Checkout (₦0)
               </button>
-            ) : (
+            ) : user ? (
               <Link
                 href="/checkout"
                 className={styles.checkoutBtn}
@@ -421,6 +422,14 @@ export default function CartPage() {
               >
                 Proceed to Checkout (₦{formatPrice(finalTotal)})
               </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowGuestPrompt(true)}
+                className={styles.checkoutBtn}
+              >
+                Proceed to Checkout (₦{formatPrice(finalTotal)})
+              </button>
             )}
 
             <div className={styles.trustFooter}>
@@ -428,6 +437,57 @@ export default function CartPage() {
               <span>Encrypted 256-bit SSL Checkout</span>
             </div>
           </aside>
+        </div>
+      )}
+
+      {showGuestPrompt && (
+        <div className={styles.modalOverlay} onClick={() => setShowGuestPrompt(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Checkout Preference</h3>
+              <button className={styles.closeBtn} onClick={() => setShowGuestPrompt(false)}>
+                &times;
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div>
+                <h4 className={styles.benefitsTitle}>Why sign in to your account?</h4>
+                <ul className={styles.benefitsList}>
+                  <li className={styles.benefitItem}>
+                    <span className={styles.benefitIcon}>✓</span>
+                    <span><strong>Seamless Order Tracking:</strong> Track the delivery status of your order directly from your profile timeline anytime.</span>
+                  </li>
+                  <li className={styles.benefitItem}>
+                    <span className={styles.benefitIcon}>✓</span>
+                    <span><strong>Saved Checkout Details:</strong> Securely save multiple shipping addresses and payment methods for a faster 1-click checkout.</span>
+                  </li>
+                  <li className={styles.benefitItem}>
+                    <span className={styles.benefitIcon}>✓</span>
+                    <span><strong>Order History & Receipts:</strong> Keep a permanent, downloadable record of your purchases, payment receipts, and order statuses.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className={styles.modalActions}>
+                <Link
+                  href="/login?redirectTo=/checkout"
+                  className={styles.signInBtn}
+                >
+                  Sign In / Sign Up
+                </Link>
+                <button
+                  type="button"
+                  className={styles.guestBtn}
+                  onClick={() => {
+                    setShowGuestPrompt(false);
+                    router.push("/checkout");
+                  }}
+                >
+                  Continue as Guest
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </main>
