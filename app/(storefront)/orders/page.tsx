@@ -109,7 +109,7 @@ const OrderRoadmap: React.FC<OrderRoadmapProps> = ({ currentStatus }) => {
     <div className={styles.roadmapWrapper}>
       {ROADMAP_STEPS.map((step, idx) => {
         const isCompleted = idx <= currentIndex;
-        const isActive = idx === currentIndex;
+        const isActive = idx === currentIndex && currentStatus !== "delivered";
         
         let stepClass = styles.stepDot;
         if (isActive) stepClass += ` ${styles.stepDotActive}`;
@@ -119,7 +119,7 @@ const OrderRoadmap: React.FC<OrderRoadmapProps> = ({ currentStatus }) => {
           <React.Fragment key={step.key}>
             <div className={styles.stepContainer}>
               <div className={stepClass}>
-                {isCompleted && !isActive ? "✓" : idx + 1}
+                {isCompleted && (!isActive || currentStatus === "delivered") ? "✓" : idx + 1}
               </div>
               <span className={`${styles.stepLabel} ${isCompleted ? styles.stepLabelActive : ""}`}>
                 {step.label}
@@ -297,6 +297,17 @@ export default function OrdersPage() {
                           ₦{formatPrice(order.totalAmount)}
                         </strong>
                       </p>
+                      {/* Product thumbnail images displayed on collapsed card */}
+                      {!isExpanded && (
+                        <div className={styles.collapsedImages}>
+                          {order.items.slice(0, 4).map((item: any, i: number) => (
+                            <img key={i} src={item.image} alt="" className={styles.collapsedImg} />
+                          ))}
+                          {order.items.length > 4 && (
+                            <span className={styles.moreItemsLabel}>+{order.items.length - 4}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.headerActions}>
