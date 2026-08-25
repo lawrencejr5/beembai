@@ -133,7 +133,8 @@ export default defineSchema({
 
   // Customer Orders
   orders: defineTable({
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
+    email: v.optional(v.string()),
     items: v.array(
       v.object({
         productId: v.id("products"),
@@ -175,7 +176,9 @@ export default defineSchema({
     ),
     paystackReference: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_email", ["email"]),
 
   reviews: defineTable({
     userId: v.id("users"),

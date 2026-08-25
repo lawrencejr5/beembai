@@ -415,19 +415,11 @@ export default function CartPage() {
               </button>
             ) : selectedCart.length === 0 ? (
               <button type="button" className={styles.checkoutBtn} disabled>
-                Proceed to Checkout ($0.00)
+                Proceed to Checkout (₦0)
               </button>
-            ) : user ? (
-              <Link
-                href="/checkout"
-                className={styles.checkoutBtn}
-                style={{ display: "block", textAlign: "center", textDecoration: "none" }}
-              >
-                Proceed to Checkout (₦{formatPrice(finalTotal)})
-              </Link>
             ) : (
               <Link
-                href={`/login?redirectTo=/checkout`}
+                href="/checkout"
                 className={styles.checkoutBtn}
                 style={{ display: "block", textAlign: "center", textDecoration: "none" }}
               >

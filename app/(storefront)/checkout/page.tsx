@@ -69,12 +69,23 @@ export default function CheckoutPage() {
     clearSelectedCart,
   } = useCart();
 
-  // Redirect if logged out
-  useEffect(() => {
-    if (user === null) {
-      router.push("/login?redirectTo=/checkout");
-    }
-  }, [user, router]);
+  const isGuest = user === null;
+
+  // State for manual address inputs (for guests, or if logged-in user wants to use a new address)
+  const [useManualAddress, setUseManualAddress] = useState(false);
+  const [payDirectly, setPayDirectly] = useState(false);
+
+  const [guestAddress, setGuestAddress] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    streetAddress: "",
+    apartment: "",
+    city: "",
+    stateName: "",
+    postalCode: "",
+    country: "Nigeria",
+  });
 
   // Fetch saved shipping addresses and tokenized card details from Convex
   const addresses = useQuery(api.addresses.getUserAddresses);
@@ -89,6 +100,7 @@ export default function CheckoutPage() {
 
   const createOrder = useMutation(api.orders.createUnpaidOrder);
   const chargeCard = useAction(api.paystackBilling.chargeSavedCardForOrder);
+  const verifyInlinePayment = useAction(api.paystackActions.verifyInlinePaymentForOrder);
 
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -118,7 +130,42 @@ export default function CheckoutPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedCart.length === 0 || !activeAddress || !activePayment) return;
+
+    const isUsingSavedCard = !isGuest && activePayment && !payDirectly;
+    const activeAddrObj = isGuest || useManualAddress || !activeAddress ? {
+      fullName: guestAddress.fullName,
+      phone: guestAddress.phone,
+      streetAddress: guestAddress.streetAddress,
+      apartment: guestAddress.apartment,
+      city: guestAddress.city,
+      stateName: guestAddress.stateName,
+      postalCode: guestAddress.postalCode,
+      country: guestAddress.country,
+    } : {
+      fullName: activeAddress.fullName,
+      phone: activeAddress.phone,
+      streetAddress: activeAddress.streetAddress,
+      apartment: activeAddress.apartment,
+      city: activeAddress.city,
+      stateName: activeAddress.stateName,
+      postalCode: activeAddress.postalCode,
+      country: activeAddress.country,
+    };
+
+    if (selectedCart.length === 0) return;
+    if (!activeAddrObj.fullName || !activeAddrObj.phone || !activeAddrObj.streetAddress || !activeAddrObj.city || !activeAddrObj.stateName || !activeAddrObj.postalCode || !activeAddrObj.country) {
+      setPaymentError("Please fill in all shipping address fields.");
+      return;
+    }
+    if (isGuest && !guestAddress.email) {
+      setPaymentError("Please enter your email address.");
+      return;
+    }
+    if (!isUsingSavedCard && !process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) {
+      setPaymentError("Paystack is not configured. Please contact support.");
+      return;
+    }
+
     setIsProcessing(true);
     setPaymentError(null);
 
@@ -141,43 +188,90 @@ export default function CheckoutPage() {
 
       // 2. Create the unpaid order record in Convex
       const orderId = await createOrder({
+        email: isGuest ? guestAddress.email : (user?.email || undefined),
         items: orderItems,
-        address: {
-          fullName: activeAddress.fullName,
-          phone: activeAddress.phone,
-          streetAddress: activeAddress.streetAddress,
-          apartment: activeAddress.apartment,
-          city: activeAddress.city,
-          stateName: activeAddress.stateName,
-          postalCode: activeAddress.postalCode,
-          country: activeAddress.country,
-        },
+        address: activeAddrObj,
         shippingMethod,
         shippingFee,
         totalAmount: finalTotal,
       });
 
-      // 3. Request Paystack billing server-side via saved card authorization
-      const result = await chargeCard({
-        orderId,
-        authorizationCode: activePayment.authorizationCode,
-        email: user?.email || activePayment.email || "shopper@beembai.com",
-        amount: finalTotal,
-      });
+      if (isUsingSavedCard) {
+        // 3. Request Paystack billing server-side via saved card authorization
+        const result = await chargeCard({
+          orderId,
+          authorizationCode: activePayment.authorizationCode,
+          email: user?.email || activePayment.email || "shopper@beembai.com",
+          amount: finalTotal,
+        });
 
-      if (!result.success) {
-        setPaymentError(result.message);
+        if (!result.success) {
+          setPaymentError(result.message);
+          setIsProcessing(false);
+          return;
+        }
+
+        // 4. Success! Clear cart items and show confirmation screen
+        clearSelectedCart();
         setIsProcessing(false);
-        return;
-      }
+        setShowSuccess(true);
+        setTimeout(() => {
+          router.push("/orders");
+        }, 3500);
+      } else {
+        // 3. Direct/Guest payment: open Paystack inline popup
+        const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
+        const customerEmail = isGuest ? guestAddress.email : (user?.email || "shopper@beembai.com");
 
-      // 4. Success! Clear cart items and show confirmation screen
-      clearSelectedCart();
-      setIsProcessing(false);
-      setShowSuccess(true);
-      setTimeout(() => {
-        router.push("/orders");
-      }, 3500);
+        import("@paystack/inline-js").then(({ default: PaystackPop }) => {
+          const popup = new PaystackPop();
+          popup.newTransaction({
+            key: publicKey || "",
+            email: customerEmail,
+            amount: Math.round(finalTotal * 100), // in kobo
+            currency: "NGN",
+            onSuccess: async (transaction: { reference: string }) => {
+              try {
+                // Verify on Convex
+                const result = await verifyInlinePayment({
+                  orderId,
+                  reference: transaction.reference,
+                });
+
+                if (!result.success) {
+                  setPaymentError(result.message);
+                  setIsProcessing(false);
+                  return;
+                }
+
+                // 4. Success! Clear cart items and show confirmation screen
+                clearSelectedCart();
+                setIsProcessing(false);
+                setShowSuccess(true);
+                setTimeout(() => {
+                  if (isGuest) {
+                    router.push(`/orders?track=true&orderId=${orderId}&email=${customerEmail}`);
+                  } else {
+                    router.push("/orders");
+                  }
+                }, 3500);
+              } catch (err: unknown) {
+                console.error("Inline payment verification failed:", err);
+                const msg = err instanceof Error ? err.message : "Payment verification failed.";
+                setPaymentError(msg);
+                setIsProcessing(false);
+              }
+            },
+            onCancel: () => {
+              setIsProcessing(false);
+            },
+          });
+        }).catch((err) => {
+          console.error("Could not load Paystack Inline JS:", err);
+          setPaymentError("Could not load payment popup. Please check your network and try again.");
+          setIsProcessing(false);
+        });
+      }
     } catch (err: unknown) {
       console.error("Checkout process failed:", err);
       const msg = err instanceof Error ? err.message : "Checkout order processing failed.";
@@ -186,8 +280,8 @@ export default function CheckoutPage() {
     }
   };
 
-  // If loading user or redirecting
-  if (user === undefined || user === null) {
+  // If loading session
+  if (user === undefined) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "var(--background)", color: "var(--foreground)" }}>
         <p style={{ fontWeight: 700 }}>Authenticating session...</p>
@@ -195,7 +289,11 @@ export default function CheckoutPage() {
     );
   }
 
-  const isCheckoutDisabled = selectedCart.length === 0 || !activeAddress || !activePayment;
+  const isCheckoutDisabled = selectedCart.length === 0 || 
+    (isGuest && (!guestAddress.fullName || !guestAddress.email || !guestAddress.phone || !guestAddress.streetAddress || !guestAddress.city || !guestAddress.stateName || !guestAddress.postalCode)) ||
+    (!isGuest && useManualAddress && (!guestAddress.fullName || !guestAddress.phone || !guestAddress.streetAddress || !guestAddress.city || !guestAddress.stateName || !guestAddress.postalCode)) ||
+    (!isGuest && !useManualAddress && !activeAddress) ||
+    (!isGuest && !payDirectly && !activePayment);
 
   return (
     <main className={styles.checkoutPage}>
@@ -252,25 +350,139 @@ export default function CheckoutPage() {
                   <span className={styles.titleNum}>1</span>
                   <span>Shipping Address</span>
                 </h2>
-                {addresses && addresses.length > 0 && !isChangingAddress && (
+                {!isGuest && addresses && addresses.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setIsChangingAddress(true)}
+                    onClick={() => {
+                      if (useManualAddress) {
+                        setUseManualAddress(false);
+                      } else {
+                        setIsChangingAddress(true);
+                      }
+                    }}
                     className={styles.changeBtn}
                   >
-                    Change
+                    {useManualAddress ? "Use Saved Address" : "Change"}
                   </button>
                 )}
               </div>
 
               {addresses === undefined ? (
                 <div className={styles.loaderPlaceholder}>Loading saved addresses...</div>
-              ) : addresses.length === 0 ? (
-                <div className={styles.emptyCallout}>
-                  <p>You don't have any shipping addresses saved yet.</p>
-                  <Link href="/addresses" className={styles.addDetailsBtn}>
-                    Add Shipping Address
-                  </Link>
+              ) : (isGuest || useManualAddress || addresses.length === 0) ? (
+                <div className={styles.formGrid}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Full Name</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.fullName}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, fullName: e.target.value })}
+                      required
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  {isGuest && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Email Address</label>
+                      <input
+                        type="email"
+                        className={styles.inputField}
+                        value={guestAddress.email}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, email: e.target.value })}
+                        required
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                  )}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Phone Number</label>
+                    <input
+                      type="tel"
+                      className={styles.inputField}
+                      value={guestAddress.phone}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, phone: e.target.value })}
+                      required
+                      placeholder="+234..."
+                    />
+                  </div>
+                  <div className={styles.formGroupFull}>
+                    <label className={styles.formLabel}>Street Address</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.streetAddress}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, streetAddress: e.target.value })}
+                      required
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Apartment, Suite, etc. (optional)</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.apartment}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, apartment: e.target.value })}
+                      placeholder="Apt 4B"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>City</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.city}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, city: e.target.value })}
+                      required
+                      placeholder="Lagos"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>State / Region</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.stateName}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, stateName: e.target.value })}
+                      required
+                      placeholder="Lagos State"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Postal / ZIP Code</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.postalCode}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, postalCode: e.target.value })}
+                      required
+                      placeholder="100001"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Country</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.country}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, country: e.target.value })}
+                      required
+                      placeholder="Nigeria"
+                    />
+                  </div>
+                  {!isGuest && addresses.length > 0 && (
+                    <div className={styles.formGroupFull} style={{ marginTop: "1rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => setUseManualAddress(false)}
+                        className={styles.cancelSelectionBtn}
+                        style={{ width: "fit-content" }}
+                      >
+                        Cancel & Use Saved Address
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : isChangingAddress ? (
                 <div className={styles.selectionList}>
@@ -297,13 +509,26 @@ export default function CheckoutPage() {
                       </div>
                     </label>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setIsChangingAddress(false)}
-                    className={styles.cancelSelectionBtn}
-                  >
-                    Cancel
-                  </button>
+                  <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseManualAddress(true);
+                        setIsChangingAddress(false);
+                      }}
+                      className={styles.addDetailsBtn}
+                      style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}
+                    >
+                      + Use a New Address
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsChangingAddress(false)}
+                      className={styles.cancelSelectionBtn}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ) : activeAddress ? (
                 <div className={styles.detailsPreviewCard}>
@@ -317,6 +542,16 @@ export default function CheckoutPage() {
                   </p>
                   <p className={styles.previewText}>{activeAddress.country}</p>
                   <p className={styles.previewPhone}>📞 {activeAddress.phone}</p>
+                  <div style={{ marginTop: "1rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setUseManualAddress(true)}
+                      className={styles.changeBtn}
+                      style={{ fontSize: "0.82rem" }}
+                    >
+                      Use a new address instead
+                    </button>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -375,25 +610,43 @@ export default function CheckoutPage() {
                   <span className={styles.titleNum}>3</span>
                   <span>Payment Details</span>
                 </h2>
-                {paymentMethods && paymentMethods.length > 0 && !isChangingPayment && (
+                {!isGuest && paymentMethods && paymentMethods.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setIsChangingPayment(true)}
+                    onClick={() => {
+                      if (payDirectly) {
+                        setPayDirectly(false);
+                      } else {
+                        setIsChangingPayment(true);
+                      }
+                    }}
                     className={styles.changeBtn}
                   >
-                    Change
+                    {payDirectly ? "Use Saved Card" : "Change"}
                   </button>
                 )}
               </div>
 
               {paymentMethods === undefined ? (
                 <div className={styles.loaderPlaceholder}>Loading saved cards...</div>
-              ) : paymentMethods.length === 0 ? (
-                <div className={styles.emptyCallout}>
-                  <p>You don't have any saved payment methods.</p>
-                  <Link href="/billing" className={styles.addDetailsBtn}>
-                    Add Payment Method
-                  </Link>
+              ) : (isGuest || payDirectly || paymentMethods.length === 0) ? (
+                <div className={styles.detailsPreviewCard} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <p style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem", margin: 0, color: "var(--foreground)" }}>
+                    💳 Secure Checkout via Paystack
+                  </p>
+                  <p style={{ fontSize: "0.88rem", opacity: 0.8, margin: 0, lineHeight: 1.5 }}>
+                    You will be prompted to make a secure payment using Paystack popup on clicking &ldquo;Authorize &amp; Pay&rdquo;. Paystack supports Cards, USSD, Bank Transfers, and EFTs securely.
+                  </p>
+                  {!isGuest && paymentMethods.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPayDirectly(false)}
+                      className={styles.cancelSelectionBtn}
+                      style={{ width: "fit-content", marginTop: "0.5rem" }}
+                    >
+                      Cancel & Use Saved Card
+                    </button>
+                  )}
                 </div>
               ) : isChangingPayment ? (
                 <div className={styles.selectionList}>
@@ -422,13 +675,26 @@ export default function CheckoutPage() {
                       </div>
                     </label>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setIsChangingPayment(false)}
-                    className={styles.cancelSelectionBtn}
-                  >
-                    Cancel
-                  </button>
+                  <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPayDirectly(true);
+                        setIsChangingPayment(false);
+                      }}
+                      className={styles.addDetailsBtn}
+                      style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}
+                    >
+                      + Pay with a New Card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsChangingPayment(false)}
+                      className={styles.cancelSelectionBtn}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ) : activePayment ? (
                 <div className={styles.detailsPreviewCard}>
@@ -441,9 +707,19 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                   <p className={styles.previewText}>{activePayment.bank}</p>
-                  <p className={styles.previewText} style={{ opacity: 0.8 }}>
+                  <p className={styles.previewText} style={{ opacity: 0.8, marginBottom: "1rem" }}>
                     Expires {activePayment.expMonth}/{activePayment.expYear}
                   </p>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setPayDirectly(true)}
+                      className={styles.changeBtn}
+                      style={{ fontSize: "0.82rem" }}
+                    >
+                      Pay with a new card instead
+                    </button>
+                  </div>
                 </div>
               ) : null}
             </div>

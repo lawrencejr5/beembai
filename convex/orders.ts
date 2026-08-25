@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -21,11 +21,36 @@ export const getUserOrders = query({
   },
 });
 
+/** Get details of a guest order if ID and email match */
+export const getGuestOrder = query({
+  args: {
+    orderId: v.id("orders"),
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order) return null;
+    if (!order.email || order.email.toLowerCase() !== args.email.toLowerCase()) {
+      return null;
+    }
+    return order;
+  },
+});
+
+/** Internal query to fetch an order by ID (needed by actions) */
+export const getOrderByIdInternal = internalQuery({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.orderId);
+  },
+});
+
 // ── Mutations ─────────────────────────────────────────────
 
 /** Create a new unpaid checkout order */
 export const createUnpaidOrder = mutation({
   args: {
+    email: v.optional(v.string()),
     items: v.array(
       v.object({
         productId: v.id("products"),
@@ -53,7 +78,18 @@ export const createUnpaidOrder = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    let orderEmail = args.email;
+
+    if (userId) {
+      const user = await ctx.db.get(userId);
+      if (user && !orderEmail) {
+        orderEmail = user.email;
+      }
+    } else {
+      if (!orderEmail) {
+        throw new Error("Email is required for guest checkout.");
+      }
+    }
 
     const now = Date.now();
 
@@ -70,7 +106,8 @@ export const createUnpaidOrder = mutation({
     );
 
     return await ctx.db.insert("orders", {
-      userId,
+      userId: userId || undefined,
+      email: orderEmail,
       items: itemsWithStoreId,
       address: args.address,
       shippingMethod: args.shippingMethod,
@@ -91,18 +128,15 @@ export const createUnpaidOrder = mutation({
 });
 
 
-/** Mark an order as paid successfully */
-export const markOrderPaid = mutation({
+/** Mark an order as paid successfully (internal only, secure) */
+export const markOrderPaidInternal = internalMutation({
   args: {
     orderId: v.id("orders"),
     paystackReference: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
     const order = await ctx.db.get(args.orderId);
-    if (!order || order.userId !== userId) {
+    if (!order) {
       throw new Error("Order not found");
     }
 
@@ -133,17 +167,14 @@ export const markOrderPaid = mutation({
   },
 });
 
-/** Mark an order payment as failed */
-export const markOrderFailed = mutation({
+/** Mark an order payment as failed (internal only, secure) */
+export const markOrderFailedInternal = internalMutation({
   args: {
     orderId: v.id("orders"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
     const order = await ctx.db.get(args.orderId);
-    if (!order || order.userId !== userId) {
+    if (!order) {
       throw new Error("Order not found");
     }
 

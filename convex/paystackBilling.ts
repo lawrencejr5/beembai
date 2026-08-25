@@ -1,6 +1,6 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
@@ -53,7 +53,7 @@ export const chargeSavedCardForOrder = action({
 
       if (!data.status || (data.data.status !== "success" && !isTestEnv)) {
         // Payment failed or was declined
-        await ctx.runMutation((api as any).orders.markOrderFailed, {
+        await ctx.runMutation((internal as any).orders.markOrderFailedInternal, {
           orderId: args.orderId,
         });
         return {
@@ -68,7 +68,7 @@ export const chargeSavedCardForOrder = action({
 
       // Payment succeeded! Update order status using mutation
       const ref = data.data.reference;
-      await ctx.runMutation((api as any).orders.markOrderPaid, {
+      await ctx.runMutation((internal as any).orders.markOrderPaidInternal, {
         orderId: args.orderId,
         paystackReference: ref,
       });
@@ -81,7 +81,7 @@ export const chargeSavedCardForOrder = action({
     } catch (err: unknown) {
       console.error("Paystack recurring billing exception:", err);
       // Mark as failed in database
-      await ctx.runMutation((api as any).orders.markOrderFailed, {
+      await ctx.runMutation((internal as any).orders.markOrderFailedInternal, {
         orderId: args.orderId,
       });
       return {

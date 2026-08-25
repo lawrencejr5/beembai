@@ -389,11 +389,11 @@ export const getAllOrdersAdmin = query({
     // Attach buyer info
     const page = await Promise.all(
       results.page.map(async (order) => {
-        const buyer = await ctx.db.get(order.userId);
+        const buyer = order.userId ? await ctx.db.get(order.userId) : null;
         return {
           ...order,
-          buyerName: buyer?.name ?? "Unknown",
-          buyerEmail: buyer?.email ?? "Unknown",
+          buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
+          buyerEmail: buyer?.email ?? order.email ?? "Guest",
         };
       })
     );
@@ -411,7 +411,7 @@ export const getOrderByIdAdmin = query({
     await requireAdmin(ctx);
     const order = await ctx.db.get(args.orderId);
     if (!order) return null;
-    const buyer = await ctx.db.get(order.userId);
+    const buyer = order.userId ? await ctx.db.get(order.userId) : null;
     return { ...order, buyer };
   },
 });
