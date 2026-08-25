@@ -7,6 +7,18 @@ import styles from "./ProductCard.module.css";
 import { Product, formatPrice } from "@/app/data/data";
 import { useCart } from "@/app/context/CartContext";
 
+const formatCompactPrice = (price: number) => {
+  if (price >= 1000000) {
+    const val = price / 1000000;
+    return val % 1 === 0 ? `${val}M` : `${val.toFixed(1)}M`;
+  }
+  if (price >= 100000) {
+    const val = price / 1000;
+    return val % 1 === 0 ? `${val}K` : `${val.toFixed(1)}K`;
+  }
+  return formatPrice(price);
+};
+
 const SpinnerIcon = () => (
   <svg
     width="16"
@@ -168,25 +180,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       <div className={styles.productDetails}>
         <span className={styles.productCategory}>{product.categoryName}</span>
-        
-        {/* Rating display */}
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", margin: "2px 0 6px 0" }}>
-          {product.rating !== undefined && product.rating > 0 ? (
-            <>
-              <span style={{ color: "#FBBF24", fontSize: "0.85rem", lineHeight: 1 }}>★</span>
-              <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--foreground)" }}>
-                {product.rating.toFixed(1)}
-              </span>
-              <span style={{ fontSize: "0.72rem", color: "var(--color-olive-gray)" }}>
-                ({product.numReviews})
-              </span>
-            </>
-          ) : (
-            <span style={{ fontSize: "0.72rem", color: "var(--color-olive-gray)", opacity: 0.6 }}>
-              No reviews yet
-            </span>
-          )}
-        </div>
 
         <h3 className={styles.productTitle}>{product.title}</h3>
 
@@ -194,10 +187,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className={styles.priceWrapper}>
             {product.originalPrice && (
               <span className={styles.originalPrice}>
-                ₦{formatPrice(product.originalPrice)}
+                ₦{formatCompactPrice(product.originalPrice)}
               </span>
             )}
-            <span className={styles.price}>₦{formatPrice(product.price)}</span>
+            <span className={styles.price}>
+              ₦{formatCompactPrice(product.price)}
+            </span>
           </div>
 
           {totalQtyInCart === 0 ? (
