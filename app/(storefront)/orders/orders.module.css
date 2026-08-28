@@ -600,7 +600,7 @@
   color: #fff;
 }
 
-.modalBackdrop {
+.modalOverlay {
   position: fixed;
   inset: 0;
   background: rgba(40, 38, 0, 0.4);
@@ -612,7 +612,7 @@
   padding: 20px;
 }
 
-.modal {
+.modalCard {
   width: 100%;
   max-width: 480px;
   background-color: var(--color-coconut);
@@ -638,7 +638,7 @@
   color: var(--foreground);
 }
 
-.modalCloseBtn {
+.closeBtn {
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -648,8 +648,14 @@
   line-height: 1;
 }
 
-.modalCloseBtn:hover {
+.closeBtn:hover {
   color: var(--color-error);
+}
+
+.errorText {
+  color: var(--color-error);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .ratingSelector {
