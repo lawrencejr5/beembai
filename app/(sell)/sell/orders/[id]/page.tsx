@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -43,6 +43,20 @@ export default function SellerOrderDetailPage() {
   const [customMessage, setCustomMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
+
+  // Auto-advance status from placed to processing when viewed by merchant
+  useEffect(() => {
+    if (order && order.status === "placed" && order.storeId) {
+      updateStatusMut({
+        orderId,
+        storeId: order.storeId as Id<"stores">,
+        status: "processing",
+        message: "Order viewed by merchant. Packaging and preparation is in progress.",
+      }).catch((err) => {
+        console.error("Failed to auto-advance order status to processing:", err);
+      });
+    }
+  }, [order, orderId, updateStatusMut]);
 
   if (order === undefined) {
     return (

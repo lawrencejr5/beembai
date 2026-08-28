@@ -105,7 +105,9 @@ export default function SellerDashboardPage() {
     activeStoreId !== null ? { storeId: activeStoreId as any } : "skip"
   );
 
-  const recentOrders = (activeStoreId === null ? allStoresOrders : singleStoreOrders)?.slice(0, 5);
+  const ordersList = activeStoreId === null ? allStoresOrders : singleStoreOrders;
+  const newOrdersCount = ordersList ? ordersList.filter((o: any) => o.status === "placed").length : 0;
+  const recentOrders = ordersList?.slice(0, 5);
 
   // ─── Case A: Seller Has No Stores Yet (Onboarding) ──────────────────────────
 
@@ -317,6 +319,25 @@ export default function SellerDashboardPage() {
         );
       })()}
 
+      {/* New Orders Banner Alert */}
+      {newOrdersCount > 0 && (
+        <div 
+          className={styles.newOrdersBanner}
+          onClick={() => router.push("/sell/orders")}
+        >
+          <span className={styles.newOrdersBannerIcon}>🔔</span>
+          <div style={{ flex: 1 }}>
+            <strong className={styles.newOrdersBannerTitle}>
+              You have {newOrdersCount} new order{newOrdersCount === 1 ? "" : "s"}!
+            </strong>
+            <p className={styles.newOrdersBannerText}>
+              Customers are waiting for their items to be packed and shipped. Click here to fulfill them now.
+            </p>
+          </div>
+          <span className={styles.newOrdersBannerArrow}>→</span>
+        </div>
+      )}
+
       {/* Analytics Stats Grid */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
@@ -458,7 +479,7 @@ export default function SellerDashboardPage() {
                   </thead>
                   <tbody>
                     {recentOrders.map((order) => (
-                      <tr key={order._id}>
+                      <tr key={order._id} className={`${styles.orderRow} ${styles["row-" + (order.status || "placed")]}`}>
                         <td style={{ fontFamily: "monospace", fontWeight: 700 }}>
                           <Link href={`/sell/orders/${order._id}`} style={{ color: "var(--seller-accent)", textDecoration: "none" }}>
                             #{order._id.slice(-8).toUpperCase()}

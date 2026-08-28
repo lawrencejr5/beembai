@@ -152,18 +152,13 @@ export const markOrderPaidInternal = internalMutation({
     await ctx.db.patch(args.orderId, {
       paymentStatus: "paid",
       paystackReference: args.paystackReference,
-      status: "processing", // Advance status to processing
+      status: "placed", // Retain placed status so the merchant is notified
       statusHistory: [
         ...order.statusHistory,
         {
           status: "paid",
           timestamp: now,
           message: `Payment authorized successfully. Ref: #${shortRef}`,
-        },
-        {
-          status: "processing",
-          timestamp: now + 1000,
-          message: "Payment verified. Packaging and store verification in progress.",
         },
       ],
     });

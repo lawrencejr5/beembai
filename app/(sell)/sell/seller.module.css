@@ -667,6 +667,215 @@
   border-color: rgba(214, 152, 58, 0.2);
 }
 
+/* Sidebar Badge Count */
+.navCountBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--seller-warning);
+  color: #1f211d;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 99px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  margin-left: 8px;
+  line-height: 1;
+}
+
+/* New Orders Overview Alert Banner */
+.newOrdersBanner {
+  background: linear-gradient(135deg, #1f211d 0%, #2e3525 100%);
+  border: 1.5px solid #d6983a;
+  border-radius: var(--seller-radius);
+  padding: 18px 24px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(31, 33, 29, 0.15), 0 0 15px rgba(214, 152, 58, 0.15);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  animation: slideDownFade 0.4s ease-out;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.newOrdersBanner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 6px;
+  background: #d6983a;
+}
+
+.newOrdersBanner:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(31, 33, 29, 0.22), 0 0 20px rgba(214, 152, 58, 0.25);
+  border-color: #fbf7ee;
+}
+
+.newOrdersBannerIcon {
+  font-size: 24px;
+  background: rgba(214, 152, 58, 0.15);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 8px rgba(214, 152, 58, 0.2);
+  animation: pulseGold 2s infinite, wave 2.5s infinite;
+  transform-origin: 70% 70%;
+}
+
+@keyframes pulseGold {
+  0% {
+    box-shadow: 0 0 0 0 rgba(214, 152, 58, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(214, 152, 58, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(214, 152, 58, 0);
+  }
+}
+
+@keyframes wave {
+  0% { transform: rotate( 0.0deg) }
+  10% { transform: rotate(14.0deg) }
+  20% { transform: rotate(-8.0deg) }
+  30% { transform: rotate(14.0deg) }
+  40% { transform: rotate(-4.0deg) }
+  50% { transform: rotate(10.0deg) }
+  60% { transform: rotate( 0.0deg) }
+  100% { transform: rotate( 0.0deg) }
+}
+
+.newOrdersBannerTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fbf7ee;
+  display: block;
+  letter-spacing: 0.3px;
+}
+
+.newOrdersBannerText {
+  font-size: 13px;
+  color: rgba(250, 245, 235, 0.75);
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+}
+
+.newOrdersBannerArrow {
+  font-size: 18px;
+  color: #d6983a;
+  font-weight: 900;
+  transition: transform 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+  background: rgba(255, 255, 255, 0.08);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.newOrdersBanner:hover .newOrdersBannerArrow {
+  transform: translateX(4px);
+  color: #fbf7ee;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Order Status Badge Additions */
+.badge.placed {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.badge.processing {
+  background: rgba(214, 152, 58, 0.1);
+  color: var(--seller-warning);
+  border-color: rgba(214, 152, 58, 0.2);
+}
+
+.badge.shipped {
+  background: rgba(13, 148, 136, 0.08);
+  color: #0f766e;
+  border-color: rgba(13, 148, 136, 0.18);
+}
+
+.badge.delivered {
+  background: rgba(72, 92, 44, 0.08);
+  color: var(--seller-success);
+  border-color: rgba(72, 92, 44, 0.18);
+}
+
+.badge.cancelled {
+  background: rgba(204, 96, 69, 0.08);
+  color: var(--seller-danger);
+  border-color: rgba(204, 96, 69, 0.18);
+}
+
+/* Subtle background tints for immediate visual differentiation */
+.orderRow.row-placed td {
+  background-color: rgba(37, 99, 235, 0.015);
+}
+.orderRow.row-processing td {
+  background-color: rgba(214, 152, 58, 0.01);
+}
+.orderRow.row-shipped td {
+  background-color: rgba(13, 148, 136, 0.01);
+}
+.orderRow.row-delivered td {
+  background-color: rgba(72, 92, 44, 0.01);
+}
+.orderRow.row-cancelled td {
+  background-color: rgba(204, 96, 69, 0.01);
+}
+
+/* Status line border indicator on the left side of the first cell */
+.orderRow td:first-child {
+  border-left: 4px solid transparent;
+  transition: border-left-color 0.2s ease;
+}
+
+.orderRow.row-placed td:first-child {
+  border-left-color: #2563eb;
+}
+.orderRow.row-processing td:first-child {
+  border-left-color: var(--seller-warning);
+}
+.orderRow.row-shipped td:first-child {
+  border-left-color: #0d9488;
+}
+.orderRow.row-delivered td:first-child {
+  border-left-color: var(--seller-success);
+}
+.orderRow.row-cancelled td:first-child {
+  border-left-color: var(--seller-danger);
+}
+
+/* Interactive hover to override table row cell background */
+.sellerTable tr.orderRow:hover td {
+  background: rgba(230, 222, 201, 0.22) !important;
+}
+
 /* ── Buttons ────────────────────────────────────────── */
 .btn {
   display: inline-flex;

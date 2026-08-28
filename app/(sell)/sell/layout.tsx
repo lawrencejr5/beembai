@@ -75,6 +75,20 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
+  // Queries to fetch orders and compute new orders count
+  const allStoresOrders = useQuery(
+    api.orders.getSellerOrdersAllStores,
+    activeStoreId === null && viewer !== undefined && viewer !== null ? {} : "skip"
+  );
+
+  const singleStoreOrders = useQuery(
+    api.orders.getOrdersForStore,
+    activeStoreId !== null && viewer !== undefined && viewer !== null ? { storeId: activeStoreId as any } : "skip"
+  );
+
+  const ordersList = activeStoreId === null ? allStoresOrders : singleStoreOrders;
+  const newOrdersCount = ordersList ? ordersList.filter((o: any) => o.status === "placed").length : 0;
+
   // Sync activeStoreId once stores load (default to "all")
   useEffect(() => {
     if (stores && stores.length > 0) {
@@ -233,7 +247,12 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                 onClick={() => setIsMobileOpen(false)}
               >
                 <span className={styles.sidebarLinkIcon}>{item.icon}</span>
-                <span className={styles.sidebarLinkText}>{item.label}</span>
+                <span className={styles.sidebarLinkText} style={{ display: "flex", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
+                  <span>{item.label}</span>
+                  {item.label === "Orders" && newOrdersCount > 0 && (
+                    <span className={styles.navCountBadge}>{newOrdersCount}</span>
+                  )}
+                </span>
               </Link>
             ))}
             <div className={styles.sidebarDivider} />

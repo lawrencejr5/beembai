@@ -147,7 +147,7 @@ export default function SellerOrdersPage() {
               </thead>
               <tbody>
                 {filteredOrders.map((order) => (
-                  <tr key={order._id}>
+                  <tr key={order._id} className={`${styles.orderRow} ${styles["row-" + (order.status || "placed")]}`}>
                     <td style={{ fontFamily: "monospace", fontWeight: 700 }}>
                       <Link href={`/sell/orders/${order._id}`} style={{ color: "var(--seller-accent)", textDecoration: "none" }}>
                         #{order._id.slice(-8).toUpperCase()}
