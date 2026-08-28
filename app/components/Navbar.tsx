@@ -118,15 +118,20 @@ export default function Navbar() {
         </Link>
         <Link
           href="/buy-from-abroad"
-          className={`${styles.navLink} ${isActive("/buy-from-abroad") ? styles.activeNavLink : ""}`}
+          className={`${styles.navLink} ${styles.shopUsLink} ${isActive("/buy-from-abroad") ? styles.activeNavLink : ""}`}
         >
-          Shop US
+          <span>Shop US</span>
+          <img
+            src="/images/logos/united-states.png"
+            alt="US Flag"
+            className={styles.flagIcon}
+          />
         </Link>
         <Link
           href="/orders"
           className={`${styles.navLink} ${isActive("/orders") ? styles.activeNavLink : ""}`}
         >
-          Track Order
+          Track
         </Link>
       </nav>
 
