@@ -120,7 +120,7 @@ export default function Navbar() {
           href="/buy-from-abroad"
           className={`${styles.navLink} ${isActive("/buy-from-abroad") ? styles.activeNavLink : ""}`}
         >
-          Buy from Abroad
+          Shop US
         </Link>
         <Link
           href="/orders"
@@ -136,9 +136,21 @@ export default function Navbar() {
         <button
           onClick={toggleTheme}
           className={styles.themeToggleBtn}
-          aria-label={mounted ? `Switch to ${theme === "light" ? "dark" : "light"} mode` : "Switch theme"}
+          aria-label={
+            mounted
+              ? `Switch to ${theme === "light" ? "dark" : "light"} mode`
+              : "Switch theme"
+          }
         >
-          {mounted ? (theme === "light" ? <MoonIcon /> : <SunIcon />) : <div style={{ width: 18, height: 18 }} />}
+          {mounted ? (
+            theme === "light" ? (
+              <MoonIcon />
+            ) : (
+              <SunIcon />
+            )
+          ) : (
+            <div style={{ width: 18, height: 18 }} />
+          )}
         </button>
 
         <Link

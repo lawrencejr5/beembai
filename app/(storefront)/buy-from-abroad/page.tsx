@@ -12,11 +12,17 @@ import styles from "./page.module.css";
 
 // Supported Stores Data
 const SUPPORTED_STORES = [
-  { name: "Amazon", logo: "📦", domain: "amazon.com", color: "#FF9900" },
-  { name: "eBay", logo: "🏷️", domain: "ebay.com", color: "#E53238" },
-  { name: "AliExpress", logo: "🛍️", domain: "aliexpress.com", color: "#E62E04" },
-  { name: "Zara", logo: "👗", domain: "zara.com", color: "#000000" },
-  { name: "ASOS", logo: "👟", domain: "asos.com", color: "#000000" },
+  { name: "Amazon", logo: "/images/logos/amazon.png", domain: "amazon.com", invertDark: false },
+  { name: "Walmart", logo: "/images/logos/walmart.jpeg", domain: "walmart.com", invertDark: false },
+  { name: "Zara", logo: "/images/logos/zara.png", domain: "zara.com", invertDark: true },
+  { name: "Nike", logo: "/images/logos/nike.png", domain: "nike.com", invertDark: true },
+  { name: "Adidas", logo: "/images/logos/adidas.png", domain: "adidas.com", invertDark: true },
+  { name: "Target", logo: "/images/logos/target.png", domain: "target.com", invertDark: false },
+  { name: "Louis Vuitton", logo: "/images/logos/louisvuitton.png", domain: "louisvuitton.com", invertDark: true },
+  { name: "Calvin Klein", logo: "/images/logos/calvinklein.png", domain: "calvinklein.com", invertDark: true },
+  { name: "Fashion Nova", logo: "/images/logos/fashionnova.png", domain: "fashionnova.com", invertDark: true },
+  { name: "Back Market", logo: "/images/logos/backmarket.jpeg", domain: "backmarket.com", invertDark: true },
+  { name: "Invicta", logo: "/images/logos/invicta.jpeg", domain: "invictastores.com", invertDark: true },
 ];
 
 // Exchange rates & fees constants
@@ -162,10 +168,17 @@ export default function BuyFromAbroad() {
     let brand = "Amazon";
 
     // Deduce store
-    if (urlLower.includes("ebay")) brand = "eBay";
-    else if (urlLower.includes("aliexpress")) brand = "AliExpress";
-    else if (urlLower.includes("zara")) brand = "Zara";
-    else if (urlLower.includes("asos")) brand = "ASOS";
+    if (urlLower.includes("zara")) brand = "Zara";
+    else if (urlLower.includes("walmart")) brand = "Walmart";
+    else if (urlLower.includes("nike")) brand = "Nike";
+    else if (urlLower.includes("adidas")) brand = "Adidas";
+    else if (urlLower.includes("target")) brand = "Target";
+    else if (urlLower.includes("louisvuitton") || urlLower.includes("louis vuitton")) brand = "Louis Vuitton";
+    else if (urlLower.includes("calvinklein") || urlLower.includes("calvin klein")) brand = "Calvin Klein";
+    else if (urlLower.includes("fashionnova") || urlLower.includes("fashion nova")) brand = "Fashion Nova";
+    else if (urlLower.includes("backmarket") || urlLower.includes("back market")) brand = "Back Market";
+    else if (urlLower.includes("invicta")) brand = "Invicta";
+    else brand = "Amazon";
 
     // Deduce item content
     if (urlLower.includes("keyboard") || urlLower.includes("keychron")) {
@@ -183,6 +196,7 @@ export default function BuyFromAbroad() {
       priceUsd = 150.00;
       image = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop";
       description = "Responsive point-loaded cushioning, athletic profile with breathable textiles, leather accents, and lightweight comfort for daily wear.";
+      brand = "Nike";
     } else if (urlLower.includes("watch") || urlLower.includes("apple-watch") || urlLower.includes("samsung")) {
       title = "Samsung Galaxy Watch 6 Classic (47mm LTE, Silver)";
       priceUsd = 299.99;
@@ -278,11 +292,11 @@ export default function BuyFromAbroad() {
             </div>
             <h1 className={styles.heroTitle}>Shop from Stores Abroad</h1>
             <p className={`${styles.heroSubtitle} ${styles.desktopText}`}>
-              Copy and paste links from international retailers like Amazon, eBay, and Zara. 
+              Copy and paste links from international retailers like Amazon, Zara, Walmart, and Nike. 
               We calculate duty fees, conversion rates, and cargo shipping so you pay in Naira.
             </p>
             <p className={`${styles.heroSubtitle} ${styles.mobileText}`}>
-              Copy links from international stores like Amazon, eBay, and Zara. 
+              Copy links from international stores like Amazon, Zara, Walmart, and Nike. 
               We handle customs, currency conversion, and shipping to Nigeria.
             </p>
           </div>
@@ -532,7 +546,15 @@ export default function BuyFromAbroad() {
           <div className={styles.storesWrapper}>
             {SUPPORTED_STORES.map((store) => (
               <div key={store.name} className={styles.storeLogoCard}>
-                <span className={styles.storeLogoIcon}>{store.logo}</span>
+                <div className={`${styles.storeLogoWrapper} ${store.invertDark ? styles.invertOnDark : ""}`}>
+                  <Image
+                    src={store.logo}
+                    alt={`${store.name} logo`}
+                    fill
+                    sizes="(max-width: 768px) 80px, 120px"
+                    style={{ objectFit: "contain" }}
+                  />
+                </div>
                 <span>{store.name}</span>
                 <span className={styles.storeLinkBadge}>{store.domain}</span>
               </div>
