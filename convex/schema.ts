@@ -58,6 +58,9 @@ export default defineSchema({
     rejectionReason: v.optional(v.string()),
     rating: v.optional(v.number()),
     numReviews: v.optional(v.number()),
+    inStock: v.optional(v.boolean()),
+    sourceUrl: v.optional(v.string()),
+    variants: v.optional(v.array(v.string())),
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"])

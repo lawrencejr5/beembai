@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/data/data";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import styles from "./page.module.css";
 
@@ -25,11 +24,23 @@ const SUPPORTED_STORES = [
   { name: "Invicta", logo: "/images/logos/invicta.jpeg", domain: "invictastores.com", invertDark: true },
 ];
 
-// Exchange rates & fees constants
-const EXCHANGE_RATE = 1600; // 1 USD = 1600 Naira
-const CUSTOMS_TAX_RATE = 0.10; // 10% customs/clearing tax
-const FLAT_SHIPPING_USD = 15; // $15 flat shipping fee
-const SERVICE_FEE_RATE = 0.05; // 5% service fee
+// Exchange rate constants (currency → NGN)
+const EXCHANGE_RATES: Record<string, number> = {
+  USD: 1600,
+  GBP: 2020,
+  EUR: 1750,
+  CAD: 1180,
+  AUD: 1040,
+};
+const DEFAULT_EXCHANGE_RATE = 1600;
+
+const CUSTOMS_TAX_RATE = 0.10;   // 10% customs/clearing tax
+const FLAT_SHIPPING_USD = 15;    // $15 flat shipping fee
+const SERVICE_FEE_RATE  = 0.05; // 5% service fee
+
+function getExchangeRate(currency: string): number {
+  return EXCHANGE_RATES[currency?.toUpperCase()] ?? DEFAULT_EXCHANGE_RATE;
+}
 
 // Simple link validator
 const isValidUrl = (urlString: string) => {
@@ -80,28 +91,32 @@ const CheckIcon = () => (
 
 interface ScrapedProduct {
   title: string;
-  priceUsd: number;
+  price: number;       // numeric price in the original currency
+  currency: string;   // e.g. "USD", "GBP", "EUR"
   image: string;
   description: string;
   brand: string;
   url: string;
+  inStock: boolean;
+  variants: string[];
+  rating: number | null;
+  reviewCount: number | null;
 }
 
 export default function BuyFromAbroad() {
   const { addToCart } = useCart();
   const saveForeignProductToDb = useMutation(api.products.createForeignProduct);
+  const scrapeProductUrl = useAction(api.foreignScrape.scrapeProductUrl);
 
   const [urlInput, setUrlInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  
-  // Loading simulation states
-  const [isValidating, setIsValidating] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
-  const [loadingMessage, setLoadingMessage] = useState("");
+
+  // Scraping loading state
+  const [isScraping, setIsScraping] = useState(false);
 
   const [scrapedProduct, setScrapedProduct] = useState<ScrapedProduct | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -109,20 +124,13 @@ export default function BuyFromAbroad() {
   // Auto-clear toast
   useEffect(() => {
     if (toastMessage) {
-      const timer = setTimeout(() => setToastMessage(null), 3000);
+      const timer = setTimeout(() => setToastMessage(null), 3500);
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
 
-  // Loading steps animation simulation
-  const loadingSteps = [
-    "Locating product source...",
-    "Connecting securely to foreign servers...",
-    "Extracting item specs and price details...",
-    "Simulating Naira logistics & pricing math...",
-  ];
-
-  const handleSimulateScraping = (e: React.FormEvent) => {
+  // Real scraping handler using Firecrawl via Convex action
+  const handleScrapeUrl = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetUrl = urlInput.trim();
 
@@ -130,7 +138,6 @@ export default function BuyFromAbroad() {
       setError("Please paste a product URL to proceed.");
       return;
     }
-
     if (!isValidUrl(targetUrl)) {
       setError("Please enter a valid HTTP/HTTPS product link.");
       return;
@@ -138,92 +145,45 @@ export default function BuyFromAbroad() {
 
     setError(null);
     setScrapedProduct(null);
-    setIsValidating(true);
-    setLoadingStep(0);
     setIsEditing(false);
+    setIsScraping(true);
 
-    // Run through mock loading messages
-    let currentStep = 0;
-    setLoadingMessage(loadingSteps[0]);
+    try {
+      const result = await scrapeProductUrl({ url: targetUrl });
 
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep < loadingSteps.length) {
-        setLoadingStep(currentStep);
-        setLoadingMessage(loadingSteps[currentStep]);
-      } else {
-        clearInterval(interval);
-        generateMockProduct(targetUrl);
-      }
-    }, 700);
-  };
-
-  // Generate simulated product details based on URL keywords
-  const generateMockProduct = (url: string) => {
-    const urlLower = url.toLowerCase();
-    let title = "Premium Import Item";
-    let priceUsd = 49.99;
-    let image = "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop";
-    let description = "Direct import from global warehouse. Fully handled shipping, customs clearance, and local logistics.";
-    let brand = "Amazon";
-
-    // Deduce store
-    if (urlLower.includes("zara")) brand = "Zara";
-    else if (urlLower.includes("walmart")) brand = "Walmart";
-    else if (urlLower.includes("nike")) brand = "Nike";
-    else if (urlLower.includes("adidas")) brand = "Adidas";
-    else if (urlLower.includes("target")) brand = "Target";
-    else if (urlLower.includes("louisvuitton") || urlLower.includes("louis vuitton")) brand = "Louis Vuitton";
-    else if (urlLower.includes("calvinklein") || urlLower.includes("calvin klein")) brand = "Calvin Klein";
-    else if (urlLower.includes("fashionnova") || urlLower.includes("fashion nova")) brand = "Fashion Nova";
-    else if (urlLower.includes("backmarket") || urlLower.includes("back market")) brand = "Back Market";
-    else if (urlLower.includes("invicta")) brand = "Invicta";
-    else brand = "Amazon";
-
-    // Deduce item content
-    if (urlLower.includes("keyboard") || urlLower.includes("keychron")) {
-      title = "Keychron K6 Wireless Mechanical Keyboard (65% Hot-Swappable Layout)";
-      priceUsd = 89.99;
-      image = "https://images.unsplash.com/photo-1587829741301-dc798b83add3?q=80&w=600&auto=format&fit=crop";
-      description = "Mechanical keyboard with compact 65% form factor, RGB backlighting, Gateron G Pro switches, and Bluetooth connectivity for multi-device pairing.";
-    } else if (urlLower.includes("phone") || urlLower.includes("iphone")) {
-      title = "Apple iPhone 15 Pro Max (256GB, Natural Titanium)";
-      priceUsd = 1199.99;
-      image = "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=600&auto=format&fit=crop";
-      description = "Flagship titanium build, advanced 48MP camera setup, A17 Pro chip, Action button, USB-C compatibility, and industry-leading performance.";
-    } else if (urlLower.includes("shoes") || urlLower.includes("nike") || urlLower.includes("sneakers")) {
-      title = "Nike Air Max Pulse Lifestyle Sneakers";
-      priceUsd = 150.00;
-      image = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop";
-      description = "Responsive point-loaded cushioning, athletic profile with breathable textiles, leather accents, and lightweight comfort for daily wear.";
-      brand = "Nike";
-    } else if (urlLower.includes("watch") || urlLower.includes("apple-watch") || urlLower.includes("samsung")) {
-      title = "Samsung Galaxy Watch 6 Classic (47mm LTE, Silver)";
-      priceUsd = 299.99;
-      image = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600&auto=format&fit=crop";
-      description = "Classic watch design with rotating navigation bezel, comprehensive body fitness trackers, smart notifications, and battery life to match.";
+      setScrapedProduct({
+        title: result.title,
+        price: result.price,
+        currency: result.currency,
+        // Use scraped image, fall back to a generic placeholder
+        image: result.imageUrl || "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop",
+        description: result.description,
+        brand: result.brand,
+        url: targetUrl,
+        inStock: result.inStock,
+        variants: result.variants,
+        rating: result.rating,
+        reviewCount: result.reviewCount,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to extract product data.";
+      setError(msg);
+    } finally {
+      setIsScraping(false);
     }
-
-    setScrapedProduct({
-      title,
-      priceUsd,
-      image,
-      description,
-      brand,
-      url,
-    });
-    setIsValidating(false);
   };
 
-  // Pricing calculations
-  const productPriceNaira = scrapedProduct ? Math.round(scrapedProduct.priceUsd * EXCHANGE_RATE) : 0;
+
+  // Pricing calculations (currency-aware)
+  const exchangeRate = scrapedProduct ? getExchangeRate(scrapedProduct.currency) : DEFAULT_EXCHANGE_RATE;
+  const productPriceNaira = scrapedProduct ? Math.round(scrapedProduct.price * exchangeRate) : 0;
   const customsTaxNaira = Math.round(productPriceNaira * CUSTOMS_TAX_RATE);
-  const shippingNaira = Math.round(FLAT_SHIPPING_USD * EXCHANGE_RATE);
+  const shippingNaira = Math.round(FLAT_SHIPPING_USD * DEFAULT_EXCHANGE_RATE);
   const serviceFeeNaira = Math.round(productPriceNaira * SERVICE_FEE_RATE);
   const totalNaira = productPriceNaira + customsTaxNaira + shippingNaira + serviceFeeNaira;
 
   // Handle local data updates if user overrides
-  const handleUpdateField = (field: keyof ScrapedProduct, value: string | number) => {
+  const handleUpdateField = (field: keyof ScrapedProduct, value: string | number | boolean) => {
     if (!scrapedProduct) return;
     setScrapedProduct({
       ...scrapedProduct,
@@ -231,24 +191,27 @@ export default function BuyFromAbroad() {
     });
   };
 
-  // Add simulated product to cart
+  // Add scraped product to cart
   const handleAddToCart = async () => {
     if (!scrapedProduct) return;
 
     try {
       setIsAdding(true);
-      
-      // Save product to database dynamically to obtain a valid Convex Product ID
+
+      // Save product to database to get a valid Convex Product ID
       const dbProductId = await saveForeignProductToDb({
         title: scrapedProduct.title,
-        price: totalNaira, // Full calculated price in Naira is the checkout price
-        originalPrice: Math.round(scrapedProduct.priceUsd * EXCHANGE_RATE),
+        price: totalNaira,
+        originalPrice: productPriceNaira,
         image: scrapedProduct.image,
         description: `${scrapedProduct.description} (Imported from ${scrapedProduct.brand}. Original Link: ${scrapedProduct.url})`,
         brand: scrapedProduct.brand,
+        inStock: scrapedProduct.inStock,
+        sourceUrl: scrapedProduct.url,
+        variants: scrapedProduct.variants,
       });
 
-      // Call context addToCart to put it in user's cart (Convex or Guest)
+      // Add to cart context (Convex or Guest)
       await addToCart(
         {
           id: dbProductId,
@@ -256,7 +219,7 @@ export default function BuyFromAbroad() {
           categorySlug: "foreign-import",
           categoryName: "Foreign Import",
           price: totalNaira,
-          originalPrice: Math.round(scrapedProduct.priceUsd * EXCHANGE_RATE),
+          originalPrice: productPriceNaira,
           image: scrapedProduct.image,
           description: scrapedProduct.description,
           brand: scrapedProduct.brand,
@@ -265,14 +228,12 @@ export default function BuyFromAbroad() {
         1
       );
 
-      setToastMessage(`"${scrapedProduct.title}" added to cart successfully!`);
-      
-      // Clear input and state
+      setToastMessage(`"${scrapedProduct.title}" added to cart!`);
       setUrlInput("");
       setScrapedProduct(null);
     } catch (err) {
       console.error(err);
-      setError("Failed to add foreign product to cart. Please try again.");
+      setError("Failed to add this product to cart. Please try again.");
     } finally {
       setIsAdding(false);
     }
@@ -314,7 +275,7 @@ export default function BuyFromAbroad() {
             </p>
           </div>
 
-          <form onSubmit={handleSimulateScraping} className={styles.urlForm}>
+          <form onSubmit={handleScrapeUrl} className={styles.urlForm}>
             <div className={`${styles.inputWrapper} ${urlInput ? styles.inputWrapperFocused : ""}`}>
               <span className={styles.linkIcon}><LinkIcon /></span>
               <input
@@ -322,26 +283,26 @@ export default function BuyFromAbroad() {
                 placeholder="https://www.amazon.com/dp/B0CHWRSHL5/..."
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                disabled={isValidating || isAdding}
+                disabled={isScraping || isAdding}
                 className={styles.urlInput}
               />
               <button
                 type="submit"
-                disabled={!urlInput.trim() || isValidating || isAdding}
+                disabled={!urlInput.trim() || isScraping || isAdding}
                 className={styles.submitBtn}
               >
-                {isValidating ? "Scraping..." : "Sourcing Detail"}
+                {isScraping ? "Extracting..." : "Get Product"}
               </button>
             </div>
             {error && <span className={styles.errorText}>{error}</span>}
           </form>
 
-          {/* Loading Animation Simulation */}
-          {isValidating && (
+          {/* Loading Spinner */}
+          {isScraping && (
             <div className={styles.loadingContainer}>
               <div className={styles.loadingSpinner} />
               <div className={styles.loadingText}>
-                {loadingMessage}
+                Connecting to store and extracting product details...
               </div>
             </div>
           )}
@@ -354,7 +315,11 @@ export default function BuyFromAbroad() {
               <div className={`${styles.card} ${styles.productPreviewCard}`}>
                 <div className={styles.productImageWrapper}>
                   <span className={styles.productBrandBadge}>{scrapedProduct.brand}</span>
-                  {/* Using standard img element to prevent Next.js dynamic image hostname errors for custom user inputs */}
+                  {/* Stock badge */}
+                  <span className={`${styles.stockBadge} ${scrapedProduct.inStock ? styles.stockIn : styles.stockOut}`}>
+                    {scrapedProduct.inStock ? "✓ In Stock" : "✗ Out of Stock"}
+                  </span>
+                  {/* Using standard img to prevent Next.js hostname restriction for external user inputs */}
                   <img
                     src={scrapedProduct.image}
                     alt={scrapedProduct.title}
@@ -364,7 +329,27 @@ export default function BuyFromAbroad() {
 
                 <div className={styles.productMainInfo}>
                   <h3 className={styles.productTitle}>{scrapedProduct.title}</h3>
+                  {/* Rating row */}
+                  {scrapedProduct.rating !== null && (
+                    <div className={styles.ratingRow}>
+                      <span className={styles.stars}>
+                        {"★".repeat(Math.round(scrapedProduct.rating))}{"☆".repeat(5 - Math.round(scrapedProduct.rating))}
+                      </span>
+                      <span className={styles.ratingText}>
+                        {scrapedProduct.rating.toFixed(1)}
+                        {scrapedProduct.reviewCount !== null && ` (${scrapedProduct.reviewCount.toLocaleString()} reviews)`}
+                      </span>
+                    </div>
+                  )}
                   <p className={styles.productDescription}>{scrapedProduct.description}</p>
+                  {/* Variants */}
+                  {scrapedProduct.variants.length > 0 && (
+                    <div className={styles.variantChips}>
+                      {scrapedProduct.variants.map((v) => (
+                        <span key={v} className={styles.variantChip}>{v}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -390,12 +375,12 @@ export default function BuyFromAbroad() {
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Price (USD)</label>
+                        <label className={styles.formLabel}>Price ({scrapedProduct.currency})</label>
                         <input
                           type="number"
                           step="0.01"
-                          value={scrapedProduct.priceUsd}
-                          onChange={(e) => handleUpdateField("priceUsd", parseFloat(e.target.value) || 0)}
+                          value={scrapedProduct.price}
+                          onChange={(e) => handleUpdateField("price", parseFloat(e.target.value) || 0)}
                           className={styles.formInput}
                         />
                       </div>
@@ -440,7 +425,8 @@ export default function BuyFromAbroad() {
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>Base Item Value:</span>
                     <span className={styles.priceValue}>
-                      ${scrapedProduct.priceUsd.toFixed(2)} → ₦{formatPrice(productPriceNaira)}
+                      {scrapedProduct.currency !== "USD" ? scrapedProduct.currency : "$"}{scrapedProduct.price.toFixed(2)}
+                      {" → ₦"}{formatPrice(productPriceNaira)}
                     </span>
                   </div>
 
@@ -471,7 +457,7 @@ export default function BuyFromAbroad() {
                   </div>
 
                   <div className={styles.exchangeRateNote}>
-                    Standard Import Exchange Rate: $1.00 = ₦{EXCHANGE_RATE.toLocaleString()}
+                    Exchange Rate: 1 {scrapedProduct.currency} = ₦{exchangeRate.toLocaleString()}
                   </div>
 
                   <div className={styles.totalRow}>
@@ -482,11 +468,17 @@ export default function BuyFromAbroad() {
 
                 <button
                   onClick={handleAddToCart}
-                  disabled={isAdding || totalNaira <= 0}
+                  disabled={isAdding || totalNaira <= 0 || !scrapedProduct.inStock}
                   className={styles.addToCartBtn}
                 >
                   <CartPlusIcon />
-                  <span>{isAdding ? "Preparing Import..." : "Add to Cart"}</span>
+                  <span>
+                    {isAdding
+                      ? "Preparing Import..."
+                      : !scrapedProduct.inStock
+                      ? "Out of Stock on Source Store"
+                      : "Add to Cart"}
+                  </span>
                 </button>
               </div>
 

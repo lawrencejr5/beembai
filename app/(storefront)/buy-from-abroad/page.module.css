@@ -289,6 +289,74 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* Stock availability badge */
+.stockBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  z-index: 10;
+  letter-spacing: 0.03em;
+}
+
+.stockIn {
+  background-color: rgba(22, 163, 74, 0.9);
+  color: #fff;
+}
+
+.stockOut {
+  background-color: rgba(220, 38, 38, 0.9);
+  color: #fff;
+}
+
+/* Rating row */
+.ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stars {
+  color: #f59e0b;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+.ratingText {
+  font-size: 0.82rem;
+  color: var(--color-olive-gray);
+  font-weight: 600;
+}
+
+/* Variant chips */
+.variantChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.variantChip {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: var(--color-cream);
+  color: var(--color-papyrus);
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+:global([data-theme="dark"]) .variantChip {
+  background-color: rgba(23, 22, 0, 0.4);
+  color: var(--color-coconut);
+}
+
+
 .productMainInfo {
   display: flex;
   flex-direction: column;
