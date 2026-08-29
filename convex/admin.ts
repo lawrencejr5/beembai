@@ -30,6 +30,24 @@ export const getDashboardStats = query({
       .filter((o) => o.paymentStatus === "paid")
       .reduce((sum, o) => sum + o.totalAmount, 0);
 
+    const beembaiStore = await ctx.db
+      .query("stores")
+      .withIndex("by_slug", (q) => q.eq("slug", "beembai-official"))
+      .unique();
+    const beembaiStoreId = beembaiStore?._id;
+
+    const beembaiOrders = orders.filter((o) => {
+      if (o.status === "placed" && o.paymentStatus !== "paid") return false;
+      return (
+        o.isImportOrder === true ||
+        (beembaiStoreId && o.items.some((item) => item.storeId === beembaiStoreId))
+      );
+    });
+
+    const newBeembaiOrdersCount = beembaiOrders.filter(
+      (o) => o.status === "placed"
+    ).length;
+
     return {
       totalUsers: users.length,
       totalStores: stores.length,
@@ -50,10 +68,8 @@ export const getDashboardStats = query({
       featuredProducts: products.filter((p) => p.isFeatured).length,
       sponsoredProducts: products.filter((p) => p.isSponsored).length,
       totalOrders: orders.length,
-      beembaiOrders: orders.filter((o) => o.isImportOrder === true).length,
-      newBeembaiOrders: orders.filter(
-        (o) => (o.isImportOrder === true) && o.status === "placed" && o.paymentStatus === "paid"
-      ).length,
+      beembaiOrders: beembaiOrders.length,
+      newBeembaiOrders: newBeembaiOrdersCount,
       paidOrders: orders.filter((o) => o.paymentStatus === "paid").length,
       pendingOrders: orders.filter((o) => (o.status === "placed" && o.paymentStatus === "paid") || o.status === "processing").length,
       totalRevenue,

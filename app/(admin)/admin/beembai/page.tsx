@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import styles from "../admin.module.css";
+import { useRouter } from "next/navigation";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("en-NG", {
@@ -23,6 +24,7 @@ const formatDate = (timestamp: number) => {
 };
 
 export default function BeembaiOverviewPage() {
+  const router = useRouter();
   const store = useQuery(api.beembaiStore.getBeembaiStore);
   const analytics = useQuery(api.beembaiStore.getBeembaiStoreAnalytics);
   
@@ -87,6 +89,9 @@ export default function BeembaiOverviewPage() {
     }
   };
 
+  const recentOrders = ordersList;
+  const newOrdersCount = ordersList ? ordersList.filter((o) => o.status === "placed").length : 0;
+
   if (store === undefined || analytics === undefined || ordersList === undefined) {
     return (
       <div className={styles.adminContent}>
@@ -110,7 +115,7 @@ export default function BeembaiOverviewPage() {
     );
   }
 
-  const recentOrders = ordersList;
+
 
   // Row status background colors matching the order status
   const STATUS_ROW_BG: Record<string, string> = {
@@ -293,6 +298,26 @@ export default function BeembaiOverviewPage() {
           </a>
         </div>
       </div>
+
+      {/* New Orders Banner Alert */}
+      {newOrdersCount > 0 && (
+        <div 
+          className={styles.newOrdersBanner}
+          onClick={() => router.push("/admin/beembai/orders")}
+          style={{ marginBottom: 28 }}
+        >
+          <span className={styles.newOrdersBannerIcon}>🔔</span>
+          <div style={{ flex: 1 }}>
+            <strong className={styles.newOrdersBannerTitle}>
+              You have {newOrdersCount} new order{newOrdersCount === 1 ? "" : "s"}!
+            </strong>
+            <p className={styles.newOrdersBannerText}>
+              Customers are waiting for their items to be packed and shipped. Click here to fulfill them now.
+            </p>
+          </div>
+          <span className={styles.newOrdersBannerArrow}>→</span>
+        </div>
+      )}
 
       {/* Analytics Cards — visually matching the seller dashboard grid styles */}
       <div className={styles.beembaiStatsGrid}>
