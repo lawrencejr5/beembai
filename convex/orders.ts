@@ -220,9 +220,11 @@ export const getOrdersForStore = query({
     const allOrders = await ctx.db.query("orders").collect();
 
     const storeOrders = allOrders
-      .filter((order) =>
-        order.items.some((item) => item.storeId === args.storeId)
-      )
+      .filter((order) => {
+        // Exclude placed but unpaid orders
+        if (order.status === "placed" && order.paymentStatus !== "paid") return false;
+        return order.items.some((item) => item.storeId === args.storeId);
+      })
       .map((order) => {
         // Filter items to show only this seller's products
         const sellerItems = order.items.filter((item) => item.storeId === args.storeId);
@@ -332,9 +334,11 @@ export const getSellerOrdersAllStores = query({
 
     // Filter to orders containing items belonging to any of the user's stores
     const sellerOrders = allOrders
-      .filter((order) =>
-        order.items.some((item) => item.storeId && storeIds.has(item.storeId))
-      )
+      .filter((order) => {
+        // Exclude placed but unpaid orders
+        if (order.status === "placed" && order.paymentStatus !== "paid") return false;
+        return order.items.some((item) => item.storeId && storeIds.has(item.storeId));
+      })
       .map((order) => {
         // Filter items to show only this seller's products
         const sellerItems = order.items.filter(

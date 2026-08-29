@@ -138,10 +138,15 @@ export const getBeembaiStoreOrders = query({
     const allOrders = await ctx.db.query("orders").collect();
 
     const filteredOrders = allOrders
-      .filter((order) =>
-        order.isImportOrder === true ||
-        (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId))
-      )
+      .filter((order) => {
+        // Exclude placed but unpaid orders
+        if (order.status === "placed" && order.paymentStatus !== "paid") return false;
+        
+        return (
+          order.isImportOrder === true ||
+          (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId))
+        );
+      })
       .sort((a, b) => b.createdAt - a.createdAt);
 
     // Apply status and payment filters in JS
@@ -513,11 +518,15 @@ export const getBeembaiStoreAnalytics = query({
     const localProducts = products.filter((p) => p.categorySlug !== "foreign-import");
 
     const allOrders = await ctx.db.query("orders").collect();
-    const beembaiOrders = allOrders.filter(
-      (o) =>
+    const beembaiOrders = allOrders.filter((o) => {
+      // Exclude placed but unpaid orders
+      if (o.status === "placed" && o.paymentStatus !== "paid") return false;
+
+      return (
         o.isImportOrder === true ||
         o.items.some((item) => item.storeId === store._id)
-    );
+      );
+    });
 
     const totalRevenue = beembaiOrders
       .filter((o) => o.paymentStatus === "paid")

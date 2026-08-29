@@ -52,10 +52,10 @@ export const getDashboardStats = query({
       totalOrders: orders.length,
       beembaiOrders: orders.filter((o) => o.isImportOrder === true).length,
       newBeembaiOrders: orders.filter(
-        (o) => (o.isImportOrder === true) && o.status === "placed"
+        (o) => (o.isImportOrder === true) && o.status === "placed" && o.paymentStatus === "paid"
       ).length,
       paidOrders: orders.filter((o) => o.paymentStatus === "paid").length,
-      pendingOrders: orders.filter((o) => o.status === "placed" || o.status === "processing").length,
+      pendingOrders: orders.filter((o) => (o.status === "placed" && o.paymentStatus === "paid") || o.status === "processing").length,
       totalRevenue,
     };
   },
@@ -385,6 +385,14 @@ export const getAllOrdersAdmin = query({
     await requireAdmin(ctx);
 
     let query = ctx.db.query("orders").order("desc");
+
+    // Exclude placed but unpaid orders
+    query = query.filter((q) =>
+      q.or(
+        q.neq(q.field("status"), "placed"),
+        q.eq(q.field("paymentStatus"), "paid")
+      )
+    ) as any;
 
     if (args.status && args.status !== "all") {
       query = query.filter((q) => q.eq(q.field("status"), args.status)) as any;
