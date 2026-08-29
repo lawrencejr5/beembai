@@ -8,9 +8,6 @@
 - [x] convex/orders.ts — createUnpaidOrder sets isImportOrder flag
 - [x] convex/admin.ts — getAllOrdersAdmin gets isImportOrder filter; getDashboardStats adds beembaiOrders count
 - [x] Convex Backend — Filter out placed but unpaid orders
-  - [x] Update `convex/orders.ts` (getSellerOrdersAllStores, getOrdersForStore)
-  - [x] Update `convex/beembaiStore.ts` (getBeembaiStoreOrders, getBeembaiStoreAnalytics)
-  - [x] Update `convex/admin.ts` (getAllOrdersAdmin, getDashboardStats)
 
 ## Admin Frontend
 - [x] app/(admin)/admin/layout.tsx — ensureBeembaiStore on mount + Beembai HQ sidebar section
@@ -22,3 +19,8 @@
 - [x] app/(admin)/admin/page.tsx — Add button with new orders badge
 - [x] app/(admin)/admin/beembai/settings/page.tsx — NEW store settings
 - [x] app/(admin)/admin/orders/page.tsx — add type filter + 🇺🇸 badge
+
+## Storefront Frontend
+- [/] app/(storefront)/buy-from-abroad/page.tsx — Add supported stores logos to hero
+  - [ ] Add direct shopping links grid to page.tsx
+  - [ ] Add branding grid style classes to page.module.css

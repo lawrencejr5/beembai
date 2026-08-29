@@ -260,6 +260,31 @@ export default function BuyFromAbroad() {
               Copy links from international stores like Amazon, Zara, Walmart, and Nike. 
               We handle customs, currency conversion, and shipping to Nigeria.
             </p>
+
+            {/* Supported Store Logos */}
+            <div className={styles.supportedStoresWrapper}>
+              <div className={styles.supportedStoresLabel}>Direct Shopping Links:</div>
+              <div className={styles.supportedStoresGrid}>
+                {SUPPORTED_STORES.map((store) => (
+                  <a
+                    key={store.name}
+                    href={`https://www.${store.domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.storeLogoLink}
+                    title={`Visit ${store.name} official site`}
+                  >
+                    <div className={styles.storeLogoWrapper}>
+                      <img
+                        src={store.logo}
+                        alt={store.name}
+                        className={styles.storeHeroLogo}
+                      />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
