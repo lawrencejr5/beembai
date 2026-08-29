@@ -5,6 +5,7 @@ import { usePaginatedQuery, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import styles from "../../admin.module.css";
 import { Id } from "@/convex/_generated/dataModel";
+import Link from "next/link";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-NG", {
@@ -15,7 +16,7 @@ function formatCurrency(amount: number) {
 }
 
 // ─── Add/Edit Product Modal Component ──────────────────────────────────────────
-function ProductModal({
+export function ProductModal({
   onClose,
   productToEdit,
 }: {
@@ -527,14 +528,17 @@ export default function BeembaiProductsPage() {
                 {filtered.map((product) => (
                   <tr key={product._id}>
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Link
+                        href={`/admin/beembai/products/${product._id}`}
+                        style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}
+                      >
                         <img src={product.image} alt="" className={styles.productThumb} />
                         <div>
-                          <div style={{ fontWeight: 600, color: "#282600", fontSize: 13, maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <div style={{ fontWeight: 600, color: "#282600", fontSize: 13, maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}>
                             {product.title}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td>
                       <span style={{ fontSize: 13, color: "#6b6540" }}>{product.categoryName}</span>

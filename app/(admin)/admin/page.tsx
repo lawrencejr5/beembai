@@ -87,6 +87,34 @@ export default function AdminDashboard() {
             Platform overview and key metrics
           </p>
         </div>
+        <div>
+          <Link
+            href="/admin/beembai"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}
+            id="go-to-beembai-console-btn"
+          >
+            🏪 Beembai Store Console
+            {stats && (stats as any).newBeembaiOrders > 0 && (
+              <span
+                style={{
+                  background: "#a63e26",
+                  color: "#ffffff",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  borderRadius: "50%",
+                  width: 20,
+                  height: 20,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {(stats as any).newBeembaiOrders}
+              </span>
+            )}
+          </Link>
+        </div>
       </div>
 
       {/* Pending Alerts */}

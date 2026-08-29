@@ -485,3 +485,55 @@ export const runBackfillForeignProducts = mutation({
   },
 });
 
+// ── Query: Analytics for Beembai store (admin only) ──
+export const getBeembaiStoreAnalytics = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const store = await ctx.db
+      .query("stores")
+      .withIndex("by_slug", (q) => q.eq("slug", BEEMBAI_STORE_SLUG))
+      .unique();
+    if (!store) {
+      return {
+        totalRevenue: 0,
+        activeProductsCount: 0,
+        activeOrdersCount: 0,
+        totalOrdersCount: 0,
+      };
+    }
+
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_storeId", (q) => q.eq("storeId", store._id))
+      .collect();
+
+    // Only count local products (excluding foreign imports)
+    const localProducts = products.filter((p) => p.categorySlug !== "foreign-import");
+
+    const allOrders = await ctx.db.query("orders").collect();
+    const beembaiOrders = allOrders.filter(
+      (o) =>
+        o.isImportOrder === true ||
+        o.items.some((item) => item.storeId === store._id)
+    );
+
+    const totalRevenue = beembaiOrders
+      .filter((o) => o.paymentStatus === "paid")
+      .reduce((sum, o) => sum + o.totalAmount, 0);
+
+    const activeOrdersCount = beembaiOrders.filter(
+      (o) => o.status === "placed" || o.status === "processing"
+    ).length;
+
+    return {
+      totalRevenue,
+      activeProductsCount: localProducts.length,
+      activeOrdersCount,
+      totalOrdersCount: beembaiOrders.length,
+    };
+  },
+});
+
+

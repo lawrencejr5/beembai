@@ -51,6 +51,12 @@ const navItems = [
     section: "Beembai Store",
     links: [
       {
+        href: "/admin/beembai",
+        label: "Overview",
+        icon: "🏪",
+        exact: true as const,
+      },
+      {
         href: "/admin/beembai/orders",
         label: "Orders (Beembai)",
         icon: "🛒",
