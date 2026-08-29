@@ -1,6 +1,7 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 export const getProducts = query({
   args: {},
@@ -326,6 +327,12 @@ export const createForeignProduct = mutation({
     variants: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    // Ensure the Beembai Official Store exists and get its ID
+    const beembaiStoreId: string = await ctx.runMutation(
+      internal.beembaiStore.getOrCreateBeembaiStoreInternal,
+      {}
+    );
+
     const productId = await ctx.db.insert("products", {
       title: args.title,
       categorySlug: "foreign-import",
@@ -343,10 +350,11 @@ export const createForeignProduct = mutation({
       isNewArrival: false,
       isSponsored: false,
       stock: 999,
-      status: "approved", // Auto-approved for foreign imports
+      status: "approved",
       inStock: args.inStock ?? true,
       sourceUrl: args.sourceUrl,
       variants: args.variants,
+      storeId: beembaiStoreId as any,
     });
     return productId;
   },

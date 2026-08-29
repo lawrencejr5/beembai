@@ -178,6 +178,7 @@ export default defineSchema({
       })
     ),
     paystackReference: v.optional(v.string()),
+    isImportOrder: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])

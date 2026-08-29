@@ -96,7 +96,7 @@ export const createUnpaidOrder = mutation({
 
     const now = Date.now();
 
-    // Look up and attach storeId for each product to link them correctly to their respective stores
+    // Look up and attach storeId for each product
     const itemsWithStoreId = await Promise.all(
       args.items.map(async (item) => {
         if (item.storeId) return item;
@@ -108,6 +108,15 @@ export const createUnpaidOrder = mutation({
       })
     );
 
+    // Detect if this order contains any foreign import items
+    const productTags = await Promise.all(
+      args.items.map(async (item) => {
+        const product = await ctx.db.get(item.productId);
+        return product?.tag;
+      })
+    );
+    const isImportOrder = productTags.some((tag) => tag === "import");
+
     return await ctx.db.insert("orders", {
       userId: userId || undefined,
       email: orderEmail,
@@ -118,17 +127,21 @@ export const createUnpaidOrder = mutation({
       totalAmount: args.totalAmount,
       paymentStatus: "unpaid",
       status: "placed",
+      isImportOrder: isImportOrder || undefined,
       statusHistory: [
         {
           status: "placed",
           timestamp: now,
-          message: "Order placed. Awaiting secure payment verification.",
+          message: isImportOrder
+            ? "Import order placed. Beembai will source, inspect, and ship your item. Awaiting payment."
+            : "Order placed. Awaiting secure payment verification.",
         },
       ],
       createdAt: now,
     });
   },
 });
+
 
 
 /** Mark an order as paid successfully (internal only, secure) */

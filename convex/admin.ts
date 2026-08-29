@@ -50,6 +50,7 @@ export const getDashboardStats = query({
       featuredProducts: products.filter((p) => p.isFeatured).length,
       sponsoredProducts: products.filter((p) => p.isSponsored).length,
       totalOrders: orders.length,
+      beembaiOrders: orders.filter((o) => o.isImportOrder === true).length,
       paidOrders: orders.filter((o) => o.paymentStatus === "paid").length,
       pendingOrders: orders.filter((o) => o.status === "placed" || o.status === "processing").length,
       totalRevenue,
@@ -370,6 +371,11 @@ export const getAllOrdersAdmin = query({
       v.literal("failed"),
       v.literal("all")
     )),
+    orderType: v.optional(v.union(
+      v.literal("all"),
+      v.literal("regular"),
+      v.literal("import")
+    )),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -382,6 +388,11 @@ export const getAllOrdersAdmin = query({
     }
     if (args.paymentStatus && args.paymentStatus !== "all") {
       query = query.filter((q) => q.eq(q.field("paymentStatus"), args.paymentStatus)) as any;
+    }
+    if (args.orderType === "import") {
+      query = query.filter((q) => q.eq(q.field("isImportOrder"), true)) as any;
+    } else if (args.orderType === "regular") {
+      query = query.filter((q) => q.neq(q.field("isImportOrder"), true)) as any;
     }
 
     const results = await query.paginate(args.paginationOpts);

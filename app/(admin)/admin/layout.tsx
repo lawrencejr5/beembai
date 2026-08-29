@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,14 @@ const navItems = [
     section: "Commerce",
     links: [
       { href: "/admin/orders", label: "Orders", icon: "🛒", exact: false as const },
+    ],
+  },
+  {
+    section: "Beembai HQ",
+    links: [
+      { href: "/admin/beembai/orders", label: "Orders (Beembai)", icon: "🇺🇸", exact: false as const },
+      { href: "/admin/beembai/products", label: "Products (Beembai)", icon: "🛍️", exact: false as const },
+      { href: "/admin/beembai/settings", label: "Store Settings", icon: "⚙️", exact: false as const },
     ],
   },
   {
@@ -201,6 +209,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const ensureStore = useMutation(api.beembaiStore.ensureBeembaiStore);
+
+  useEffect(() => {
+    // Ensure the Beembai Official Store exists before any admin work
+    void ensureStore();
+  }, [ensureStore]);
 
   useEffect(() => {
     const saved = localStorage.getItem("admin-sidebar-collapsed");

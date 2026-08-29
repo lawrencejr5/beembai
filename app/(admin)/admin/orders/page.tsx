@@ -25,9 +25,29 @@ const OrderRow = React.memo(({
   return (
     <tr>
       <td>
-        <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#636d21" }}>
-          #{order._id.slice(-8).toUpperCase()}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#636d21" }}>
+            #{order._id.slice(-8).toUpperCase()}
+          </span>
+          {order.isImportOrder && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                backgroundColor: "#e0f2fe",
+                color: "#0369a1",
+                padding: "2px 6px",
+                borderRadius: 4,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+              }}
+              title="US Import Order"
+            >
+              🇺🇸 Import
+            </span>
+          )}
+        </div>
       </td>
       <td>
         <div style={{ fontSize: 13, fontWeight: 600 }}>{order.buyerName}</div>
@@ -60,6 +80,7 @@ OrderRow.displayName = "OrderRow";
 export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus>("all");
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus>("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "regular" | "import">("all");
   const [search, setSearch] = useState("");
 
   const { results: orders, status, loadMore } = usePaginatedQuery(
@@ -67,6 +88,7 @@ export default function AdminOrdersPage() {
     {
       status: statusFilter,
       paymentStatus: paymentFilter,
+      orderType: typeFilter,
     },
     { initialNumItems: 10 }
   );
@@ -120,6 +142,12 @@ export default function AdminOrdersPage() {
     { label: "Failed", value: "failed" },
   ];
 
+  const typeOptions = [
+    { label: "All Types", value: "all" },
+    { label: "Regular Orders", value: "regular" },
+    { label: "US Imports", value: "import" },
+  ];
+
   return (
     <div className={styles.adminContent}>
       <div className={styles.pageHeader}>
@@ -150,6 +178,9 @@ export default function AdminOrdersPage() {
             </select>
             <select className={styles.selectFilter} value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value as PaymentStatus)} id="order-payment-filter">
               {paymentOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <select className={styles.selectFilter} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} id="order-type-filter">
+              {typeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
         </div>

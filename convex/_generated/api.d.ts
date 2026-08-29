@@ -11,6 +11,7 @@
 import type * as addresses from "../addresses.js";
 import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
+import type * as beembaiStore from "../beembaiStore.js";
 import type * as billing from "../billing.js";
 import type * as cart from "../cart.js";
 import type * as foreignScrape from "../foreignScrape.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   addresses: typeof addresses;
   admin: typeof admin;
   auth: typeof auth;
+  beembaiStore: typeof beembaiStore;
   billing: typeof billing;
   cart: typeof cart;
   foreignScrape: typeof foreignScrape;
