@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -28,8 +28,21 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
 
+  // Auto-advance placed → processing when admin views the order (mirrors sell dashboard)
+  useEffect(() => {
+    if (order && order.status === "placed") {
+      updateStatus({
+        orderId,
+        status: "processing",
+        message: "Order viewed by admin. Packaging and preparation is in progress.",
+      }).catch((err) =>
+        console.error("Failed to auto-advance Beembai order to processing:", err)
+      );
+    }
+  }, [order, orderId, updateStatus]);
+
   if (order === undefined) return <div className={styles.adminContent} style={{ color: "#6b6540" }}>Loading…</div>;
-  if (!order) return <div className={styles.adminContent}><p>Order not found or is not an import order.</p></div>;
+  if (!order) return <div className={styles.adminContent}><p>Order not found.</p></div>;
 
   const handleStatusUpdate = async () => {
     setLoading(true);
@@ -54,7 +67,9 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
           <div style={{ marginBottom: 6 }}>
             <Link href="/admin/beembai/orders" style={{ fontSize: 13, color: "#6b6540" }}>← Beembai Orders</Link>
           </div>
-          <h1 className={styles.pageTitle}>Import Order #{order._id.slice(-8).toUpperCase()} 🇺🇸</h1>
+          <h1 className={styles.pageTitle}>
+            {order.isImportOrder ? "🇺🇸 " : ""}Order #{order._id.slice(-8).toUpperCase()}
+          </h1>
           <p className={styles.pageSubtitle}>{formatDate(order.createdAt)}</p>
         </div>
         <div className={styles.flexRow}>
@@ -68,7 +83,7 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
 
       {showUpdate && (
         <div className={styles.adminCard} style={{ marginBottom: 20, background: "#fffef5", border: "1px solid #e8e2d0" }}>
-          <div className={styles.adminCardHeader}><h3 className={styles.adminCardTitle}>Update Import Fulfilment Status</h3></div>
+          <div className={styles.adminCardHeader}><h3 className={styles.adminCardTitle}>Update Order Status</h3></div>
           <div className={styles.adminCardBody}>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
               <div className={styles.formGroup} style={{ flex: 1, minWidth: 160 }}>
@@ -94,7 +109,7 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
         <div className={styles.detailMain}>
           {/* Items */}
           <div className={styles.adminCard}>
-            <div className={styles.adminCardHeader}><h3 className={styles.adminCardTitle}>Imported Items ({order.items.length})</h3></div>
+            <div className={styles.adminCardHeader}><h3 className={styles.adminCardTitle}>Order Items ({order.items.length})</h3></div>
             <div className={styles.tableWrapper}>
               <table className={`${styles.adminTable} ${styles.smallTable}`}>
                 <thead>

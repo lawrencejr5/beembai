@@ -51,6 +51,9 @@ export const getDashboardStats = query({
       sponsoredProducts: products.filter((p) => p.isSponsored).length,
       totalOrders: orders.length,
       beembaiOrders: orders.filter((o) => o.isImportOrder === true).length,
+      newBeembaiOrders: orders.filter(
+        (o) => (o.isImportOrder === true) && o.status === "placed"
+      ).length,
       paidOrders: orders.filter((o) => o.paymentStatus === "paid").length,
       pendingOrders: orders.filter((o) => o.status === "placed" || o.status === "processing").length,
       totalRevenue,

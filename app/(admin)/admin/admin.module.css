@@ -1531,3 +1531,81 @@
   margin: 0 auto;
 }
 
+/* Product Image Preview Grid inside Modal */
+.imageUploadZone {
+  border: 2px dashed var(--admin-card-border);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  margin-top: 12px;
+  background: #fafaf5;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.imageUploadZone:hover {
+  border-color: var(--admin-sidebar-active-border);
+}
+
+.imagePreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.imagePreviewWrapper {
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  position: relative;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.imagePreviewWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imagePreviewWrapper.imagePreviewMainActive {
+  border-color: var(--admin-sidebar-active-border);
+}
+
+.mainImageBadgeTag {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  background: var(--admin-sidebar-active-border);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.deletePreviewBtn {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  border: none;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.deletePreviewBtn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+

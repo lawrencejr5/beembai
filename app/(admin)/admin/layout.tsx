@@ -20,29 +20,65 @@ const navItems = [
   {
     section: "Marketplace",
     links: [
-      { href: "/admin/stores", label: "Sellers", icon: "🏪", exact: false as const },
-      { href: "/admin/products", label: "Products", icon: "📦", exact: false as const },
-      { href: "/admin/categories", label: "Categories", icon: "🏷️", exact: false as const },
+      {
+        href: "/admin/stores",
+        label: "Sellers",
+        icon: "🏪",
+        exact: false as const,
+      },
+      {
+        href: "/admin/products",
+        label: "Products (General)",
+        icon: "📦",
+        exact: false as const,
+      },
+      {
+        href: "/admin/orders",
+        label: "Orders (General)",
+        icon: "🛒",
+        exact: false as const,
+      },
+      {
+        href: "/admin/categories",
+        label: "Categories",
+        icon: "🏷️",
+        exact: false as const,
+      },
     ],
   },
+
   {
-    section: "Commerce",
+    section: "Beembai Store",
     links: [
-      { href: "/admin/orders", label: "Orders", icon: "🛒", exact: false as const },
-    ],
-  },
-  {
-    section: "Beembai HQ",
-    links: [
-      { href: "/admin/beembai/orders", label: "Orders (Beembai)", icon: "🇺🇸", exact: false as const },
-      { href: "/admin/beembai/products", label: "Products (Beembai)", icon: "🛍️", exact: false as const },
-      { href: "/admin/beembai/settings", label: "Store Settings", icon: "⚙️", exact: false as const },
+      {
+        href: "/admin/beembai/orders",
+        label: "Orders (Beembai)",
+        icon: "🛒",
+        exact: false as const,
+      },
+      {
+        href: "/admin/beembai/products",
+        label: "Products (Beembai)",
+        icon: "🛍️",
+        exact: false as const,
+      },
+      {
+        href: "/admin/beembai/settings",
+        label: "Store Settings",
+        icon: "⚙️",
+        exact: false as const,
+      },
     ],
   },
   {
     section: "Platform",
     links: [
-      { href: "/admin/users", label: "Users", icon: "👥", exact: false as const },
+      {
+        href: "/admin/users",
+        label: "Users",
+        icon: "👥",
+        exact: false as const,
+      },
     ],
   },
 ];
@@ -76,7 +112,12 @@ function Sidebar({
 
   const getInitials = (name?: string | null) => {
     if (!name) return "A";
-    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const getBadge = (href: string) => {
@@ -86,6 +127,9 @@ function Sidebar({
     }
     if (href === "/admin/products" && stats.pendingProducts > 0) {
       return stats.pendingProducts;
+    }
+    if (href === "/admin/beembai/orders" && (stats as any).newBeembaiOrders > 0) {
+      return (stats as any).newBeembaiOrders;
     }
     return null;
   };
@@ -102,7 +146,13 @@ function Sidebar({
         <button
           onClick={isMobile ? onClose : toggleCollapse}
           className={styles.collapseToggleBtn}
-          title={isMobile ? "Close Menu" : (isCollapsed ? "Expand Sidebar" : "Collapse Sidebar")}
+          title={
+            isMobile
+              ? "Close Menu"
+              : isCollapsed
+                ? "Expand Sidebar"
+                : "Collapse Sidebar"
+          }
         >
           {isMobile ? (
             <svg
@@ -126,7 +176,10 @@ function Sidebar({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ transform: isCollapsed ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
+              style={{
+                transform: isCollapsed ? "rotate(180deg)" : "none",
+                transition: "transform 0.3s ease",
+              }}
             >
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
               <line x1="9" y1="3" x2="9" y2="21" />
@@ -156,7 +209,9 @@ function Sidebar({
                   <span className={styles.sidebarLinkIcon}>{link.icon}</span>
                   <span className={styles.sidebarLinkText}>{link.label}</span>
                   {badge !== null && (
-                    <span className={`${styles.sidebarBadge} ${styles.pending}`}>
+                    <span
+                      className={`${styles.sidebarBadge} ${styles.pending}`}
+                    >
                       {badge}
                     </span>
                   )}
@@ -186,17 +241,33 @@ function Sidebar({
         <div className={styles.sidebarUser}>
           <div className={styles.sidebarAvatar}>
             {viewer?.image ? (
-              <img src={viewer.image} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              <img
+                src={viewer.image}
+                alt=""
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                }}
+              />
             ) : (
               getInitials(viewer?.name)
             )}
           </div>
           <div className={styles.sidebarUserInfo}>
-            <span className={styles.sidebarUserName}>{viewer?.name ?? "Admin"}</span>
+            <span className={styles.sidebarUserName}>
+              {viewer?.name ?? "Admin"}
+            </span>
             <span className={styles.sidebarUserRole}>Administrator</span>
           </div>
         </div>
-        <button className={styles.signOutBtn} onClick={handleSignOut} id="admin-sign-out" title={isCollapsed ? "Sign out" : undefined}>
+        <button
+          className={styles.signOutBtn}
+          onClick={handleSignOut}
+          id="admin-sign-out"
+          title={isCollapsed ? "Sign out" : undefined}
+        >
           <span>🚪</span>
           <span className={styles.signOutText}> Sign out</span>
         </button>
@@ -205,7 +276,11 @@ function Sidebar({
   );
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -272,7 +347,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Backdrop Overlay */}
-        <div className={styles.backdrop} onClick={() => setIsMobileOpen(false)} />
+        <div
+          className={styles.backdrop}
+          onClick={() => setIsMobileOpen(false)}
+        />
 
         <Sidebar
           isCollapsed={isCollapsed}
@@ -280,9 +358,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           isMobile={isMobile}
           onClose={() => setIsMobileOpen(false)}
         />
-        <div className={styles.adminMain}>
-          {children}
-        </div>
+        <div className={styles.adminMain}>{children}</div>
       </div>
     </AdminGuard>
   );

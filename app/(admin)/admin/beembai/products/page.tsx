@@ -7,7 +7,11 @@ import styles from "../../admin.module.css";
 import { Id } from "@/convex/_generated/dataModel";
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 0,
+  }).format(amount);
 }
 
 // ─── Add/Edit Product Modal Component ──────────────────────────────────────────
@@ -18,6 +22,9 @@ function ProductModal({
   onClose: () => void;
   productToEdit?: any;
 }) {
+  const [step, setStep] = useState(1);
+
+  // Step 1 Form fields
   const [title, setTitle] = useState(productToEdit?.title || "");
   const [categoryName, setCategoryName] = useState(productToEdit?.categoryName || "Phones & Tablets");
   const [price, setPrice] = useState(productToEdit?.price ? String(productToEdit.price) : "");
@@ -26,12 +33,16 @@ function ProductModal({
   const [condition, setCondition] = useState(productToEdit?.condition || "New");
   const [colors, setColors] = useState(productToEdit?.colors ? productToEdit.colors.join(", ") : "");
   const [stock, setStock] = useState(productToEdit?.stock ? String(productToEdit.stock) : "10");
-  const [youtubeLink, setYoutubeLink] = useState(productToEdit?.youtubeLink || "");
-  const [image, setImage] = useState(productToEdit?.image || "");
 
+  // Step 2 Upload fields
+  const [uploadedImages, setUploadedImages] = useState<string[]>(productToEdit?.images || (productToEdit?.image ? [productToEdit.image] : []));
+  const [mainImage, setMainImage] = useState<string>(productToEdit?.image || "");
+  const [youtubeLink, setYoutubeLink] = useState(productToEdit?.youtubeLink || "");
+  
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,49 +53,78 @@ function ProductModal({
   const updateProduct = useMutation(api.beembaiStore.adminUpdateProduct);
   const categories = useQuery(api.products.getCategories);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleNextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !price.trim()) return;
+    setStep(2);
+  };
+
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
     setUploadError("");
 
     try {
-      const uploadUrl = await generateUploadUrl();
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
+      const urls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // 1. Generate Upload URL
+        const uploadUrl = await generateUploadUrl();
 
-      if (!response.ok) throw new Error("Upload failed");
-      const { storageId } = await response.json();
+        // 2. Fetch/POST upload URL
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
 
-      const publicUrl = await resolveStorageUrl({ storageId });
-      if (publicUrl) {
-        setImage(publicUrl);
+        if (!uploadResponse.ok) throw new Error("Failed to upload image to storage");
+        const { storageId } = await uploadResponse.json();
+
+        // 3. Resolve storage URL
+        const publicUrl = await resolveStorageUrl({ storageId });
+        if (publicUrl) urls.push(publicUrl);
       }
+
+      setUploadedImages((prev) => {
+        const next = [...prev, ...urls];
+        if (!mainImage && next.length > 0) {
+          setMainImage(next[0]);
+        }
+        return next;
+      });
     } catch (err: any) {
       console.error(err);
-      setUploadError(err.message || "Failed to upload image.");
+      setUploadError(err.message || "Failed to upload images. Please try again.");
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !price.trim() || !image.trim()) {
-      alert("Please fill in all required fields (Title, Price, Image).");
+  const handleDeleteImage = (urlToDelete: string) => {
+    setUploadedImages((prev) => prev.filter((url) => url !== urlToDelete));
+    if (mainImage === urlToDelete) {
+      setMainImage(uploadedImages.find((url) => url !== urlToDelete) || "");
+    }
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!mainImage) {
+      setSubmitError("Please select a primary thumbnail image.");
       return;
     }
 
     setIsSubmitting(true);
-    const colorsArr = colors
-      ? colors.split(",").map((c: string) => c.trim()).filter((c: string) => c.length > 0)
-      : [];
+    setSubmitError("");
 
     try {
+      const colorsArr = colors
+        ? colors.split(",").map((c: string) => c.trim()).filter((c: string) => c.length > 0)
+        : [];
+
       if (productToEdit) {
         await updateProduct({
           productId: productToEdit._id,
@@ -96,7 +136,8 @@ function ProductModal({
           condition: condition || undefined,
           colors: colorsArr,
           stock: parseInt(stock, 10),
-          image,
+          image: mainImage,
+          images: uploadedImages,
           youtubeLink: youtubeLink || undefined,
         });
       } else {
@@ -109,14 +150,15 @@ function ProductModal({
           condition: condition || undefined,
           colors: colorsArr,
           stock: parseInt(stock, 10),
-          image,
+          image: mainImage,
+          images: uploadedImages,
           youtubeLink: youtubeLink || undefined,
         });
       }
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to save product.");
+      setSubmitError(err.message || "Failed to save product.");
     } finally {
       setIsSubmitting(false);
     }
@@ -126,107 +168,230 @@ function ProductModal({
     <div className={styles.modalOverlay}>
       <div className={styles.modal} style={{ maxWidth: 600 }}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>{productToEdit ? "Edit Product" : "Add Product to Beembai Store"}</h3>
+          <h3 className={styles.modalTitle}>
+            {productToEdit ? "Edit Product Details" : "List New Product"}
+          </h3>
           <button className={styles.modalClose} onClick={onClose} type="button">×</button>
         </div>
-        <form onSubmit={handleSubmit} className={styles.modalBody} style={{ maxHeight: "75vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Product Title *</label>
-            <input type="text" className={styles.formInput} value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. iPhone 15 Pro Max" />
-          </div>
+        <div className={styles.modalBody}>
+          {step === 1 ? (
+            <form onSubmit={handleNextStep} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Product Name / Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Handmade Leather Chelsea Boots"
+                  className={styles.formInput}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Category</label>
-              <select className={styles.formSelect} value={categoryName} onChange={(e) => setCategoryName(e.target.value)}>
-                {categories?.map((cat) => (
-                  <option key={cat._id} value={cat.name}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Condition</label>
-              <select className={styles.formSelect} value={condition} onChange={(e) => setCondition(e.target.value)}>
-                <option value="New">New</option>
-                <option value="Like New">Like New</option>
-                <option value="Refurbished">Refurbished</option>
-                <option value="Used">Used</option>
-              </select>
-            </div>
-          </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Price (₦) *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="25000"
+                    className={styles.formInput}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Original Price (Compare at ₦)</label>
+                  <input
+                    type="number"
+                    placeholder="35000"
+                    className={styles.formInput}
+                    value={originalPrice}
+                    onChange={(e) => setOriginalPrice(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Price (NGN) *</label>
-              <input type="number" className={styles.formInput} value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="150000" />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Original Price (Optional)</label>
-              <input type="number" className={styles.formInput} value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} placeholder="180000" />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Stock Qty</label>
-              <input type="number" className={styles.formInput} value={stock} onChange={(e) => setStock(e.target.value)} required placeholder="10" />
-            </div>
-          </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Product Category *</label>
+                  <select
+                    className={styles.formSelect}
+                    value={categoryName}
+                    onChange={(e) => setCategoryName(e.target.value)}
+                  >
+                    {categories?.map((c) => (
+                      <option key={c._id} value={c.name}>{c.name}</option>
+                    )) || (
+                      <>
+                        <option value="Phones & Tablets">Phones & Tablets</option>
+                        <option value="Gadgets & Accessories">Gadgets & Accessories</option>
+                        <option value="Apparel & Fashion">Apparel & Fashion</option>
+                        <option value="Furniture & Living">Furniture & Living</option>
+                        <option value="Beauty & Care">Beauty & Care</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Condition Status</label>
+                  <select
+                    className={styles.formSelect}
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value)}
+                  >
+                    <option value="New">Brand New</option>
+                    <option value="Refurbished">Refurbished / Certified</option>
+                    <option value="Used">Used / Vintage</option>
+                  </select>
+                </div>
+              </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Available Colors (comma separated)</label>
-            <input type="text" className={styles.formInput} value={colors} onChange={(e) => setColors(e.target.value)} placeholder="Space Gray, Silver, Gold" />
-          </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Stock Levels / Qty</label>
+                  <input
+                    type="number"
+                    placeholder="10"
+                    className={styles.formInput}
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Available Colors (comma-separated)</label>
+                  <input
+                    type="text"
+                    placeholder="Brown, Tan, Black"
+                    className={styles.formInput}
+                    value={colors}
+                    onChange={(e) => setColors(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>YouTube Video Link (Optional)</label>
-            <input type="text" className={styles.formInput} value={youtubeLink} onChange={(e) => setYoutubeLink(e.target.value)} placeholder="https://youtube.com/..." />
-          </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Product Description *</label>
+                <textarea
+                  required
+                  placeholder="Describe your product specifications, sizing, and details..."
+                  className={styles.formTextarea}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Product Description</label>
-            <textarea className={styles.formTextarea} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detailed product specifications..." />
-          </div>
+              <div className={styles.modalFooter} style={{ padding: "16px 0 0" }}>
+                <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={onClose}>
+                  Cancel
+                </button>
+                <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`}>
+                  Next: Upload Images
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--admin-text-primary)", marginBottom: 4 }}>
+                  Product Catalog Images *
+                </p>
+                <p style={{ fontSize: 12, color: "var(--admin-text-secondary)" }}>
+                  Click an image thumbnail to set it as the **Primary Main/Thumbnail** image.
+                </p>
+              </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Product Main Image *</label>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6 }}>
-              <input
-                type="text"
-                className={styles.formInput}
-                value={image}
-                onChange={(e) => setImage(e.target.value)}
-                placeholder="Image URL or upload below"
-                style={{ flex: 1 }}
-              />
-              <button
-                type="button"
-                className={`${styles.btn} ${styles.btnGhost}`}
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? "Uploading..." : "📁 Upload"}
-              </button>
               <input
                 type="file"
+                multiple
                 ref={fileInputRef}
                 style={{ display: "none" }}
                 accept="image/*"
-                onChange={handleImageUpload}
+                onChange={handleImagesUpload}
               />
-            </div>
-            {uploadError && <p style={{ color: "#ef4444", fontSize: 12, marginTop: 4 }}>{uploadError}</p>}
-            {image && (
-              <div style={{ marginTop: 12 }}>
-                <img src={image} alt="Preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--color-border)" }} />
-              </div>
-            )}
-          </div>
 
-          <div className={styles.modalFooter} style={{ padding: "16px 0 0 0", marginTop: 12 }}>
-            <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={onClose} disabled={isSubmitting}>Cancel</button>
-            <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`} disabled={isSubmitting || isUploading}>
-              {isSubmitting ? "Saving..." : "Save Product"}
-            </button>
-          </div>
-        </form>
+              <div
+                className={styles.imageUploadZone}
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+              >
+                <span style={{ fontSize: 24 }}>📁</span>
+                <p style={{ fontWeight: 700, fontSize: 13, color: "var(--admin-accent)", marginTop: 8 }}>
+                  {isUploading ? "Uploading to storage..." : "Click to select product photos"}
+                </p>
+                <p style={{ fontSize: 11, color: "var(--admin-text-secondary)" }}>
+                  Support JPG, PNG, or WEBP formats
+                </p>
+              </div>
+
+              {uploadError && (
+                <div style={{ color: "var(--admin-danger)", fontSize: 12, fontWeight: 700 }}>
+                  ⚠️ {uploadError}
+                </div>
+              )}
+
+              {uploadedImages.length > 0 && (
+                <div className={styles.imagePreviewGrid}>
+                  {uploadedImages.map((url, idx) => {
+                    const isMain = url === mainImage;
+                    return (
+                      <div
+                        key={idx}
+                        className={`${styles.imagePreviewWrapper} ${isMain ? styles.imagePreviewMainActive : ""}`}
+                        onClick={() => setMainImage(url)}
+                      >
+                        <img src={url} alt="" />
+                        {isMain && <span className={styles.mainImageBadgeTag}>Main</span>}
+                        <button
+                          type="button"
+                          className={styles.deletePreviewBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteImage(url);
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>YouTube Video Link (Optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className={styles.formInput}
+                  value={youtubeLink}
+                  onChange={(e) => setYoutubeLink(e.target.value)}
+                />
+              </div>
+
+              {submitError && (
+                <div style={{ color: "var(--admin-danger)", fontSize: 12, fontWeight: 700 }}>
+                  ⚠️ {submitError}
+                </div>
+              )}
+
+              <div className={styles.modalFooter} style={{ padding: "16px 0 0" }}>
+                <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={() => setStep(1)} disabled={isSubmitting}>
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={handleFinalSubmit}
+                  disabled={isSubmitting || isUploading || uploadedImages.length === 0}
+                >
+                  {isSubmitting ? "Saving..." : "Save & List"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -234,43 +399,28 @@ function ProductModal({
 
 export default function BeembaiProductsPage() {
   const [search, setSearch] = useState("");
-  const [backfilling, setBackfilling] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editProduct, setEditProduct] = useState<any>(null);
 
-  const runBackfill = useMutation(api.beembaiStore.runBackfillForeignProducts);
   const deleteProduct = useMutation(api.beembaiStore.adminDeleteProduct);
 
   const { results: products, status, loadMore } = usePaginatedQuery(
     api.beembaiStore.getBeembaiStoreProducts,
     {},
-    { initialNumItems: 10 }
+    { initialNumItems: 15 }
   );
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (status !== "CanLoadMore") return;
     const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) loadMore(10); },
+      (entries) => { if (entries[0].isIntersecting) loadMore(15); },
       { threshold: 0.1 }
     );
     const el = loadMoreRef.current;
     if (el) observer.observe(el);
     return () => { if (el) observer.unobserve(el); };
   }, [status, loadMore]);
-
-  const handleBackfill = async () => {
-    setBackfilling(true);
-    try {
-      const res = await runBackfill();
-      alert(`Backfill complete! Patched ${res.patched} products.`);
-    } catch (e) {
-      console.error(e);
-      alert("Failed to run backfill.");
-    } finally {
-      setBackfilling(false);
-    }
-  };
 
   const handleDelete = async (productId: Id<"products">, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
@@ -283,9 +433,13 @@ export default function BeembaiProductsPage() {
   };
 
   const filtered = useMemo(() => {
+    const list = products ?? [];
+    // Hide scraped products
+    const beembaiLocal = list.filter((p) => p.categorySlug !== "foreign-import");
+    
     const term = search.toLowerCase().trim();
-    if (!term) return products ?? [];
-    return (products ?? []).filter((p) =>
+    if (!term) return beembaiLocal;
+    return beembaiLocal.filter((p) =>
       p.title.toLowerCase().includes(term) ||
       (p.brand && p.brand.toLowerCase().includes(term)) ||
       (p.categoryName && p.categoryName.toLowerCase().includes(term))
@@ -307,9 +461,9 @@ export default function BeembaiProductsPage() {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Products (Beembai) 🛍️</h1>
-          <p className={styles.pageSubtitle}>Manage items sold directly by Beembai Store and imports</p>
+          <p className={styles.pageSubtitle}>Manage products listed directly on the Beembai Official Store</p>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div>
           <button
             className={`${styles.btn} ${styles.btnPrimary}`}
             onClick={() => {
@@ -318,15 +472,7 @@ export default function BeembaiProductsPage() {
             }}
             id="add-beembai-product-btn"
           >
-            ➕ Add Product
-          </button>
-          <button
-            className={`${styles.btn} ${styles.btnGhost}`}
-            onClick={handleBackfill}
-            disabled={backfilling}
-            title="Link old foreign import products to Beembai Official Store in database"
-          >
-            {backfilling ? "Syncing..." : "🔄 Sync Old Products"}
+            + List Product
           </button>
         </div>
       </div>
@@ -340,7 +486,7 @@ export default function BeembaiProductsPage() {
             <input
               type="text"
               className={styles.searchInput}
-              placeholder="Search by title, category, store..."
+              placeholder="Search by title or category..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               id="beembai-products-search"
@@ -364,7 +510,7 @@ export default function BeembaiProductsPage() {
             <div className={styles.emptyState}>
               <div className={styles.emptyStateIcon}>🛍️</div>
               <h3 className={styles.emptyStateTitle}>No products listed</h3>
-              <p className={styles.emptyStateText}>Click "Add Product" to list a product on Beembai Store.</p>
+              <p className={styles.emptyStateText}>Click "+ List Product" to list a product on Beembai Store.</p>
             </div>
           ) : (
             <table className={styles.adminTable}>
@@ -372,7 +518,6 @@ export default function BeembaiProductsPage() {
                 <tr>
                   <th>Product</th>
                   <th>Category</th>
-                  <th>Source / Brand</th>
                   <th>Price</th>
                   <th>Stock</th>
                   <th>Actions</th>
@@ -388,17 +533,11 @@ export default function BeembaiProductsPage() {
                           <div style={{ fontWeight: 600, color: "#282600", fontSize: 13, maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {product.title}
                           </div>
-                          <span style={{ fontSize: 11, color: "#9e9970" }}>Code: {product._id.slice(-6).toUpperCase()}</span>
                         </div>
                       </div>
                     </td>
                     <td>
                       <span style={{ fontSize: 13, color: "#6b6540" }}>{product.categoryName}</span>
-                    </td>
-                    <td>
-                      <span className={styles.textMuted} style={{ fontSize: 13, fontWeight: 600 }}>
-                        {product.categorySlug === "foreign-import" ? `🇺🇸 Import (${product.brand})` : "Beembai Local"}
-                      </span>
                     </td>
                     <td style={{ fontWeight: 700, fontSize: 13 }}>
                       {formatCurrency(product.price)}
@@ -427,17 +566,6 @@ export default function BeembaiProductsPage() {
                         >
                           ❌ Delete
                         </button>
-                        {product.sourceUrl && (
-                          <a
-                            href={product.sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
-                            style={{ textDecoration: "none" }}
-                          >
-                            🔗 Source
-                          </a>
-                        )}
                       </div>
                     </td>
                   </tr>
