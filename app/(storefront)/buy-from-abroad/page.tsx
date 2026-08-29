@@ -11,17 +11,72 @@ import styles from "./page.module.css";
 
 // Supported Stores Data
 const SUPPORTED_STORES = [
-  { name: "Amazon", logo: "/images/logos/amazon.png", domain: "amazon.com", invertDark: false },
-  { name: "Walmart", logo: "/images/logos/walmart.jpeg", domain: "walmart.com", invertDark: false },
-  { name: "Zara", logo: "/images/logos/zara.png", domain: "zara.com", invertDark: true },
-  { name: "Nike", logo: "/images/logos/nike.png", domain: "nike.com", invertDark: true },
-  { name: "Adidas", logo: "/images/logos/adidas.png", domain: "adidas.com", invertDark: true },
-  { name: "Target", logo: "/images/logos/target.png", domain: "target.com", invertDark: false },
-  { name: "Louis Vuitton", logo: "/images/logos/louisvuitton.png", domain: "louisvuitton.com", invertDark: true },
-  { name: "Calvin Klein", logo: "/images/logos/calvinklein.png", domain: "calvinklein.com", invertDark: true },
-  { name: "Fashion Nova", logo: "/images/logos/fashionnova.png", domain: "fashionnova.com", invertDark: true },
-  { name: "Back Market", logo: "/images/logos/backmarket.jpeg", domain: "backmarket.com", invertDark: true },
-  { name: "Invicta", logo: "/images/logos/invicta.jpeg", domain: "invictastores.com", invertDark: true },
+  {
+    name: "Amazon",
+    logo: "/images/logos/amazon.png",
+    domain: "amazon.com",
+    invertDark: false,
+  },
+  {
+    name: "Walmart",
+    logo: "/images/logos/walmart.jpeg",
+    domain: "walmart.com",
+    invertDark: false,
+  },
+  {
+    name: "Zara",
+    logo: "/images/logos/zara.png",
+    domain: "zara.com",
+    invertDark: true,
+  },
+  {
+    name: "Nike",
+    logo: "/images/logos/nike.png",
+    domain: "nike.com",
+    invertDark: true,
+  },
+  {
+    name: "Adidas",
+    logo: "/images/logos/adidas.png",
+    domain: "adidas.com",
+    invertDark: true,
+  },
+  {
+    name: "Target",
+    logo: "/images/logos/target.png",
+    domain: "target.com",
+    invertDark: false,
+  },
+  {
+    name: "Louis Vuitton",
+    logo: "/images/logos/louisvuitton.png",
+    domain: "louisvuitton.com",
+    invertDark: true,
+  },
+  {
+    name: "Calvin Klein",
+    logo: "/images/logos/calvinklein.png",
+    domain: "calvinklein.com",
+    invertDark: true,
+  },
+  {
+    name: "Fashion Nova",
+    logo: "/images/logos/fashionnova.png",
+    domain: "fashionnova.com",
+    invertDark: true,
+  },
+  {
+    name: "Back Market",
+    logo: "/images/logos/backmarket.jpeg",
+    domain: "backmarket.com",
+    invertDark: true,
+  },
+  {
+    name: "Invicta",
+    logo: "/images/logos/invicta.jpeg",
+    domain: "invictastores.com",
+    invertDark: true,
+  },
 ];
 
 // Exchange rate constants (currency → NGN)
@@ -34,9 +89,9 @@ const EXCHANGE_RATES: Record<string, number> = {
 };
 const DEFAULT_EXCHANGE_RATE = 1600;
 
-const CUSTOMS_TAX_RATE = 0.10;   // 10% customs/clearing tax
-const FLAT_SHIPPING_USD = 15;    // $15 flat shipping fee
-const SERVICE_FEE_RATE  = 0.05; // 5% service fee
+const CUSTOMS_TAX_RATE = 0.1; // 10% customs/clearing tax
+const FLAT_SHIPPING_USD = 15; // $15 flat shipping fee
+const SERVICE_FEE_RATE = 0.05; // 5% service fee
 
 function getExchangeRate(currency: string): number {
   return EXCHANGE_RATES[currency?.toUpperCase()] ?? DEFAULT_EXCHANGE_RATE;
@@ -54,45 +109,107 @@ const isValidUrl = (urlString: string) => {
 
 // SVG Icons
 const LinkIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2.5"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+    />
   </svg>
 );
 
 const EditIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2.5"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+    />
   </svg>
 );
 
 const CartPlusIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2.5"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+    />
   </svg>
 );
 
 const SparklesIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    fill="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
   </svg>
 );
 
 const InfoIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
   </svg>
 );
 
 const CheckIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="3"
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
 );
 
 interface ScrapedProduct {
   title: string;
-  price: number;       // numeric price in the original currency
-  currency: string;   // e.g. "USD", "GBP", "EUR"
+  price: number; // numeric price in the original currency
+  currency: string; // e.g. "USD", "GBP", "EUR"
   image: string;
   description: string;
   brand: string;
@@ -114,7 +231,9 @@ export default function BuyFromAbroad() {
   // Scraping loading state
   const [isScraping, setIsScraping] = useState(false);
 
-  const [scrapedProduct, setScrapedProduct] = useState<ScrapedProduct | null>(null);
+  const [scrapedProduct, setScrapedProduct] = useState<ScrapedProduct | null>(
+    null,
+  );
   const [isEditing, setIsEditing] = useState(false);
 
   // Toast notifications
@@ -156,7 +275,9 @@ export default function BuyFromAbroad() {
         price: result.price,
         currency: result.currency,
         // Use scraped image, fall back to a generic placeholder
-        image: result.imageUrl || "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop",
+        image:
+          result.imageUrl ||
+          "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop",
         description: result.description,
         brand: result.brand,
         url: targetUrl,
@@ -166,24 +287,32 @@ export default function BuyFromAbroad() {
         reviewCount: result.reviewCount,
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to extract product data.";
+      const msg =
+        err instanceof Error ? err.message : "Failed to extract product data.";
       setError(msg);
     } finally {
       setIsScraping(false);
     }
   };
 
-
   // Pricing calculations (currency-aware)
-  const exchangeRate = scrapedProduct ? getExchangeRate(scrapedProduct.currency) : DEFAULT_EXCHANGE_RATE;
-  const productPriceNaira = scrapedProduct ? Math.round(scrapedProduct.price * exchangeRate) : 0;
+  const exchangeRate = scrapedProduct
+    ? getExchangeRate(scrapedProduct.currency)
+    : DEFAULT_EXCHANGE_RATE;
+  const productPriceNaira = scrapedProduct
+    ? Math.round(scrapedProduct.price * exchangeRate)
+    : 0;
   const customsTaxNaira = Math.round(productPriceNaira * CUSTOMS_TAX_RATE);
   const shippingNaira = Math.round(FLAT_SHIPPING_USD * DEFAULT_EXCHANGE_RATE);
   const serviceFeeNaira = Math.round(productPriceNaira * SERVICE_FEE_RATE);
-  const totalNaira = productPriceNaira + customsTaxNaira + shippingNaira + serviceFeeNaira;
+  const totalNaira =
+    productPriceNaira + customsTaxNaira + shippingNaira + serviceFeeNaira;
 
   // Handle local data updates if user overrides
-  const handleUpdateField = (field: keyof ScrapedProduct, value: string | number | boolean) => {
+  const handleUpdateField = (
+    field: keyof ScrapedProduct,
+    value: string | number | boolean,
+  ) => {
     if (!scrapedProduct) return;
     setScrapedProduct({
       ...scrapedProduct,
@@ -225,7 +354,7 @@ export default function BuyFromAbroad() {
           brand: scrapedProduct.brand,
           stock: 999,
         },
-        1
+        1,
       );
 
       setToastMessage(`"${scrapedProduct.title}" added to cart!`);
@@ -253,17 +382,18 @@ export default function BuyFromAbroad() {
             </div>
             <h1 className={styles.heroTitle}>Shop from Stores Abroad</h1>
             <p className={`${styles.heroSubtitle} ${styles.desktopText}`}>
-              Copy and paste links from international retailers like Amazon, Zara, Walmart, and Nike. 
-              We calculate duty fees, conversion rates, and cargo shipping so you pay in Naira.
+              Copy and paste links from international retailers like Amazon,
+              Zara, Walmart, and Nike. We calculate duty fees, conversion rates,
+              and cargo shipping so you pay in Naira.
             </p>
             <p className={`${styles.heroSubtitle} ${styles.mobileText}`}>
-              Copy links from international stores like Amazon, Zara, Walmart, and Nike. 
-              We handle customs, currency conversion, and shipping to Nigeria.
+              Copy links from international stores like Amazon, Zara, Walmart,
+              and Nike. We handle customs, currency conversion, and shipping to
+              Nigeria.
             </p>
 
             {/* Supported Store Logos */}
             <div className={styles.supportedStoresWrapper}>
-              <div className={styles.supportedStoresLabel}>Direct Shopping Links:</div>
               <div className={styles.supportedStoresGrid}>
                 {SUPPORTED_STORES.map((store) => (
                   <a
@@ -296,13 +426,18 @@ export default function BuyFromAbroad() {
               <span>Paste Product URL</span>
             </h2>
             <p className={styles.sectionDesc}>
-              Enter the link of the product you want to import. Make sure the store domain is supported.
+              Enter the link of the product you want to import. Make sure the
+              store domain is supported.
             </p>
           </div>
 
           <form onSubmit={handleScrapeUrl} className={styles.urlForm}>
-            <div className={`${styles.inputWrapper} ${urlInput ? styles.inputWrapperFocused : ""}`}>
-              <span className={styles.linkIcon}><LinkIcon /></span>
+            <div
+              className={`${styles.inputWrapper} ${urlInput ? styles.inputWrapperFocused : ""}`}
+            >
+              <span className={styles.linkIcon}>
+                <LinkIcon />
+              </span>
               <input
                 type="text"
                 placeholder="https://www.amazon.com/dp/B0CHWRSHL5/..."
@@ -335,43 +470,58 @@ export default function BuyFromAbroad() {
           {/* Scraped product details and Naira price calculations */}
           {scrapedProduct && (
             <div className={styles.scrapedResultGrid}>
-              
               {/* Product Preview Card */}
               <div className={`${styles.card} ${styles.productPreviewCard}`}>
                 <div className={styles.productImageWrapper}>
-                  <span className={styles.productBrandBadge}>{scrapedProduct.brand}</span>
+                  <span className={styles.productBrandBadge}>
+                    {scrapedProduct.brand}
+                  </span>
                   {/* Stock badge */}
-                  <span className={`${styles.stockBadge} ${scrapedProduct.inStock ? styles.stockIn : styles.stockOut}`}>
+                  <span
+                    className={`${styles.stockBadge} ${scrapedProduct.inStock ? styles.stockIn : styles.stockOut}`}
+                  >
                     {scrapedProduct.inStock ? "✓ In Stock" : "✗ Out of Stock"}
                   </span>
                   {/* Using standard img to prevent Next.js hostname restriction for external user inputs */}
                   <img
                     src={scrapedProduct.image}
                     alt={scrapedProduct.title}
-                    style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                    style={{
+                      objectFit: "cover",
+                      width: "100%",
+                      height: "100%",
+                    }}
                   />
                 </div>
 
                 <div className={styles.productMainInfo}>
-                  <h3 className={styles.productTitle}>{scrapedProduct.title}</h3>
+                  <h3 className={styles.productTitle}>
+                    {scrapedProduct.title}
+                  </h3>
                   {/* Rating row */}
                   {scrapedProduct.rating !== null && (
                     <div className={styles.ratingRow}>
                       <span className={styles.stars}>
-                        {"★".repeat(Math.round(scrapedProduct.rating))}{"☆".repeat(5 - Math.round(scrapedProduct.rating))}
+                        {"★".repeat(Math.round(scrapedProduct.rating))}
+                        {"☆".repeat(5 - Math.round(scrapedProduct.rating))}
                       </span>
                       <span className={styles.ratingText}>
                         {scrapedProduct.rating.toFixed(1)}
-                        {scrapedProduct.reviewCount !== null && ` (${scrapedProduct.reviewCount.toLocaleString()} reviews)`}
+                        {scrapedProduct.reviewCount !== null &&
+                          ` (${scrapedProduct.reviewCount.toLocaleString()} reviews)`}
                       </span>
                     </div>
                   )}
-                  <p className={styles.productDescription}>{scrapedProduct.description}</p>
+                  <p className={styles.productDescription}>
+                    {scrapedProduct.description}
+                  </p>
                   {/* Variants */}
                   {scrapedProduct.variants.length > 0 && (
                     <div className={styles.variantChips}>
                       {scrapedProduct.variants.map((v) => (
-                        <span key={v} className={styles.variantChip}>{v}</span>
+                        <span key={v} className={styles.variantChip}>
+                          {v}
+                        </span>
                       ))}
                     </div>
                   )}
@@ -383,7 +533,11 @@ export default function BuyFromAbroad() {
                   className={styles.editToggleBtn}
                 >
                   <EditIcon />
-                  <span>{isEditing ? "Done Adjusting" : "Incorrect details? Adjust manually"}</span>
+                  <span>
+                    {isEditing
+                      ? "Done Adjusting"
+                      : "Incorrect details? Adjust manually"}
+                  </span>
                 </button>
 
                 {/* Edit details form */}
@@ -395,17 +549,26 @@ export default function BuyFromAbroad() {
                         <input
                           type="text"
                           value={scrapedProduct.title}
-                          onChange={(e) => handleUpdateField("title", e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateField("title", e.target.value)
+                          }
                           className={styles.formInput}
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Price ({scrapedProduct.currency})</label>
+                        <label className={styles.formLabel}>
+                          Price ({scrapedProduct.currency})
+                        </label>
                         <input
                           type="number"
                           step="0.01"
                           value={scrapedProduct.price}
-                          onChange={(e) => handleUpdateField("price", parseFloat(e.target.value) || 0)}
+                          onChange={(e) =>
+                            handleUpdateField(
+                              "price",
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
                           className={styles.formInput}
                         />
                       </div>
@@ -413,10 +576,14 @@ export default function BuyFromAbroad() {
 
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Sourced Store</label>
+                        <label className={styles.formLabel}>
+                          Sourced Store
+                        </label>
                         <select
                           value={scrapedProduct.brand}
-                          onChange={(e) => handleUpdateField("brand", e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateField("brand", e.target.value)
+                          }
                           className={styles.formSelect}
                         >
                           {SUPPORTED_STORES.map((store) => (
@@ -431,7 +598,9 @@ export default function BuyFromAbroad() {
                         <input
                           type="text"
                           value={scrapedProduct.image}
-                          onChange={(e) => handleUpdateField("image", e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateField("image", e.target.value)
+                          }
                           className={styles.formInput}
                         />
                       </div>
@@ -448,25 +617,37 @@ export default function BuyFromAbroad() {
 
                 <div className={styles.pricingRows}>
                   <div className={styles.pricingRow}>
-                    <span className={styles.pricingLabel}>Base Item Value:</span>
+                    <span className={styles.pricingLabel}>
+                      Base Item Value:
+                    </span>
                     <span className={styles.priceValue}>
-                      {scrapedProduct.currency !== "USD" ? scrapedProduct.currency : "$"}{scrapedProduct.price.toFixed(2)}
-                      {" → ₦"}{formatPrice(productPriceNaira)}
+                      {scrapedProduct.currency !== "USD"
+                        ? scrapedProduct.currency
+                        : "$"}
+                      {scrapedProduct.price.toFixed(2)}
+                      {" → ₦"}
+                      {formatPrice(productPriceNaira)}
                     </span>
                   </div>
 
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
                       Customs & Cleared Tax (10%):
-                      <span title="Government duty tax to import goods into Nigeria"><InfoIcon /></span>
+                      <span title="Government duty tax to import goods into Nigeria">
+                        <InfoIcon />
+                      </span>
                     </span>
-                    <span className={styles.priceValue}>₦{formatPrice(customsTaxNaira)}</span>
+                    <span className={styles.priceValue}>
+                      ₦{formatPrice(customsTaxNaira)}
+                    </span>
                   </div>
 
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
                       International Shipping:
-                      <span title="Flat fee for air shipping logistics to Nigeria"><InfoIcon /></span>
+                      <span title="Flat fee for air shipping logistics to Nigeria">
+                        <InfoIcon />
+                      </span>
                     </span>
                     <span className={styles.priceValue}>
                       ${FLAT_SHIPPING_USD}.00 → ₦{formatPrice(shippingNaira)}
@@ -476,24 +657,35 @@ export default function BuyFromAbroad() {
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
                       Beembai Import Service Fee (5%):
-                      <span title="Procurement, inspection, and guarantee handling fee"><InfoIcon /></span>
+                      <span title="Procurement, inspection, and guarantee handling fee">
+                        <InfoIcon />
+                      </span>
                     </span>
-                    <span className={styles.priceValue}>₦{formatPrice(serviceFeeNaira)}</span>
+                    <span className={styles.priceValue}>
+                      ₦{formatPrice(serviceFeeNaira)}
+                    </span>
                   </div>
 
                   <div className={styles.exchangeRateNote}>
-                    Exchange Rate: 1 {scrapedProduct.currency} = ₦{exchangeRate.toLocaleString()}
+                    Exchange Rate: 1 {scrapedProduct.currency} = ₦
+                    {exchangeRate.toLocaleString()}
                   </div>
 
                   <div className={styles.totalRow}>
-                    <span className={styles.totalLabel}>Total Estimated Price:</span>
-                    <span className={styles.totalValue}>₦{formatPrice(totalNaira)}</span>
+                    <span className={styles.totalLabel}>
+                      Total Estimated Price:
+                    </span>
+                    <span className={styles.totalValue}>
+                      ₦{formatPrice(totalNaira)}
+                    </span>
                   </div>
                 </div>
 
                 <button
                   onClick={handleAddToCart}
-                  disabled={isAdding || totalNaira <= 0 || !scrapedProduct.inStock}
+                  disabled={
+                    isAdding || totalNaira <= 0 || !scrapedProduct.inStock
+                  }
                   className={styles.addToCartBtn}
                 >
                   <CartPlusIcon />
@@ -501,12 +693,11 @@ export default function BuyFromAbroad() {
                     {isAdding
                       ? "Preparing Import..."
                       : !scrapedProduct.inStock
-                      ? "Out of Stock on Source Store"
-                      : "Add to Cart"}
+                        ? "Out of Stock on Source Store"
+                        : "Add to Cart"}
                   </span>
                 </button>
               </div>
-
             </div>
           )}
         </section>
@@ -515,7 +706,10 @@ export default function BuyFromAbroad() {
         <section className={styles.instructionsSection}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>How to Order from Abroad</h2>
-            <p className={styles.sectionDesc}>Shopping from stores globally is simple on Beembai. Follow these steps:</p>
+            <p className={styles.sectionDesc}>
+              Shopping from stores globally is simple on Beembai. Follow these
+              steps:
+            </p>
           </div>
 
           <div className={styles.stepsGrid}>
@@ -523,7 +717,8 @@ export default function BuyFromAbroad() {
               <div className={styles.stepNumber}>1</div>
               <h3 className={styles.stepTitle}>Find Your Product</h3>
               <p className={styles.stepDesc}>
-                Visit your preferred international store (like Amazon, Zara, or AliExpress) and search for the item.
+                Visit your preferred international store (like Amazon, Zara, or
+                AliExpress) and search for the item.
               </p>
             </div>
 
@@ -531,7 +726,8 @@ export default function BuyFromAbroad() {
               <div className={styles.stepNumber}>2</div>
               <h3 className={styles.stepTitle}>Copy the URL</h3>
               <p className={styles.stepDesc}>
-                Copy the browser URL of the product details page directly. Make sure it points to a specific item.
+                Copy the browser URL of the product details page directly. Make
+                sure it points to a specific item.
               </p>
             </div>
 
@@ -539,7 +735,8 @@ export default function BuyFromAbroad() {
               <div className={styles.stepNumber}>3</div>
               <h3 className={styles.stepTitle}>Calculate Price</h3>
               <p className={styles.stepDesc}>
-                Paste the copied URL in the input above. We'll convert the price, calculate logistics, and show the Naira total.
+                Paste the copied URL in the input above. We'll convert the
+                price, calculate logistics, and show the Naira total.
               </p>
             </div>
 
@@ -547,35 +744,10 @@ export default function BuyFromAbroad() {
               <div className={styles.stepNumber}>4</div>
               <h3 className={styles.stepTitle}>Add to Cart</h3>
               <p className={styles.stepDesc}>
-                Add the calculated item directly to your cart and pay in Naira. We source, inspect, ship, and deliver.
+                Add the calculated item directly to your cart and pay in Naira.
+                We source, inspect, ship, and deliver.
               </p>
             </div>
-          </div>
-        </section>
-
-        {/* Supported Stores Grid */}
-        <section className={styles.storesSection}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Supported International Stores</h2>
-            <p className={styles.sectionDesc}>We currently accept product URLs from these global platforms:</p>
-          </div>
-
-          <div className={styles.storesWrapper}>
-            {SUPPORTED_STORES.map((store) => (
-              <div key={store.name} className={styles.storeLogoCard}>
-                <div className={`${styles.storeLogoWrapper} ${store.invertDark ? styles.invertOnDark : ""}`}>
-                  <Image
-                    src={store.logo}
-                    alt={`${store.name} logo`}
-                    fill
-                    sizes="(max-width: 768px) 80px, 120px"
-                    style={{ objectFit: "contain" }}
-                  />
-                </div>
-                <span>{store.name}</span>
-                <span className={styles.storeLinkBadge}>{store.domain}</span>
-              </div>
-            ))}
           </div>
         </section>
       </main>
