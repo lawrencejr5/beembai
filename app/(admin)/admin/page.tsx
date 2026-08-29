@@ -91,13 +91,16 @@ export default function AdminDashboard() {
           <Link
             href="/admin/beembai"
             className={`${styles.btn} ${styles.btnPrimary}`}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", position: "relative" }}
             id="go-to-beembai-console-btn"
           >
             🏪 Beembai Store Console
             {stats && (stats as any).newBeembaiOrders > 0 && (
               <span
                 style={{
+                  position: "absolute",
+                  top: -8,
+                  right: -8,
                   background: "#a63e26",
                   color: "#ffffff",
                   fontSize: 11,
@@ -108,6 +111,7 @@ export default function AdminDashboard() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  boxShadow: "0 2px 6px rgba(166, 62, 38, 0.4)",
                 }}
               >
                 {(stats as any).newBeembaiOrders}
