@@ -13,6 +13,31 @@ import {
   getCitiesByState,
 } from "@/app/data/nigeriaLocations";
 
+// ─── Helpers ─────────────────────────────────────────────────
+
+function formatFullNigerianPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  let localDigits = digits;
+  if (localDigits.startsWith("234")) {
+    localDigits = localDigits.slice(3);
+  }
+  if (localDigits.startsWith("0")) {
+    localDigits = localDigits.slice(1);
+  }
+  return `+234${localDigits}`;
+}
+
+function extractRawPhoneForInput(fullPhone: string): string {
+  if (!fullPhone) return "";
+  let digits = fullPhone.replace(/\D/g, "");
+  if (digits.startsWith("234")) {
+    digits = digits.slice(3);
+  } else if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return digits;
+}
+
 // ─── Icons ───────────────────────────────────────────────────
 
 const CheckCircleIcon = () => (
@@ -46,7 +71,7 @@ function CreateStoreForm() {
   const createStoreMut = useMutation(api.store.createStore);
   const updateStoreMut = useMutation(api.store.updateStore);
 
-  // Wizard Steps
+  // Wizard Steps (Now 4 Steps: 1. Store, 2. Location, 3. Contact, 4. Bank)
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -82,16 +107,15 @@ function CreateStoreForm() {
     setCustomCity("");
   };
 
-  // Step 3 — Email OTP
+  // Step 3 — Contact (Email OTP & Phone)
   const [email, setEmail] = useState("");
+  const [useSignedInEmail, setUseSignedInEmail] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [phoneRaw, setPhoneRaw] = useState("");
 
-  // Step 4 — Phone
-  const [phone, setPhone] = useState("");
-
-  // Step 5 — Bank
+  // Step 4 — Bank
   const [bankName, setBankName] = useState("");
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -120,7 +144,7 @@ function CreateStoreForm() {
       }
       setEmail(storeToEdit.email || "");
       setEmailVerified(true); // already verified once
-      setPhone(storeToEdit.phone || "");
+      setPhoneRaw(extractRawPhoneForInput(storeToEdit.phone || ""));
       setBankName(storeToEdit.bankName || "");
       setAccountName(storeToEdit.accountName || "");
       setAccountNumber(storeToEdit.accountNumber || "");
@@ -133,7 +157,7 @@ function CreateStoreForm() {
     setFormError("");
   }, [
     currentStep, storeName, bio, physicalAddress, addressLine2, city, customCity, lga, stateName, country,
-    email, phone, bankName, accountName, accountNumber, routingNumber,
+    email, phoneRaw, bankName, accountName, accountNumber, routingNumber,
   ]);
 
   // OTP handlers
@@ -179,7 +203,7 @@ function CreateStoreForm() {
     setCurrentStep(2);
   };
 
-  const handleProceedToEmail = () => {
+  const handleProceedToContact = () => {
     if (!stateName) { setFormError("Please select a State."); return; }
     if (!lga) { setFormError("Please select a Local Government Area (LGA)."); return; }
     const finalCity = city === "__other__" ? customCity.trim() : city;
@@ -188,15 +212,12 @@ function CreateStoreForm() {
     setCurrentStep(3);
   };
 
-  const handleProceedToPhone = () => {
-    if (!emailVerified) { setFormError("Please verify your business email before proceeding."); return; }
-    setCurrentStep(4);
-  };
-
   const handleProceedToBank = () => {
-    if (!phone.trim()) { setFormError("Contact phone number is required."); return; }
-    if (phone.trim().length < 7) { setFormError("Please enter a valid phone number."); return; }
-    setCurrentStep(5);
+    if (!emailVerified && !useSignedInEmail) { setFormError("Please verify your business email before proceeding."); return; }
+    const cleanDigits = phoneRaw.replace(/\D/g, "");
+    if (!cleanDigits) { setFormError("Contact phone number is required."); return; }
+    if (cleanDigits.length < 10) { setFormError("Please enter a valid 10-digit Nigerian phone number."); return; }
+    setCurrentStep(4);
   };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
@@ -207,6 +228,7 @@ function CreateStoreForm() {
     if (routingNumber.length !== 9) { setFormError("Routing number must be exactly 9 digits."); return; }
 
     const finalCity = city === "__other__" ? customCity.trim() : city;
+    const finalPhone = formatFullNigerianPhone(phoneRaw);
 
     setIsSubmittingStore(true);
     setSubmitError("");
@@ -217,13 +239,13 @@ function CreateStoreForm() {
           storeId: storeToEdit._id,
           name: storeName, category, description: bio,
           physicalAddress, addressLine2, city: finalCity, lga, stateName, country: "Nigeria",
-          email, phone, bankName, accountName, accountNumber, routingNumber,
+          email, phone: finalPhone, bankName, accountName, accountNumber, routingNumber,
         });
       } else {
         await createStoreMut({
           name: storeName, category, description: bio,
           physicalAddress, addressLine2, city: finalCity, lga, stateName, country: "Nigeria",
-          email, phone, bankName, accountName, accountNumber, routingNumber,
+          email, phone: finalPhone, bankName, accountName, accountNumber, routingNumber,
         });
       }
       setShowSuccess(true);
@@ -276,7 +298,7 @@ function CreateStoreForm() {
         <p className={styles.pageSubtitle}>
           {isEditMode 
             ? "Update your merchant profile. Changes go through a quick review." 
-            : "Complete all 5 steps to list products on Beembai."
+            : "Complete all 4 steps to list products on Beembai."
           }
         </p>
       </div>
@@ -284,16 +306,15 @@ function CreateStoreForm() {
       <div className={styles.sellerCard}>
         {/* Progress bar */}
         <div style={{ height: 4, background: "var(--seller-content-bg)", width: "100%" }}>
-          <div style={{ height: "100%", background: "var(--seller-sidebar-active-border)", width: `${(currentStep / 5) * 100}%`, transition: "width 0.3s ease" }} />
+          <div style={{ height: "100%", background: "var(--seller-sidebar-active-border)", width: `${(currentStep / 4) * 100}%`, transition: "width 0.3s ease" }} />
         </div>
 
         {/* Step indicator header */}
         <div style={{ display: "flex", justifyContent: "space-around", padding: "16px 12px", borderBottom: "1px solid var(--seller-content-bg)", fontSize: 12, fontWeight: 700, color: "var(--seller-text-secondary)" }}>
           <span style={currentStep === 1 ? { color: "var(--seller-accent)" } : {}}>1. Store</span>
           <span style={currentStep === 2 ? { color: "var(--seller-accent)" } : {}}>2. Location</span>
-          <span style={currentStep === 3 ? { color: "var(--seller-accent)" } : {}}>3. Verify</span>
-          <span style={currentStep === 4 ? { color: "var(--seller-accent)" } : {}}>4. Contact</span>
-          <span style={currentStep === 5 ? { color: "var(--seller-accent)" } : {}}>5. Bank</span>
+          <span style={currentStep === 3 ? { color: "var(--seller-accent)" } : {}}>3. Contact</span>
+          <span style={currentStep === 4 ? { color: "var(--seller-accent)" } : {}}>4. Bank</span>
         </div>
 
         <div className={styles.sellerCardBody}>
@@ -476,23 +497,25 @@ function CreateStoreForm() {
                 <button type="button" onClick={() => setCurrentStep(1)} className={`${styles.btn} ${styles.btnGhost}`}>
                   Back
                 </button>
-                <button type="button" onClick={handleProceedToEmail} className={`${styles.btn} ${styles.btnPrimary}`}>
+                <button type="button" onClick={handleProceedToContact} className={`${styles.btn} ${styles.btnPrimary}`}>
                   Continue
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 3: Verify OTP */}
+          {/* Step 3: Contact (Email Verification & Phone Details) */}
           {currentStep === 3 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div className={styles.formGroup}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              
+              {/* Email Verification Section */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <label className={styles.formLabel}>Merchant Business Email *</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input
                     type="email"
                     required
-                    disabled={emailVerified}
+                    disabled={emailVerified || useSignedInEmail}
                     placeholder="merchant@domain.com"
                     className={styles.formInput}
                     value={email}
@@ -500,79 +523,96 @@ function CreateStoreForm() {
                   />
                   <button
                     type="button"
-                    disabled={emailVerified || isSendingOtp || !email}
+                    disabled={emailVerified || useSignedInEmail || isSendingOtp || !email}
                     onClick={handleSendEmailCode}
                     className={`${styles.btn} ${styles.btnGhost}`}
                   >
-                    {isSendingOtp ? "Sending..." : emailSent ? "Resend" : "Send OTP"}
+                    {isSendingOtp ? "Sending..." : emailSent ? "Resend OTP" : "Send OTP"}
                   </button>
+                </div>
+
+                {user?.email && (
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer", color: "var(--seller-text-secondary)", fontWeight: 500, marginTop: 2 }}>
+                    <input
+                      type="checkbox"
+                      checked={useSignedInEmail}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setUseSignedInEmail(checked);
+                        if (checked && user.email) {
+                          setEmail(user.email);
+                          setEmailVerified(true);
+                        } else if (!checked) {
+                          setEmailVerified(false);
+                        }
+                      }}
+                    />
+                    <span>use {user.email}</span>
+                  </label>
+                )}
+
+                {emailSent && !emailVerified && (
+                  <div className={styles.formGroup} style={{ background: "#fbf7ee", padding: 12, borderRadius: 8, border: "1px solid var(--seller-card-border)", marginTop: 4 }}>
+                    <label className={styles.formLabel}>Enter 6-Digit Verification Code</label>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="123456"
+                        className={styles.formInput}
+                        style={{ letterSpacing: "0.2em", fontSize: 16, textAlign: "center", fontWeight: 700 }}
+                        value={emailOtp}
+                        onChange={(e) => setEmailOtp(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        disabled={isVerifyingOtp || emailOtp.length !== 6}
+                        onClick={handleVerifyEmailCode}
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                      >
+                        {isVerifyingOtp ? "Verifying..." : "Verify Code"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {emailVerified && (
+                  <div style={{ padding: "8px 12px", background: "rgba(72, 92, 44, 0.08)", border: "1px solid rgba(72, 92, 44, 0.18)", borderRadius: 6, fontSize: 13, color: "var(--seller-success)", fontWeight: 600 }}>
+                    ✓ Business Email Verified Successfully
+                  </div>
+                )}
+
+                {otpError && <div style={{ color: "var(--seller-danger)", fontSize: 13, fontWeight: 700 }}>⚠️ {otpError}</div>}
+              </div>
+
+              {/* Phone Collection Section */}
+              <div style={{ borderTop: "1px dashed var(--seller-card-border)", paddingTop: 16 }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Merchant Contact Phone *</label>
+                  <div className={styles.phoneInputGroup}>
+                    <span className={styles.phonePrefixBadge}>+234</span>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="803 123 4567"
+                      className={styles.phoneInput}
+                      value={phoneRaw}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^\d\s-]/g, "");
+                        setPhoneRaw(val);
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--seller-text-secondary)", marginTop: 4 }}>
+                    Enter your 10-digit mobile phone number (without leading 0).
+                  </span>
                 </div>
               </div>
 
-              {emailSent && !emailVerified && (
-                <div className={styles.formGroup} style={{ background: "#fbf7ee", padding: 12, borderRadius: 8, border: "1px solid var(--seller-card-border)" }}>
-                  <label className={styles.formLabel}>Enter 6-Digit Code</label>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="e.g. 123456"
-                      className={styles.formInput}
-                      style={{ letterSpacing: "0.2em", fontSize: 16, textAlign: "center", fontWeight: 700 }}
-                      value={emailOtp}
-                      onChange={(e) => setEmailOtp(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      disabled={isVerifyingOtp || emailOtp.length !== 6}
-                      onClick={handleVerifyEmailCode}
-                      className={`${styles.btn} ${styles.btnPrimary}`}
-                    >
-                      {isVerifyingOtp ? "Verifying..." : "Verify Code"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {emailVerified && (
-                <div style={{ padding: "8px 12px", background: "rgba(72, 92, 44, 0.08)", border: "1px solid rgba(72, 92, 44, 0.18)", borderRadius: 6, fontSize: 13, color: "var(--seller-success)", fontWeight: 600 }}>
-                  ✓ Email Verification Successful
-                </div>
-              )}
-
-              {otpError && <div style={{ color: "var(--seller-danger)", fontSize: 13, fontWeight: 700 }}>⚠️ {otpError}</div>}
               {formError && <div style={{ color: "var(--seller-danger)", fontSize: 13, fontWeight: 700 }}>⚠️ {formError}</div>}
 
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
                 <button type="button" onClick={() => setCurrentStep(2)} className={`${styles.btn} ${styles.btnGhost}`}>
-                  Back
-                </button>
-                <button type="button" onClick={handleProceedToPhone} className={`${styles.btn} ${styles.btnPrimary}`}>
-                  Continue
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Phone Contact */}
-          {currentStep === 4 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Merchant Contact Phone *</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="+234 803 123 4567"
-                  className={styles.formInput}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-
-              {formError && <div style={{ color: "var(--seller-danger)", fontSize: 13, fontWeight: 700 }}>⚠️ {formError}</div>}
-
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                <button type="button" onClick={() => setCurrentStep(3)} className={`${styles.btn} ${styles.btnGhost}`}>
                   Back
                 </button>
                 <button type="button" onClick={handleProceedToBank} className={`${styles.btn} ${styles.btnPrimary}`}>
@@ -582,8 +622,8 @@ function CreateStoreForm() {
             </div>
           )}
 
-          {/* Step 5: Bank Details */}
-          {currentStep === 5 && (
+          {/* Step 4: Bank Details */}
+          {currentStep === 4 && (
             <form onSubmit={handleRegisterSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               
               <div className={styles.formGrid}>
@@ -641,7 +681,7 @@ function CreateStoreForm() {
               {formError && <div style={{ color: "var(--seller-danger)", fontSize: 13, fontWeight: 700 }}>⚠️ {formError}</div>}
 
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                <button type="button" onClick={() => setCurrentStep(4)} className={`${styles.btn} ${styles.btnGhost}`} disabled={isSubmittingStore}>
+                <button type="button" onClick={() => setCurrentStep(3)} className={`${styles.btn} ${styles.btnGhost}`} disabled={isSubmittingStore}>
                   Back
                 </button>
                 <button

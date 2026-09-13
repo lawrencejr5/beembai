@@ -13,6 +13,31 @@ import {
   getCitiesByState,
 } from "@/app/data/nigeriaLocations";
 
+// ─── Helpers ─────────────────────────────────────────────────
+
+function formatFullNigerianPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  let localDigits = digits;
+  if (localDigits.startsWith("234")) {
+    localDigits = localDigits.slice(3);
+  }
+  if (localDigits.startsWith("0")) {
+    localDigits = localDigits.slice(1);
+  }
+  return `+234${localDigits}`;
+}
+
+function extractRawPhoneForInput(fullPhone: string): string {
+  if (!fullPhone) return "";
+  let digits = fullPhone.replace(/\D/g, "");
+  if (digits.startsWith("234")) {
+    digits = digits.slice(3);
+  } else if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return digits;
+}
+
 export default function SellerSettingsPage() {
   const router = useRouter();
   const { stores, activeStoreId, setActiveStoreId } = useSellerStore();
@@ -43,7 +68,7 @@ export default function SellerSettingsPage() {
   const [addressLine2, setAddressLine2] = useState("");
 
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneRaw, setPhoneRaw] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -81,7 +106,7 @@ export default function SellerSettingsPage() {
         setCity(editCity);
       }
       setEmail(activeStore.email || "");
-      setPhone(activeStore.phone || "");
+      setPhoneRaw(extractRawPhoneForInput(activeStore.phone || ""));
       setBankName(activeStore.bankName || "");
       setAccountName(activeStore.accountName || "");
       setAccountNumber(activeStore.accountNumber || "");
@@ -106,6 +131,7 @@ export default function SellerSettingsPage() {
     setSuccessMsg("");
 
     const finalCity = city === "__other__" ? customCity.trim() : city;
+    const finalPhone = formatFullNigerianPhone(phoneRaw);
 
     try {
       await updateStoreMut({
@@ -121,7 +147,7 @@ export default function SellerSettingsPage() {
         stateName,
         country: "Nigeria",
         email,
-        phone,
+        phone: finalPhone,
         bankName,
         accountName,
         accountNumber,
@@ -147,14 +173,21 @@ export default function SellerSettingsPage() {
     if (!lga) { setFormError("LGA is required."); return; }
     const finalCity = city === "__other__" ? customCity.trim() : city;
     if (!finalCity) { setFormError("City is required."); return; }
-    if (!physicalAddress.trim() || !phone.trim()) {
-      setFormError("Address Line 1 and Contact Phone are required.");
+    const cleanDigits = phoneRaw.replace(/\D/g, "");
+    if (!cleanDigits || cleanDigits.length < 10) {
+      setFormError("Please enter a valid 10-digit Nigerian contact phone number.");
+      return;
+    }
+    if (!physicalAddress.trim()) {
+      setFormError("Address Line 1 is required.");
       return;
     }
 
     setIsSubmitting(true);
     setFormError("");
     setSuccessMsg("");
+
+    const finalPhone = formatFullNigerianPhone(phoneRaw);
 
     try {
       await updateStoreMut({
@@ -170,7 +203,7 @@ export default function SellerSettingsPage() {
         stateName,
         country: "Nigeria",
         email,
-        phone,
+        phone: finalPhone,
         bankName,
         accountName,
         accountNumber,
@@ -207,6 +240,7 @@ export default function SellerSettingsPage() {
     setSuccessMsg("");
 
     const finalCity = city === "__other__" ? customCity.trim() : city;
+    const finalPhone = formatFullNigerianPhone(phoneRaw);
 
     try {
       await updateStoreMut({
@@ -222,7 +256,7 @@ export default function SellerSettingsPage() {
         stateName,
         country: "Nigeria",
         email,
-        phone,
+        phone: finalPhone,
         bankName,
         accountName,
         accountNumber,
@@ -474,13 +508,20 @@ export default function SellerSettingsPage() {
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Contact Phone *</label>
-                <input
-                  type="tel"
-                  required
-                  className={styles.formInput}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
+                <div className={styles.phoneInputGroup}>
+                  <span className={styles.phonePrefixBadge}>+234</span>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="803 123 4567"
+                    className={styles.phoneInput}
+                    value={phoneRaw}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^\d\s-]/g, "");
+                      setPhoneRaw(val);
+                    }}
+                  />
+                </div>
               </div>
             </div>
 

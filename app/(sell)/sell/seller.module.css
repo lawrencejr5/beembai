@@ -1074,6 +1074,45 @@
   gap: 16px;
 }
 
+.phoneInputGroup {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--seller-card-border);
+  border-radius: var(--seller-radius-sm);
+  background: #fafaf5;
+  overflow: hidden;
+  transition: all 0.15s ease;
+}
+
+.phoneInputGroup:focus-within {
+  border-color: var(--seller-sidebar-active-border);
+  box-shadow: 0 0 0 3px rgba(72, 92, 44, 0.1);
+  background: #ffffff;
+}
+
+.phonePrefixBadge {
+  background: var(--seller-content-bg);
+  color: var(--seller-text-primary);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-right: 1px solid var(--seller-card-border);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.phoneInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--seller-text-primary);
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+}
+
 /* Detail Split Page Layout */
 .detailLayout {
   display: grid;
