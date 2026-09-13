@@ -7,6 +7,11 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import styles from "../seller.module.css";
+import {
+  NIGERIA_STATES_LIST,
+  getLgasByState,
+  getCitiesByState,
+} from "@/app/data/nigeriaLocations";
 
 // ─── Icons ───────────────────────────────────────────────────
 
@@ -58,11 +63,24 @@ function CreateStoreForm() {
   const [category, setCategory] = useState("All Categories");
   const [bio, setBio] = useState("");
 
-  // Step 2 — Location
-  const [physicalAddress, setPhysicalAddress] = useState("");
-  const [city, setCity] = useState("");
+  // Step 2 — Location (Cascading Nigeria fields)
+  const country = "Nigeria"; // Fixed preset
   const [stateName, setStateName] = useState("");
-  const [country, setCountry] = useState("");
+  const [lga, setLga] = useState("");
+  const [city, setCity] = useState("");
+  const [customCity, setCustomCity] = useState("");
+  const [physicalAddress, setPhysicalAddress] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+
+  const availableLgas = getLgasByState(stateName);
+  const availableCities = getCitiesByState(stateName);
+
+  const handleStateChange = (newState: string) => {
+    setStateName(newState);
+    setLga("");
+    setCity("");
+    setCustomCity("");
+  };
 
   // Step 3 — Email OTP
   const [email, setEmail] = useState("");
@@ -89,9 +107,17 @@ function CreateStoreForm() {
       setCategory(storeToEdit.category);
       setBio(storeToEdit.description);
       setPhysicalAddress(storeToEdit.physicalAddress || "");
-      setCity(storeToEdit.city || "");
+      setAddressLine2((storeToEdit as any).addressLine2 || "");
       setStateName(storeToEdit.stateName || "");
-      setCountry(storeToEdit.country || "");
+      setLga((storeToEdit as any).lga || "");
+      const editCity = storeToEdit.city || "";
+      const presetCities = getCitiesByState(storeToEdit.stateName || "");
+      if (editCity && presetCities.length > 0 && !presetCities.includes(editCity)) {
+        setCity("__other__");
+        setCustomCity(editCity);
+      } else {
+        setCity(editCity);
+      }
       setEmail(storeToEdit.email || "");
       setEmailVerified(true); // already verified once
       setPhone(storeToEdit.phone || "");
@@ -106,7 +132,7 @@ function CreateStoreForm() {
   useEffect(() => {
     setFormError("");
   }, [
-    currentStep, storeName, bio, physicalAddress, city, stateName, country,
+    currentStep, storeName, bio, physicalAddress, addressLine2, city, customCity, lga, stateName, country,
     email, phone, bankName, accountName, accountNumber, routingNumber,
   ]);
 
@@ -154,10 +180,11 @@ function CreateStoreForm() {
   };
 
   const handleProceedToEmail = () => {
-    if (!physicalAddress.trim()) { setFormError("Street address is required."); return; }
-    if (!city.trim()) { setFormError("City is required."); return; }
-    if (!stateName.trim()) { setFormError("State / Province is required."); return; }
-    if (!country.trim()) { setFormError("Country is required."); return; }
+    if (!stateName) { setFormError("Please select a State."); return; }
+    if (!lga) { setFormError("Please select a Local Government Area (LGA)."); return; }
+    const finalCity = city === "__other__" ? customCity.trim() : city;
+    if (!finalCity) { setFormError("Please select or specify a City / Town."); return; }
+    if (!physicalAddress.trim()) { setFormError("Address Line 1 (Street Address) is required."); return; }
     setCurrentStep(3);
   };
 
@@ -179,6 +206,8 @@ function CreateStoreForm() {
     if (!accountNumber.trim()) { setFormError("Account number is required."); return; }
     if (routingNumber.length !== 9) { setFormError("Routing number must be exactly 9 digits."); return; }
 
+    const finalCity = city === "__other__" ? customCity.trim() : city;
+
     setIsSubmittingStore(true);
     setSubmitError("");
     setFormError("");
@@ -187,13 +216,13 @@ function CreateStoreForm() {
         await updateStoreMut({
           storeId: storeToEdit._id,
           name: storeName, category, description: bio,
-          physicalAddress, city, stateName, country,
+          physicalAddress, addressLine2, city: finalCity, lga, stateName, country: "Nigeria",
           email, phone, bankName, accountName, accountNumber, routingNumber,
         });
       } else {
         await createStoreMut({
           name: storeName, category, description: bio,
-          physicalAddress, city, stateName, country,
+          physicalAddress, addressLine2, city: finalCity, lga, stateName, country: "Nigeria",
           email, phone, bankName, accountName, accountNumber, routingNumber,
         });
       }
@@ -323,50 +352,121 @@ function CreateStoreForm() {
           {/* Step 2: Location */}
           {currentStep === 2 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Country Locked */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Street Address *</label>
+                <label className={styles.formLabel}>Country</label>
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  className={styles.formInput}
+                  value="Nigeria"
+                  style={{ opacity: 0.8, cursor: "not-allowed" }}
+                />
+                <span style={{ fontSize: 11, color: "var(--seller-text-secondary)", marginTop: 2 }}>
+                  Beembai currently operates exclusively in Nigeria.
+                </span>
+              </div>
+
+              {/* State Dropdown */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>State *</label>
+                <select
+                  className={styles.formSelect}
+                  value={stateName}
+                  onChange={(e) => handleStateChange(e.target.value)}
+                >
+                  <option value="">-- Select State --</option>
+                  {NIGERIA_STATES_LIST.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* LGA Dropdown */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Local Government Area (LGA) *</label>
+                <select
+                  className={styles.formSelect}
+                  disabled={!stateName}
+                  value={lga}
+                  onChange={(e) => setLga(e.target.value)}
+                  style={!stateName ? { cursor: "not-allowed", opacity: 0.6 } : {}}
+                >
+                  <option value="">
+                    {stateName ? "-- Select LGA --" : "Select a State first"}
+                  </option>
+                  {availableLgas.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City / Town Dropdown */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>City / Town *</label>
+                <select
+                  className={styles.formSelect}
+                  disabled={!stateName}
+                  value={city}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    if (e.target.value !== "__other__") setCustomCity("");
+                  }}
+                  style={!stateName ? { cursor: "not-allowed", opacity: 0.6 } : {}}
+                >
+                  <option value="">
+                    {stateName ? "-- Select City / Town --" : "Select a State first"}
+                  </option>
+                  {availableCities.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                  {stateName && <option value="__other__">+ Other (Type custom city)</option>}
+                </select>
+              </div>
+
+              {city === "__other__" && (
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Specify Custom City / Town *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Warri Town"
+                    className={styles.formInput}
+                    value={customCity}
+                    onChange={(e) => setCustomCity(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {/* Address Line 1 */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Address Line 1 (Street Address) *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 15 Ikoyi Road"
+                  placeholder="e.g. 15 Ikoyi Road, Flat 4"
                   className={styles.formInput}
                   value={physicalAddress}
                   onChange={(e) => setPhysicalAddress(e.target.value)}
                 />
               </div>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>City *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Lagos"
-                    className={styles.formInput}
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>State / Province *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Lagos State"
-                    className={styles.formInput}
-                    value={stateName}
-                    onChange={(e) => setStateName(e.target.value)}
-                  />
-                </div>
-              </div>
+
+              {/* Address Line 2 */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Country *</label>
+                <label className={styles.formLabel}>Address Line 2 (Building, Suite, Landmark - Optional)</label>
                 <input
                   type="text"
-                  required
-                  placeholder="Nigeria"
+                  placeholder="e.g. Opposite Central Mosque / Near Toll Gate"
                   className={styles.formInput}
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
+                  value={addressLine2}
+                  onChange={(e) => setAddressLine2(e.target.value)}
                 />
               </div>
 

@@ -7,6 +7,11 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useSellerStore } from "../layout";
 import styles from "../seller.module.css";
+import {
+  NIGERIA_STATES_LIST,
+  getLgasByState,
+  getCitiesByState,
+} from "@/app/data/nigeriaLocations";
 
 export default function SellerSettingsPage() {
   const router = useRouter();
@@ -27,10 +32,16 @@ export default function SellerSettingsPage() {
   const [storeSlug, setStoreSlug] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [bio, setBio] = useState("");
-  const [physicalAddress, setPhysicalAddress] = useState("");
-  const [city, setCity] = useState("");
+  
+  // Location Fields
+  const country = "Nigeria";
   const [stateName, setStateName] = useState("");
-  const [country, setCountry] = useState("");
+  const [lga, setLga] = useState("");
+  const [city, setCity] = useState("");
+  const [customCity, setCustomCity] = useState("");
+  const [physicalAddress, setPhysicalAddress] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [bankName, setBankName] = useState("");
@@ -40,6 +51,16 @@ export default function SellerSettingsPage() {
 
   const activeStore = stores.find((s) => s._id === activeStoreId);
 
+  const availableLgas = getLgasByState(stateName);
+  const availableCities = getCitiesByState(stateName);
+
+  const handleStateChange = (newState: string) => {
+    setStateName(newState);
+    setLga("");
+    setCity("");
+    setCustomCity("");
+  };
+
   // Pre-populate form when store context loads/changes
   useEffect(() => {
     if (activeStore) {
@@ -48,9 +69,17 @@ export default function SellerSettingsPage() {
       setCategory(activeStore.category || "All Categories");
       setBio(activeStore.description || "");
       setPhysicalAddress(activeStore.physicalAddress || "");
-      setCity(activeStore.city || "");
+      setAddressLine2((activeStore as any).addressLine2 || "");
       setStateName(activeStore.stateName || "");
-      setCountry(activeStore.country || "");
+      setLga((activeStore as any).lga || "");
+      const editCity = activeStore.city || "";
+      const presetCities = getCitiesByState(activeStore.stateName || "");
+      if (editCity && presetCities.length > 0 && !presetCities.includes(editCity)) {
+        setCity("__other__");
+        setCustomCity(editCity);
+      } else {
+        setCity(editCity);
+      }
       setEmail(activeStore.email || "");
       setPhone(activeStore.phone || "");
       setBankName(activeStore.bankName || "");
@@ -76,6 +105,8 @@ export default function SellerSettingsPage() {
     setFormError("");
     setSuccessMsg("");
 
+    const finalCity = city === "__other__" ? customCity.trim() : city;
+
     try {
       await updateStoreMut({
         storeId: activeStoreId as Id<"stores">,
@@ -84,9 +115,11 @@ export default function SellerSettingsPage() {
         category,
         description: bio,
         physicalAddress,
-        city,
+        addressLine2,
+        city: finalCity,
+        lga,
         stateName,
-        country,
+        country: "Nigeria",
         email,
         phone,
         bankName,
@@ -110,8 +143,12 @@ export default function SellerSettingsPage() {
     e.preventDefault();
     if (!activeStoreId) return;
 
-    if (!physicalAddress.trim() || !city.trim() || !stateName.trim() || !country.trim() || !phone.trim()) {
-      setFormError("All location fields and contact phone are required.");
+    if (!stateName) { setFormError("State is required."); return; }
+    if (!lga) { setFormError("LGA is required."); return; }
+    const finalCity = city === "__other__" ? customCity.trim() : city;
+    if (!finalCity) { setFormError("City is required."); return; }
+    if (!physicalAddress.trim() || !phone.trim()) {
+      setFormError("Address Line 1 and Contact Phone are required.");
       return;
     }
 
@@ -127,9 +164,11 @@ export default function SellerSettingsPage() {
         category,
         description: bio,
         physicalAddress,
-        city,
+        addressLine2,
+        city: finalCity,
+        lga,
         stateName,
-        country,
+        country: "Nigeria",
         email,
         phone,
         bankName,
@@ -167,6 +206,8 @@ export default function SellerSettingsPage() {
     setFormError("");
     setSuccessMsg("");
 
+    const finalCity = city === "__other__" ? customCity.trim() : city;
+
     try {
       await updateStoreMut({
         storeId: activeStoreId as Id<"stores">,
@@ -175,9 +216,11 @@ export default function SellerSettingsPage() {
         category,
         description: bio,
         physicalAddress,
-        city,
+        addressLine2,
+        city: finalCity,
+        lga,
         stateName,
-        country,
+        country: "Nigeria",
         email,
         phone,
         bankName,
@@ -348,49 +391,87 @@ export default function SellerSettingsPage() {
         </div>
         <div className={styles.sellerCardBody}>
           <form onSubmit={handleSaveLocation} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* Country Locked */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Street Address *</label>
+              <label className={styles.formLabel}>Country</label>
               <input
                 type="text"
-                required
+                readOnly
+                disabled
                 className={styles.formInput}
-                value={physicalAddress}
-                onChange={(e) => setPhysicalAddress(e.target.value)}
+                value="Nigeria"
+                style={{ opacity: 0.8, cursor: "not-allowed" }}
               />
+              <span style={{ fontSize: 11, color: "var(--seller-text-secondary)", marginTop: 2 }}>
+                Beembai currently operates exclusively in Nigeria.
+              </span>
             </div>
+
+            {/* State & LGA Grid */}
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>City *</label>
-                <input
-                  type="text"
-                  required
-                  className={styles.formInput}
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>State / Province *</label>
-                <input
-                  type="text"
-                  required
-                  className={styles.formInput}
+                <label className={styles.formLabel}>State *</label>
+                <select
+                  className={styles.formSelect}
                   value={stateName}
-                  onChange={(e) => setStateName(e.target.value)}
-                />
+                  onChange={(e) => handleStateChange(e.target.value)}
+                >
+                  <option value="">-- Select State --</option>
+                  {NIGERIA_STATES_LIST.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Local Government Area (LGA) *</label>
+                <select
+                  className={styles.formSelect}
+                  disabled={!stateName}
+                  value={lga}
+                  onChange={(e) => setLga(e.target.value)}
+                  style={!stateName ? { cursor: "not-allowed", opacity: 0.6 } : {}}
+                >
+                  <option value="">
+                    {stateName ? "-- Select LGA --" : "Select a State first"}
+                  </option>
+                  {availableLgas.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+
+            {/* City & Contact Phone Grid */}
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Country *</label>
-                <input
-                  type="text"
-                  required
-                  className={styles.formInput}
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                />
+                <label className={styles.formLabel}>City / Town *</label>
+                <select
+                  className={styles.formSelect}
+                  disabled={!stateName}
+                  value={city}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    if (e.target.value !== "__other__") setCustomCity("");
+                  }}
+                  style={!stateName ? { cursor: "not-allowed", opacity: 0.6 } : {}}
+                >
+                  <option value="">
+                    {stateName ? "-- Select City / Town --" : "Select a State first"}
+                  </option>
+                  {availableCities.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                  {stateName && <option value="__other__">+ Other (Type custom city)</option>}
+                </select>
               </div>
+
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Contact Phone *</label>
                 <input
@@ -402,6 +483,44 @@ export default function SellerSettingsPage() {
                 />
               </div>
             </div>
+
+            {city === "__other__" && (
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Specify Custom City / Town *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Warri Town"
+                  className={styles.formInput}
+                  value={customCity}
+                  onChange={(e) => setCustomCity(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* Address Line 1 */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Address Line 1 (Street Address) *</label>
+              <input
+                type="text"
+                required
+                className={styles.formInput}
+                value={physicalAddress}
+                onChange={(e) => setPhysicalAddress(e.target.value)}
+              />
+            </div>
+
+            {/* Address Line 2 */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Address Line 2 (Building, Suite, Landmark - Optional)</label>
+              <input
+                type="text"
+                className={styles.formInput}
+                value={addressLine2}
+                onChange={(e) => setAddressLine2(e.target.value)}
+              />
+            </div>
+
             <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--seller-content-bg)", paddingTop: 16 }}>
               <button type="submit" disabled={isSubmitting} className={`${styles.btn} ${styles.btnPrimary}`}>
                 {isSubmitting ? "Saving..." : "Save Location Details"}
