@@ -137,6 +137,7 @@ export const createStore = mutation({
     accountName: v.string(),
     accountNumber: v.string(),
     routingNumber: v.optional(v.string()),
+    faceVerificationImage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -189,6 +190,7 @@ export const createStore = mutation({
       accountName: args.accountName,
       accountNumber: args.accountNumber,
       routingNumber: args.routingNumber,
+      faceVerificationImage: args.faceVerificationImage,
     });
 
     return storeId;
@@ -216,6 +218,7 @@ export const updateStore = mutation({
     accountName: v.string(),
     accountNumber: v.string(),
     routingNumber: v.optional(v.string()),
+    faceVerificationImage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -262,6 +265,7 @@ export const updateStore = mutation({
       accountName: args.accountName,
       accountNumber: args.accountNumber,
       routingNumber: args.routingNumber,
+      faceVerificationImage: args.faceVerificationImage,
     });
 
     return args.storeId;

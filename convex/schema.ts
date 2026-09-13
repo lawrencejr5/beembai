@@ -100,6 +100,7 @@ export default defineSchema({
     taxId: v.optional(v.string()),
     corporateBankAccount: v.optional(v.string()),
     proofOfAddressFile: v.optional(v.string()),
+    faceVerificationImage: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
     .index("by_userId", ["userId"]),

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useAction } from "convex/react";
@@ -150,6 +150,13 @@ function CreateStoreForm() {
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
 
+  // Camera & Face Verification States
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [faceVerificationImage, setFaceVerificationImage] = useState("");
+
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Pre-populate form when editing an existing store
@@ -185,6 +192,9 @@ function CreateStoreForm() {
       setBankCode(bCode);
       setAccountName(storeToEdit.accountName || "");
       setAccountNumber(storeToEdit.accountNumber || "");
+      setFaceVerificationImage(
+        (storeToEdit as any).faceVerificationImage || "",
+      );
       if (storeToEdit.accountName) {
         setBankVerified(true);
       }
@@ -269,6 +279,73 @@ function CreateStoreForm() {
     }
   }, [bankCode, accountNumber]);
 
+  // Camera & Face Verification Methods
+  const startCamera = async () => {
+    setCameraError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsCameraActive(true);
+      }
+    } catch (err: any) {
+      console.error("Camera access error:", err);
+      setCameraError(
+        "Camera access denied or unavailable. You can upload a selfie image file below.",
+      );
+      setIsCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const captureSelfie = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      setFaceVerificationImage(dataUrl);
+      stopCamera();
+    }
+  };
+
+  const handleSelfieFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        setFaceVerificationImage(reader.result as string);
+        stopCamera();
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  useEffect(() => {
+    if (currentStep !== 4) {
+      stopCamera();
+    }
+  }, [currentStep]);
+
   // OTP handlers
   const handleSendEmailCode = async () => {
     if (!email) return;
@@ -339,7 +416,7 @@ function CreateStoreForm() {
     setCurrentStep(3);
   };
 
-  const handleProceedToBank = () => {
+  const handleProceedToFaceVerification = () => {
     if (!emailVerified && !useSignedInEmail) {
       setFormError("Please verify your business email before proceeding.");
       return;
@@ -354,6 +431,18 @@ function CreateStoreForm() {
       return;
     }
     setCurrentStep(4);
+    startCamera();
+  };
+
+  const handleProceedToBank = () => {
+    if (!faceVerificationImage) {
+      setFormError(
+        "Please capture or upload a live face verification selfie before proceeding.",
+      );
+      return;
+    }
+    stopCamera();
+    setCurrentStep(5);
   };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
@@ -401,6 +490,7 @@ function CreateStoreForm() {
           bankCode,
           accountName,
           accountNumber: cleanAcc,
+          faceVerificationImage,
         });
       } else {
         await createStoreMut({
@@ -419,6 +509,7 @@ function CreateStoreForm() {
           bankCode,
           accountName,
           accountNumber: cleanAcc,
+          faceVerificationImage,
         });
       }
       setShowSuccess(true);
@@ -494,7 +585,7 @@ function CreateStoreForm() {
         <p className={styles.pageSubtitle}>
           {isEditMode
             ? "Update your merchant profile. Changes go through a quick review."
-            : "Complete all 4 steps to list products on Beembai."}
+            : "Complete all 5 steps to list products on Beembai."}
         </p>
       </div>
 
@@ -511,7 +602,7 @@ function CreateStoreForm() {
             style={{
               height: "100%",
               background: "var(--seller-sidebar-active-border)",
-              width: `${(currentStep / 4) * 100}%`,
+              width: `${(currentStep / 5) * 100}%`,
               transition: "width 0.3s ease",
             }}
           />
@@ -547,7 +638,12 @@ function CreateStoreForm() {
           <span
             style={currentStep === 4 ? { color: "var(--seller-accent)" } : {}}
           >
-            4. Bank
+            4. Verification
+          </span>
+          <span
+            style={currentStep === 5 ? { color: "var(--seller-accent)" } : {}}
+          >
+            5. Bank
           </span>
         </div>
 
@@ -1017,7 +1113,7 @@ function CreateStoreForm() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleProceedToBank}
+                  onClick={handleProceedToFaceVerification}
                   className={`${styles.btn} ${styles.btnPrimary}`}
                 >
                   Continue
@@ -1026,8 +1122,230 @@ function CreateStoreForm() {
             </div>
           )}
 
-          {/* Step 4: Bank Details */}
+          {/* Step 4: Live Face Verification */}
           {currentStep === 4 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div>
+                <h3
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    margin: 0,
+                    color: "var(--seller-text-primary)",
+                  }}
+                >
+                  Live Face Verification
+                </h3>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--seller-text-secondary)",
+                    marginTop: 4,
+                  }}
+                >
+                  Please take a clear live selfie photo of your face to verify
+                  your identity as the store owner.
+                </p>
+              </div>
+
+              {/* Camera / Preview Container */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#000",
+                  borderRadius: 12,
+                  padding: 16,
+                  minHeight: 320,
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Hidden canvas for taking snapshot */}
+                <canvas ref={canvasRef} style={{ display: "none" }} />
+
+                {/* Captured Image Preview */}
+                {faceVerificationImage ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    <img
+                      src={faceVerificationImage}
+                      alt="Live Selfie Capture"
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: 280,
+                        borderRadius: 8,
+                        objectFit: "cover",
+                        border: "3px solid var(--seller-success)",
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: "#fff",
+                        fontWeight: 600,
+                      }}
+                    >
+                      ✓ Face Verification Photo Captured
+                    </span>
+                  </div>
+                ) : (
+                  /* Video Stream */
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                    }}
+                  >
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{
+                        width: "100%",
+                        maxHeight: 280,
+                        borderRadius: 8,
+                        objectFit: "cover",
+                        display: isCameraActive ? "block" : "none",
+                        transform: "scaleX(-1)", // Mirror video for natural selfie view
+                      }}
+                    />
+
+                    {!isCameraActive && (
+                      <div
+                        style={{
+                          color: "#fff",
+                          textAlign: "center",
+                          padding: "40px 20px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 40,
+                            display: "block",
+                            marginBottom: 12,
+                          }}
+                        >
+                          📷
+                        </span>
+                        <p style={{ fontSize: 14, margin: 0 }}>
+                          Camera is currently inactive
+                        </p>
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          className={`${styles.btn} ${styles.btnPrimary}`}
+                          style={{ marginTop: 16 }}
+                        >
+                          Start Camera
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Camera Controls & File Fallback */}
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                {isCameraActive && !faceVerificationImage && (
+                  <button
+                    type="button"
+                    onClick={captureSelfie}
+                    className={`${styles.btn} ${styles.btnPrimary}`}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      fontSize: 15,
+                      fontWeight: 700,
+                    }}
+                  >
+                    📸 Capture Photo
+                  </button>
+                )}
+
+                {faceVerificationImage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFaceVerificationImage("");
+                      startCamera();
+                    }}
+                    className={`${styles.btn} ${styles.btnGhost}`}
+                    style={{ width: "100%" }}
+                  >
+                    🔄 Retake Selfie Photo
+                  </button>
+                )}
+
+                {cameraError && (
+                  <div
+                    style={{
+                      color: "var(--seller-danger)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      textAlign: "center",
+                    }}
+                  >
+                    ⚠️ {cameraError}
+                  </div>
+                )}
+              </div>
+
+              {formError && (
+                <div
+                  style={{
+                    color: "var(--seller-danger)",
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  ⚠️ {formError}
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopCamera();
+                    setCurrentStep(3);
+                  }}
+                  className={`${styles.btn} ${styles.btnGhost}`}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleProceedToBank}
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                >
+                  Continue to Bank Details
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Bank Details */}
+          {currentStep === 5 && (
             <form
               onSubmit={handleRegisterSubmit}
               style={{ display: "flex", flexDirection: "column", gap: 16 }}
@@ -1162,7 +1480,7 @@ function CreateStoreForm() {
               >
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => setCurrentStep(4)}
                   className={`${styles.btn} ${styles.btnGhost}`}
                   disabled={isSubmittingStore}
                 >
