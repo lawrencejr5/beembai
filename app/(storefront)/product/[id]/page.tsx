@@ -209,6 +209,16 @@ export default function ProductPage({ params }: ProductPageProps) {
         categorySlug: dbProduct.categorySlug,
         categoryName: dbProduct.categoryName,
         colors: dbProduct.colors,
+        sizes: dbProduct.sizes,
+        gender: dbProduct.gender,
+        material: dbProduct.material,
+        warranty: dbProduct.warranty,
+        weight: dbProduct.weight,
+        ram: dbProduct.ram,
+        storage: dbProduct.storage,
+        batteryCapacity: dbProduct.batteryCapacity,
+        screenSize: dbProduct.screenSize,
+        displayType: dbProduct.displayType,
         description: dbProduct.description,
         tag: dbProduct.tag,
         stock: dbProduct.stock,
@@ -259,6 +269,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   const activeImage = selectedImage || product?.image || "";
 
   const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<string>("");
 
   // Edit Product Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -623,6 +634,32 @@ export default function ProductPage({ params }: ProductPageProps) {
             </div>
           )}
 
+          {product.sizes && product.sizes.length > 0 && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>
+                Size: <strong>{selectedSize || product.sizes[0]}</strong>
+              </span>
+              <div className={styles.colorList}>
+                {product.sizes.map((size: string) => {
+                  const isSelected =
+                    (selectedSize || product.sizes![0]) === size;
+                  return (
+                    <button
+                      type="button"
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`${styles.colorOptionBtn} ${
+                        isSelected ? styles.colorOptionActive : ""
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {product.colors && product.colors.length > 0 && (
             <div className={styles.optionGroup}>
               <span className={styles.optionLabel}>
@@ -646,6 +683,77 @@ export default function ProductPage({ params }: ProductPageProps) {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {product.ram && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>RAM Memory</span>
+              <span className={styles.conditionBadge}>⚡ {product.ram}</span>
+            </div>
+          )}
+
+          {product.storage && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Internal Storage</span>
+              <span className={styles.conditionBadge}>💾 {product.storage}</span>
+            </div>
+          )}
+
+          {product.batteryCapacity && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Battery</span>
+              <span className={styles.conditionBadge}>🔋 {product.batteryCapacity}</span>
+            </div>
+          )}
+
+          {product.screenSize && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Screen Size</span>
+              <span className={styles.conditionBadge}>📱 {product.screenSize}</span>
+            </div>
+          )}
+
+          {product.displayType && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Display</span>
+              <span className={styles.conditionBadge}>🖥️ {product.displayType}</span>
+            </div>
+          )}
+
+          {product.gender && product.gender !== "All / Unisex" && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Target Gender</span>
+              <span className={styles.conditionBadge}>
+                👤 {product.gender}
+              </span>
+            </div>
+          )}
+
+          {product.material && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Material / Fabric</span>
+              <span className={styles.conditionBadge}>
+                🧵 {product.material}
+              </span>
+            </div>
+          )}
+
+          {product.warranty && product.warranty !== "No Warranty" && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Warranty</span>
+              <span className={styles.conditionBadge}>
+                🛡️ {product.warranty}
+              </span>
+            </div>
+          )}
+
+          {product.weight && (
+            <div className={styles.optionGroup}>
+              <span className={styles.optionLabel}>Weight</span>
+              <span className={styles.conditionBadge}>
+                ⚖️ {product.weight}
+              </span>
             </div>
           )}
         </div>
