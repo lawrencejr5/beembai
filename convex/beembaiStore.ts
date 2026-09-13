@@ -326,6 +326,16 @@ export const adminCreateProduct = mutation({
     description: v.optional(v.string()),
     condition: v.optional(v.string()),
     colors: v.optional(v.array(v.string())),
+    sizes: v.optional(v.array(v.string())),
+    gender: v.optional(v.string()),
+    material: v.optional(v.string()),
+    warranty: v.optional(v.string()),
+    weight: v.optional(v.string()),
+    ram: v.optional(v.string()),
+    storage: v.optional(v.string()),
+    batteryCapacity: v.optional(v.string()),
+    screenSize: v.optional(v.string()),
+    displayType: v.optional(v.string()),
     stock: v.optional(v.number()),
     image: v.string(),
     images: v.optional(v.array(v.string())),
@@ -358,6 +368,16 @@ export const adminCreateProduct = mutation({
       brand: store.name,
       condition: args.condition || "New",
       colors: args.colors || [],
+      sizes: args.sizes,
+      gender: args.gender,
+      material: args.material,
+      warranty: args.warranty,
+      weight: args.weight,
+      ram: args.ram,
+      storage: args.storage,
+      batteryCapacity: args.batteryCapacity,
+      screenSize: args.screenSize,
+      displayType: args.displayType,
       productDetails: [],
       isFeatured: false,
       isNewArrival: true,
@@ -384,6 +404,16 @@ export const adminUpdateProduct = mutation({
     description: v.optional(v.string()),
     condition: v.optional(v.string()),
     colors: v.optional(v.array(v.string())),
+    sizes: v.optional(v.array(v.string())),
+    gender: v.optional(v.string()),
+    material: v.optional(v.string()),
+    warranty: v.optional(v.string()),
+    weight: v.optional(v.string()),
+    ram: v.optional(v.string()),
+    storage: v.optional(v.string()),
+    batteryCapacity: v.optional(v.string()),
+    screenSize: v.optional(v.string()),
+    displayType: v.optional(v.string()),
     stock: v.optional(v.number()),
     image: v.optional(v.string()),
     images: v.optional(v.array(v.string())),
@@ -418,6 +448,16 @@ export const adminUpdateProduct = mutation({
     if (args.description !== undefined) patch.description = args.description;
     if (args.condition !== undefined) patch.condition = args.condition;
     if (args.colors !== undefined) patch.colors = args.colors;
+    if (args.sizes !== undefined) patch.sizes = args.sizes;
+    if (args.gender !== undefined) patch.gender = args.gender;
+    if (args.material !== undefined) patch.material = args.material;
+    if (args.warranty !== undefined) patch.warranty = args.warranty;
+    if (args.weight !== undefined) patch.weight = args.weight;
+    if (args.ram !== undefined) patch.ram = args.ram;
+    if (args.storage !== undefined) patch.storage = args.storage;
+    if (args.batteryCapacity !== undefined) patch.batteryCapacity = args.batteryCapacity;
+    if (args.screenSize !== undefined) patch.screenSize = args.screenSize;
+    if (args.displayType !== undefined) patch.displayType = args.displayType;
     if (args.stock !== undefined) patch.stock = args.stock;
     if (args.image !== undefined) patch.image = args.image;
     if (args.images !== undefined) patch.images = args.images;

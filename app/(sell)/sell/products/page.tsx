@@ -904,23 +904,8 @@ export default function SellerProductsPage() {
   const [productToEdit, setProductToEdit] = useState<any>(null);
 
   const deleteProductMut = useMutation(api.products.sellerDeleteProduct);
-
-  const handleDeleteProduct = async (productId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to permanently delete this product listing? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-
-    try {
-      await deleteProductMut({ productId: productId as Id<"products"> });
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete product. Please try again.");
-    }
-  };
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: Id<"products">; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch products conditionally
   const allStoresProducts = useQuery(
@@ -965,6 +950,73 @@ export default function SellerProductsPage() {
 
   return (
     <div className={styles.sellerContent}>
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmTarget && (
+        <div className={styles.modalOverlay} onClick={() => setDeleteConfirmTarget(null)}>
+          <div className={styles.modal} style={{ maxWidth: 440, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                background: "#fef2f2",
+                border: "1px solid #fee2e2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                color: "#dc2626"
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--seller-text-primary, #1f211d)", margin: "0 0 8px" }}>
+                Delete Product Listing?
+              </h3>
+              <p style={{ fontSize: 13, color: "var(--seller-text-secondary, #6b7280)", margin: 0, lineHeight: 1.5 }}>
+                Are you sure you want to delete <strong>"{deleteConfirmTarget.title}"</strong>? This action cannot be undone.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => setDeleteConfirmTarget(null)}
+                disabled={isDeleting}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDanger}`}
+                disabled={isDeleting}
+                style={{ flex: 1, backgroundColor: "#dc2626", color: "#ffffff", borderColor: "#dc2626" }}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    await deleteProductMut({ productId: deleteConfirmTarget.id });
+                    setDeleteConfirmTarget(null);
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+              >
+                {isDeleting ? "Deleting..." : "Delete Product"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className={styles.pageHeader}>
         <div>
@@ -1174,17 +1226,48 @@ export default function SellerProductsPage() {
                               setProductToEdit(p);
                               setShowAddModal(true);
                             }}
-                            className={`${styles.btn} ${styles.btnSuccess} ${styles.btnSm}`}
-                            style={{ padding: "4px 8px" }}
+                            type="button"
+                            title="Edit Product"
+                            style={{
+                              background: "#eff6ff",
+                              border: "1px solid #dbeafe",
+                              borderRadius: 8,
+                              padding: "6px 10px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
                           >
-                            ✏️ Edit
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9"/>
+                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
                           </button>
                           <button
-                            onClick={() => handleDeleteProduct(p._id)}
-                            className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
-                            style={{ padding: "4px 8px" }}
+                            onClick={() => setDeleteConfirmTarget({ id: p._id as any, title: p.title })}
+                            type="button"
+                            title="Delete Product"
+                            style={{
+                              background: "#fef2f2",
+                              border: "1px solid #fee2e2",
+                              borderRadius: 8,
+                              padding: "6px 10px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
                           >
-                            🗑️ Delete
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18"/>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                              <line x1="10" y1="11" x2="10" y2="17"/>
+                              <line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>
                           </button>
                         </div>
                       </td>

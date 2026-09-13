@@ -33,6 +33,16 @@ export function ProductModal({
   const [description, setDescription] = useState(productToEdit?.description || "");
   const [condition, setCondition] = useState(productToEdit?.condition || "New");
   const [colors, setColors] = useState(productToEdit?.colors ? productToEdit.colors.join(", ") : "");
+  const [sizes, setSizes] = useState(productToEdit?.sizes ? productToEdit.sizes.join(", ") : "");
+  const [gender, setGender] = useState(productToEdit?.gender || "All / Unisex");
+  const [material, setMaterial] = useState(productToEdit?.material || "");
+  const [warranty, setWarranty] = useState(productToEdit?.warranty || "No Warranty");
+  const [weight, setWeight] = useState(productToEdit?.weight || "");
+  const [ram, setRam] = useState(productToEdit?.ram || "");
+  const [storage, setStorage] = useState(productToEdit?.storage || "");
+  const [batteryCapacity, setBatteryCapacity] = useState(productToEdit?.batteryCapacity || "");
+  const [screenSize, setScreenSize] = useState(productToEdit?.screenSize || "");
+  const [displayType, setDisplayType] = useState(productToEdit?.displayType || "");
   const [stock, setStock] = useState(productToEdit?.stock ? String(productToEdit.stock) : "10");
 
   // Step 2 Upload fields
@@ -125,35 +135,50 @@ export function ProductModal({
       const colorsArr = colors
         ? colors.split(",").map((c: string) => c.trim()).filter((c: string) => c.length > 0)
         : [];
+      const sizesArr = sizes
+        ? sizes.split(",").map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+        : [];
+
+      const categoryLower = (categoryName || "").toLowerCase();
+      const isTech = categoryLower.includes("phone") || categoryLower.includes("gadget") || categoryLower.includes("tablet") || categoryLower.includes("electronics");
+      const isFashion = categoryLower.includes("apparel") || categoryLower.includes("fashion") || categoryLower.includes("cloth");
+      const isFurniture = categoryLower.includes("furniture") || categoryLower.includes("living");
+      const isAppliance = categoryLower.includes("appliance") || categoryLower.includes("home");
+      const isBeauty = categoryLower.includes("beauty") || categoryLower.includes("care");
+      const isGrocery = categoryLower.includes("grocery") || categoryLower.includes("groceries") || categoryLower.includes("food");
+
+      const payload = {
+        title,
+        price: parseFloat(price),
+        originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+        categoryName,
+        description: description || undefined,
+        condition: condition || undefined,
+        colors: (isFashion || isTech || isFurniture || isAppliance) && colorsArr.length > 0 ? colorsArr : undefined,
+        sizes: isFashion && sizesArr.length > 0 ? sizesArr : undefined,
+        gender: (isFashion || isBeauty) && gender ? gender : undefined,
+        material: (isFashion || isFurniture) && material ? material : undefined,
+        warranty: (isTech || isAppliance || isFurniture) && warranty ? warranty : undefined,
+        weight: (isFurniture || isAppliance || isBeauty || isGrocery) && weight ? weight : undefined,
+        ram: isTech && ram ? ram : undefined,
+        storage: isTech && storage ? storage : undefined,
+        batteryCapacity: isTech && batteryCapacity ? batteryCapacity : undefined,
+        screenSize: isTech && screenSize ? screenSize : undefined,
+        displayType: isTech && displayType ? displayType : undefined,
+        stock: parseInt(stock, 10),
+        image: mainImage,
+        images: uploadedImages,
+        youtubeLink: youtubeLink || undefined,
+      };
 
       if (productToEdit) {
         await updateProduct({
           productId: productToEdit._id,
-          title,
-          price: parseFloat(price),
-          originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
-          categoryName,
-          description: description || undefined,
-          condition: condition || undefined,
-          colors: colorsArr,
-          stock: parseInt(stock, 10),
-          image: mainImage,
-          images: uploadedImages,
-          youtubeLink: youtubeLink || undefined,
+          ...payload,
         });
       } else {
         await createProduct({
-          title,
-          price: parseFloat(price),
-          originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
-          categoryName,
-          description: description || undefined,
-          condition: condition || undefined,
-          colors: colorsArr,
-          stock: parseInt(stock, 10),
-          image: mainImage,
-          images: uploadedImages,
-          youtubeLink: youtubeLink || undefined,
+          ...payload,
         });
       }
       onClose();
@@ -178,16 +203,63 @@ export function ProductModal({
           {step === 1 ? (
             <form onSubmit={handleNextStep} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               
+              {/* Category Selector placed at top */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Product Name / Title *</label>
-                <input
-                  type="text"
+                <label className={styles.formLabel}>Product Category *</label>
+                <select
+                  className={styles.formSelect}
+                  value={categoryName}
+                  onChange={(e) => setCategoryName(e.target.value)}
                   required
-                  placeholder="e.g. Handmade Leather Chelsea Boots"
-                  className={styles.formInput}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+                >
+                  {categories?.map((c) => (
+                    <option key={c._id} value={c.name}>
+                      {c.name}
+                    </option>
+                  )) || (
+                    <>
+                      <option value="Phones & Tablets">Phones & Tablets</option>
+                      <option value="Gadgets & Accessories">
+                        Gadgets & Accessories
+                      </option>
+                      <option value="Apparel & Fashion">
+                        Apparel & Fashion
+                      </option>
+                      <option value="Furniture & Living">
+                        Furniture & Living
+                      </option>
+                      <option value="Beauty & Care">Beauty & Care</option>
+                      <option value="Groceries">Groceries</option>
+                      <option value="Home Appliances">Home Appliances</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Product Name / Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Google Pixel 10 Pro 5G"
+                    className={styles.formInput}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Condition Status</label>
+                  <select
+                    className={styles.formSelect}
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value)}
+                  >
+                    <option value="New">Brand New</option>
+                    <option value="Refurbished">Refurbished / Certified</option>
+                    <option value="Used">Used / Vintage</option>
+                  </select>
+                </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -214,63 +286,332 @@ export function ProductModal({
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Product Category *</label>
-                  <select
-                    className={styles.formSelect}
-                    value={categoryName}
-                    onChange={(e) => setCategoryName(e.target.value)}
-                  >
-                    {categories?.map((c) => (
-                      <option key={c._id} value={c.name}>{c.name}</option>
-                    )) || (
-                      <>
-                        <option value="Phones & Tablets">Phones & Tablets</option>
-                        <option value="Gadgets & Accessories">Gadgets & Accessories</option>
-                        <option value="Apparel & Fashion">Apparel & Fashion</option>
-                        <option value="Furniture & Living">Furniture & Living</option>
-                        <option value="Beauty & Care">Beauty & Care</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Condition Status</label>
-                  <select
-                    className={styles.formSelect}
-                    value={condition}
-                    onChange={(e) => setCondition(e.target.value)}
-                  >
-                    <option value="New">Brand New</option>
-                    <option value="Refurbished">Refurbished / Certified</option>
-                    <option value="Used">Used / Vintage</option>
-                  </select>
-                </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Stock Levels / Qty</label>
+                <input
+                  type="number"
+                  placeholder="10"
+                  className={styles.formInput}
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Stock Levels / Qty</label>
-                  <input
-                    type="number"
-                    placeholder="10"
-                    className={styles.formInput}
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Available Colors (comma-separated)</label>
-                  <input
-                    type="text"
-                    placeholder="Brown, Tan, Black"
-                    className={styles.formInput}
-                    value={colors}
-                    onChange={(e) => setColors(e.target.value)}
-                  />
-                </div>
-              </div>
+              {/* Dynamic Category Specifications Section */}
+              {(() => {
+                const cat = (categoryName || "").toLowerCase();
+                const isTech = cat.includes("phone") || cat.includes("gadget") || cat.includes("tablet") || cat.includes("electronics");
+                const isFashion = cat.includes("apparel") || cat.includes("fashion") || cat.includes("cloth");
+                const isFurniture = cat.includes("furniture") || cat.includes("living");
+                const isAppliance = cat.includes("appliance") || cat.includes("home");
+                const isBeauty = cat.includes("beauty") || cat.includes("care");
+                const isGrocery = cat.includes("grocery") || cat.includes("groceries") || cat.includes("food");
+
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16, borderTop: "1px dashed var(--admin-card-border, #e2e8f0)", paddingTop: 16, marginTop: 4 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--admin-accent, #3b6b48)", margin: 0 }}>
+                      📋 {categoryName} Specifications
+                    </p>
+
+                    {/* Phones, Tablets & Tech Specs */}
+                    {isTech && (
+                      <>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>RAM / Memory</label>
+                            <select
+                              className={styles.formSelect}
+                              value={ram}
+                              onChange={(e) => setRam(e.target.value)}
+                            >
+                              <option value="">Select RAM</option>
+                              <option value="4GB">4GB</option>
+                              <option value="6GB">6GB</option>
+                              <option value="8GB">8GB</option>
+                              <option value="12GB">12GB</option>
+                              <option value="16GB">16GB</option>
+                              <option value="24GB">24GB</option>
+                            </select>
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Internal Storage</label>
+                            <select
+                              className={styles.formSelect}
+                              value={storage}
+                              onChange={(e) => setStorage(e.target.value)}
+                            >
+                              <option value="">Select Storage</option>
+                              <option value="64GB">64GB</option>
+                              <option value="128GB">128GB</option>
+                              <option value="256GB">256GB</option>
+                              <option value="512GB">512GB</option>
+                              <option value="1TB">1TB</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Battery Capacity</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 5000 mAh, 4500 mAh"
+                              className={styles.formInput}
+                              value={batteryCapacity}
+                              onChange={(e) => setBatteryCapacity(e.target.value)}
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Screen Size (inches)</label>
+                            <input
+                              type="text"
+                              placeholder='e.g. 6.7", 6.1", 11"'
+                              className={styles.formInput}
+                              value={screenSize}
+                              onChange={(e) => setScreenSize(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Display Technology</label>
+                            <select
+                              className={styles.formSelect}
+                              value={displayType}
+                              onChange={(e) => setDisplayType(e.target.value)}
+                            >
+                              <option value="">Select Display Type</option>
+                              <option value="AMOLED">AMOLED</option>
+                              <option value="OLED">OLED</option>
+                              <option value="Super Retina XDR">Super Retina XDR</option>
+                              <option value="IPS LCD">IPS LCD</option>
+                              <option value="Fluid AMOLED">Fluid AMOLED</option>
+                            </select>
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Warranty & Guarantee</label>
+                            <select
+                              className={styles.formSelect}
+                              value={warranty}
+                              onChange={(e) => setWarranty(e.target.value)}
+                            >
+                              <option value="No Warranty">No Warranty</option>
+                              <option value="6 Months Warranty">6 Months Warranty</option>
+                              <option value="1 Year Warranty">1 Year Warranty</option>
+                              <option value="2 Years Warranty">2 Years Warranty</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Available Colors (comma-separated)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Black, Titanium, Hazel, Silver"
+                            className={styles.formInput}
+                            value={colors}
+                            onChange={(e) => setColors(e.target.value)}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Apparel & Fashion Specs */}
+                    {isFashion && (
+                      <>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Available Sizes (comma-separated)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. S, M, L, XL, XXL or 38, 40, 42, 14"
+                              className={styles.formInput}
+                              value={sizes}
+                              onChange={(e) => setSizes(e.target.value)}
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Available Colors (comma-separated)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Black, White, Navy Blue"
+                              className={styles.formInput}
+                              value={colors}
+                              onChange={(e) => setColors(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Target Audience / Gender</label>
+                            <select
+                              className={styles.formSelect}
+                              value={gender}
+                              onChange={(e) => setGender(e.target.value)}
+                            >
+                              <option value="All / Unisex">All / Unisex</option>
+                              <option value="Men">Men</option>
+                              <option value="Women">Women</option>
+                              <option value="Kids">Kids</option>
+                              <option value="Boys">Boys</option>
+                              <option value="Girls">Girls</option>
+                            </select>
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Material / Fabric</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 100% Cotton, Genuine Leather, Denim"
+                              className={styles.formInput}
+                              value={material}
+                              onChange={(e) => setMaterial(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Furniture & Living Specs */}
+                    {isFurniture && (
+                      <>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Available Colors (comma-separated)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Walnut, Oak, Beige, Charcoal"
+                              className={styles.formInput}
+                              value={colors}
+                              onChange={(e) => setColors(e.target.value)}
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Material / Finish</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Solid Oak Wood, Genuine Leather, Velvet"
+                              className={styles.formInput}
+                              value={material}
+                              onChange={(e) => setMaterial(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Warranty & Guarantee</label>
+                            <select
+                              className={styles.formSelect}
+                              value={warranty}
+                              onChange={(e) => setWarranty(e.target.value)}
+                            >
+                              <option value="No Warranty">No Warranty</option>
+                              <option value="1 Year Warranty">1 Year Warranty</option>
+                              <option value="2 Years Warranty">2 Years Warranty</option>
+                              <option value="5 Years Warranty">5 Years Warranty</option>
+                            </select>
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Item Weight</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 18 kg, 35 kg"
+                              className={styles.formInput}
+                              value={weight}
+                              onChange={(e) => setWeight(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Home Appliances Specs */}
+                    {isAppliance && (
+                      <>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Available Colors (comma-separated)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Stainless Steel, Black, White"
+                              className={styles.formInput}
+                              value={colors}
+                              onChange={(e) => setColors(e.target.value)}
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Warranty & Guarantee</label>
+                            <select
+                              className={styles.formSelect}
+                              value={warranty}
+                              onChange={(e) => setWarranty(e.target.value)}
+                            >
+                              <option value="1 Year Warranty">1 Year Warranty</option>
+                              <option value="2 Years Warranty">2 Years Warranty</option>
+                              <option value="5 Years Warranty">5 Years Warranty</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Item Weight</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 6.5 kg, 25 kg"
+                            className={styles.formInput}
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Beauty & Care Specs */}
+                    {isBeauty && (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Target Audience / Gender</label>
+                          <select
+                            className={styles.formSelect}
+                            value={gender}
+                            onChange={(e) => setGender(e.target.value)}
+                          >
+                            <option value="All / Unisex">All / Unisex</option>
+                            <option value="Women">Women</option>
+                            <option value="Men">Men</option>
+                          </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Net Volume / Weight</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 250ml, 500g, 100ml"
+                            className={styles.formInput}
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Groceries Specs */}
+                    {isGrocery && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Pack Weight / Net Quantity</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 1 kg, 5 kg bag, 10 Litres"
+                          className={styles.formInput}
+                          value={weight}
+                          onChange={(e) => setWeight(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Product Description *</label>
@@ -423,15 +764,8 @@ export default function BeembaiProductsPage() {
     return () => { if (el) observer.unobserve(el); };
   }, [status, loadMore]);
 
-  const handleDelete = async (productId: Id<"products">, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
-    try {
-      await deleteProduct({ productId });
-    } catch (e) {
-      console.error(e);
-      alert("Failed to delete product.");
-    }
-  };
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: Id<"products">; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filtered = useMemo(() => {
     const list = products ?? [];
@@ -449,6 +783,73 @@ export default function BeembaiProductsPage() {
 
   return (
     <div className={styles.adminContent}>
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmTarget && (
+        <div className={styles.modalOverlay} onClick={() => setDeleteConfirmTarget(null)}>
+          <div className={styles.modal} style={{ maxWidth: 440, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                background: "#fef2f2",
+                border: "1px solid #fee2e2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                color: "#dc2626"
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#1a1900", margin: "0 0 8px" }}>
+                Delete Product Listing?
+              </h3>
+              <p style={{ fontSize: 13, color: "#6b6540", margin: 0, lineHeight: 1.5 }}>
+                Are you sure you want to delete <strong>"{deleteConfirmTarget.title}"</strong>? This action cannot be undone.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => setDeleteConfirmTarget(null)}
+                disabled={isDeleting}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDanger}`}
+                disabled={isDeleting}
+                style={{ flex: 1, backgroundColor: "#dc2626", color: "#ffffff", borderColor: "#dc2626" }}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    await deleteProduct({ productId: deleteConfirmTarget.id });
+                    setDeleteConfirmTarget(null);
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+              >
+                {isDeleting ? "Deleting..." : "Delete Product"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <ProductModal
           onClose={() => {
@@ -554,21 +955,52 @@ export default function BeembaiProductsPage() {
                     <td>
                       <div className={styles.flexRow}>
                         <button
-                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
                           onClick={() => {
                             setEditProduct(product);
                             setShowModal(true);
                           }}
                           type="button"
+                          title="Edit Product"
+                          style={{
+                            background: "#eff6ff",
+                            border: "1px solid #dbeafe",
+                            borderRadius: 8,
+                            padding: "6px 10px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
                         >
-                          ✏️ Edit
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                          </svg>
                         </button>
                         <button
-                          className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
-                          onClick={() => handleDelete(product._id, product.title)}
+                          onClick={() => setDeleteConfirmTarget({ id: product._id, title: product.title })}
                           type="button"
+                          title="Delete Product"
+                          style={{
+                            background: "#fef2f2",
+                            border: "1px solid #fee2e2",
+                            borderRadius: 8,
+                            padding: "6px 10px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
                         >
-                          ❌ Delete
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                          </svg>
                         </button>
                       </div>
                     </td>
