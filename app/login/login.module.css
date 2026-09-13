@@ -421,3 +421,47 @@
   padding-right: 3rem !important;
 }
 
+.sellerCheckboxWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  background-color: rgba(99, 109, 33, 0.06);
+  border: 1.5px dashed rgba(99, 109, 33, 0.35);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.sellerCheckboxWrapper:hover {
+  background-color: rgba(99, 109, 33, 0.12);
+  border-color: var(--color-palm);
+}
+
+:global([data-theme="dark"]) .sellerCheckboxWrapper {
+  background-color: rgba(99, 109, 33, 0.15);
+  border-color: rgba(99, 109, 33, 0.4);
+}
+
+.sellerCheckboxInput {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-palm);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sellerCheckboxLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-papyrus);
+  cursor: pointer;
+}
+
+:global([data-theme="dark"]) .sellerCheckboxLabel {
+  color: var(--color-coconut);
+}
+
+

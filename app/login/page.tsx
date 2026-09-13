@@ -10,7 +10,6 @@ import { useCart } from "@/app/context/CartContext";
 import { useAuthActions } from "@convex-dev/auth/react";
 import Navbar from "@/app/components/Navbar";
 
-
 // Local SVG Icons
 const CartIcon = () => (
   <svg
@@ -119,8 +118,16 @@ const EyeIcon = () => (
     stroke="currentColor"
     strokeWidth="2"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+    />
   </svg>
 );
 
@@ -134,7 +141,11 @@ const EyeOffIcon = () => (
     stroke="currentColor"
     strokeWidth="2"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88L3 3m12 12l9 9" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88L3 3m12 12l9 9"
+    />
   </svg>
 );
 
@@ -173,10 +184,24 @@ export default function LoginPage() {
   const { totalItemsCount, cartBounce } = useCart();
   const { signIn } = useAuthActions();
 
-
   // Tab State
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState<"credentials" | "verify">("credentials");
+  const [isSellerMode, setIsSellerMode] = useState(false);
+
+  // Load seller mode option from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("beembai_auth_as_seller");
+    if (saved !== null) {
+      setIsSellerMode(saved === "true");
+    }
+  }, []);
+
+  const handleSellerToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setIsSellerMode(checked);
+    localStorage.setItem("beembai_auth_as_seller", String(checked));
+  };
 
   // Form Inputs
   const [name, setName] = useState("");
@@ -196,8 +221,6 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
-
-
   // Reset loading states when returning from browser back/forward cache (bfcache)
   useEffect(() => {
     const handlePageShow = () => {
@@ -211,8 +234,6 @@ export default function LoginPage() {
       window.removeEventListener("pageshow", handlePageShow);
     };
   }, []);
-
-
 
   const handleTabChange = (loginState: boolean) => {
     setIsLogin(loginState);
@@ -235,6 +256,9 @@ export default function LoginPage() {
         }
         return redirectTo;
       }
+    }
+    if (isSellerMode) {
+      return isLogin ? "/sell" : "/sell/new";
     }
     return "/";
   };
@@ -273,8 +297,14 @@ export default function LoginPage() {
           }
         } else {
           if (email && code) {
-            await signIn("password", { email, code, flow: "email-verification" });
-            setSuccessMessage("Congratulations! Your email has been verified and you are now logged in.");
+            await signIn("password", {
+              email,
+              code,
+              flow: "email-verification",
+            });
+            setSuccessMessage(
+              "Congratulations! Your email has been verified and you are now logged in.",
+            );
             setSuccess(true);
             const destination = getRedirectUrl();
             setTimeout(() => {
@@ -411,12 +441,28 @@ export default function LoginPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className={styles.passwordToggleBtn}
                       title={showPassword ? "Hide password" : "Show password"}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
                   </div>
                 </div>
+
+                {/* Sign in as seller Checkbox */}
+                <label className={styles.sellerCheckboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={isSellerMode}
+                    onChange={handleSellerToggle}
+                    className={styles.sellerCheckboxInput}
+                    disabled={anyLoading}
+                  />
+                  <span className={styles.sellerCheckboxLabel}>
+                    Signin as seller
+                  </span>
+                </label>
               </>
             ) : step === "credentials" ? (
               <>
@@ -466,7 +512,9 @@ export default function LoginPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className={styles.passwordToggleBtn}
                       title={showPassword ? "Hide password" : "Show password"}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
@@ -488,21 +536,43 @@ export default function LoginPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className={styles.passwordToggleBtn}
-                      title={showConfirmPassword ? "Hide password" : "Show password"}
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      title={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
                   </div>
                 </div>
+
+                {/* Register as seller Checkbox */}
+                <label className={styles.sellerCheckboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={isSellerMode}
+                    onChange={handleSellerToggle}
+                    className={styles.sellerCheckboxInput}
+                    disabled={anyLoading}
+                  />
+                  <span className={styles.sellerCheckboxLabel}>
+                    Register as seller
+                  </span>
+                </label>
               </>
             ) : (
               <>
                 {/* OTP Code Input */}
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Verification Code (OTP)</label>
+                  <label className={styles.formLabel}>
+                    Verification Code (OTP)
+                  </label>
                   <input
                     type="text"
                     required
@@ -513,8 +583,14 @@ export default function LoginPage() {
                     className={styles.inputField}
                     disabled={anyLoading}
                   />
-                  <span style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}>
-                    An email verification OTP was sent to <strong>{email}</strong>
+                  <span
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "var(--color-olive-gray)",
+                    }}
+                  >
+                    An email verification OTP was sent to{" "}
+                    <strong>{email}</strong>. (Please check your spam or junk folder if you don't see it in your inbox.)
                   </span>
                 </div>
               </>
@@ -578,7 +654,11 @@ export default function LoginPage() {
             <span
               style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}
             >
-              Redirecting you to home page...
+              {isSellerMode
+                ? isLogin
+                  ? "Redirecting you to seller dashboard..."
+                  : "Redirecting you to seller registration..."
+                : "Redirecting you to home page..."}
             </span>
           </div>
         </div>
