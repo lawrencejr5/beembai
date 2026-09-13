@@ -235,12 +235,18 @@ export default function CartPage() {
                   className={`${styles.cartItemCard} ${isSelected ? styles.selectedCard : ""}`}
                 >
                   <div className={styles.checkboxWrapper}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelectItem(item.product.id, item.selectedColor)}
-                      className={styles.itemCheckbox}
-                    />
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectItem(item.product.id, item.selectedColor)}
+                        className={styles.itemCheckbox}
+                      />
+                      <span className={styles.checkboxText}>Select Item</span>
+                    </label>
+                    <span className={styles.mobileItemTotal}>
+                      ₦{formatPrice(itemTotal)}
+                    </span>
                   </div>
 
                   <div className={styles.itemContent}>
