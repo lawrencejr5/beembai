@@ -21,6 +21,7 @@
 - [x] app/(admin)/admin/orders/page.tsx — add type filter + 🇺🇸 badge
 
 ## Storefront Frontend
-- [/] app/(storefront)/buy-from-abroad/page.tsx — Add supported stores logos to hero
-  - [ ] Add direct shopping links grid to page.tsx
-  - [ ] Add branding grid style classes to page.module.css
+- [x] app/(storefront)/buy-from-abroad/page.tsx — Add supported stores logos to hero
+  - [x] Add direct shopping links grid to page.tsx
+  - [x] Add branding grid style classes to page.module.css
+  - [x] Make store list slideable horizontally on small screen viewports

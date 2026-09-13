@@ -243,92 +243,98 @@ export default function CartPage() {
                     />
                   </div>
 
-                  <div className={styles.itemImageWrapper}>
-                    <Image
-                      src={item.product.image}
-                      alt={item.product.title}
-                      fill
-                      className={styles.itemImg}
-                      sizes="95px"
-                    />
-                  </div>
-
-                  <div className={styles.itemInfo}>
-                    {item.product.brand && (
-                      <span className={styles.brandLabel}>
-                        {item.product.brand}
-                      </span>
-                    )}
-                    <Link
-                      href={`/product/${item.product.id}`}
-                      className={styles.itemTitle}
-                    >
-                      {item.product.title}
-                    </Link>
-
-                    <div className={styles.itemMetaRow}>
-                      {item.selectedColor && (
-                        <span className={styles.colorBadge}>
-                          {item.selectedColor}
-                        </span>
-                      )}
-                      <span className={styles.unitPrice}>
-                        ₦{formatPrice(item.product.price)} each
-                      </span>
+                  <div className={styles.itemContent}>
+                    <div className={styles.itemImageWrapper}>
+                      <Image
+                        src={item.product.image}
+                        alt={item.product.title}
+                        fill
+                        className={styles.itemImg}
+                        sizes="95px"
+                      />
                     </div>
-                  </div>
 
-                  {/* Quantity Control Buttons */}
-                  <div className={styles.quantityControls}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateQuantity(
-                          item.product.id,
-                          item.quantity - 1,
-                          item.selectedColor,
-                        )
-                      }
-                      className={styles.qtyBtn}
-                      aria-label="Decrease quantity"
-                    >
-                      -
-                    </button>
-                    <span className={styles.qtyValue}>
-                      {formatNumber(item.quantity)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateQuantity(
-                          item.product.id,
-                          item.quantity + 1,
-                          item.selectedColor,
-                        )
-                      }
-                      disabled={item.quantity >= (item.product.stock ?? 15)}
-                      className={styles.qtyBtn}
-                      aria-label="Increase quantity"
-                    >
-                      +
-                    </button>
-                  </div>
+                    <div className={styles.itemRightContent}>
+                      <div className={styles.itemInfo}>
+                        {item.product.brand && (
+                          <span className={styles.brandLabel}>
+                            {item.product.brand}
+                          </span>
+                        )}
+                        <Link
+                          href={`/product/${item.product.id}`}
+                          className={styles.itemTitle}
+                        >
+                          {item.product.title}
+                        </Link>
 
-                  {/* Subtotal & Trash Remove Button */}
-                  <div className={styles.itemActionGroup}>
-                    <span className={styles.subtotalPrice}>
-                      ₦{formatPrice(itemTotal)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        removeFromCart(item.product.id, item.selectedColor)
-                      }
-                      className={styles.removeBtn}
-                      aria-label={`Remove ${item.product.title}`}
-                    >
-                      <TrashIcon />
-                    </button>
+                        <div className={styles.itemMetaRow}>
+                          {item.selectedColor && (
+                            <span className={styles.colorBadge}>
+                              {item.selectedColor}
+                            </span>
+                          )}
+                          <span className={styles.unitPrice}>
+                            ₦{formatPrice(item.product.price)} each
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={styles.itemControlsRow}>
+                        {/* Quantity Control Buttons */}
+                        <div className={styles.quantityControls}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateQuantity(
+                                item.product.id,
+                                item.quantity - 1,
+                                item.selectedColor,
+                              )
+                            }
+                            className={styles.qtyBtn}
+                            aria-label="Decrease quantity"
+                          >
+                            -
+                          </button>
+                          <span className={styles.qtyValue}>
+                            {formatNumber(item.quantity)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateQuantity(
+                                item.product.id,
+                                item.quantity + 1,
+                                item.selectedColor,
+                              )
+                            }
+                            disabled={item.quantity >= (item.product.stock ?? 15)}
+                            className={styles.qtyBtn}
+                            aria-label="Increase quantity"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {/* Subtotal & Trash Remove Button */}
+                        <div className={styles.itemActionGroup}>
+                          <span className={styles.subtotalPrice}>
+                            ₦{formatPrice(itemTotal)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeFromCart(item.product.id, item.selectedColor)
+                            }
+                            className={styles.removeBtn}
+                            aria-label={`Remove ${item.product.title}`}
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
