@@ -133,9 +133,10 @@ export const createStore = mutation({
     email: v.string(),
     phone: v.string(),
     bankName: v.string(),
+    bankCode: v.optional(v.string()),
     accountName: v.string(),
     accountNumber: v.string(),
-    routingNumber: v.string(),
+    routingNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -184,6 +185,7 @@ export const createStore = mutation({
       email: args.email,
       phone: args.phone,
       bankName: args.bankName,
+      bankCode: args.bankCode,
       accountName: args.accountName,
       accountNumber: args.accountNumber,
       routingNumber: args.routingNumber,
@@ -210,9 +212,10 @@ export const updateStore = mutation({
     email: v.string(),
     phone: v.string(),
     bankName: v.string(),
+    bankCode: v.optional(v.string()),
     accountName: v.string(),
     accountNumber: v.string(),
-    routingNumber: v.string(),
+    routingNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -255,6 +258,7 @@ export const updateStore = mutation({
       email: args.email,
       phone: args.phone,
       bankName: args.bankName,
+      bankCode: args.bankCode,
       accountName: args.accountName,
       accountNumber: args.accountNumber,
       routingNumber: args.routingNumber,

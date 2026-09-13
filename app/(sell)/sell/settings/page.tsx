@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useSellerStore } from "../layout";
@@ -12,6 +12,11 @@ import {
   getLgasByState,
   getCitiesByState,
 } from "@/app/data/nigeriaLocations";
+import {
+  NIGERIAN_BANKS,
+  getBankByKey,
+  getBankByLabel,
+} from "@/app/data/nigerianBanks";
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -42,13 +47,17 @@ export default function SellerSettingsPage() {
   const router = useRouter();
   const { stores, activeStoreId, setActiveStoreId } = useSellerStore();
 
-  // Mutations
+  // Mutations & Actions
   const updateStoreMut = useMutation(api.store.updateStore);
   const deleteStoreMut = useMutation(api.store.sellerDeleteStore);
+  const resolveBankAccount = useAction(api.paystackActions.resolveBankAccount);
 
   // States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isVerifyingBank, setIsVerifyingBank] = useState(false);
+  const [bankVerified, setBankVerified] = useState(false);
+  const [bankVerifyError, setBankVerifyError] = useState("");
   const [formError, setFormError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -70,9 +79,9 @@ export default function SellerSettingsPage() {
   const [email, setEmail] = useState("");
   const [phoneRaw, setPhoneRaw] = useState("");
   const [bankName, setBankName] = useState("");
+  const [bankCode, setBankCode] = useState("");
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [routingNumber, setRoutingNumber] = useState("");
 
   const activeStore = stores.find((s) => s._id === activeStoreId);
 
@@ -107,10 +116,15 @@ export default function SellerSettingsPage() {
       }
       setEmail(activeStore.email || "");
       setPhoneRaw(extractRawPhoneForInput(activeStore.phone || ""));
-      setBankName(activeStore.bankName || "");
+      const bName = activeStore.bankName || "";
+      const bCode = (activeStore as any).bankCode || getBankByLabel(bName)?.key || "";
+      setBankName(bName);
+      setBankCode(bCode);
       setAccountName(activeStore.accountName || "");
       setAccountNumber(activeStore.accountNumber || "");
-      setRoutingNumber(activeStore.routingNumber || "");
+      if (activeStore.accountName) {
+        setBankVerified(true);
+      }
       setSuccessMsg("");
       setFormError("");
     }
@@ -149,9 +163,9 @@ export default function SellerSettingsPage() {
         email,
         phone: finalPhone,
         bankName,
+        bankCode,
         accountName,
         accountNumber,
-        routingNumber,
       });
 
       setSuccessMsg("Basic store profile updated successfully.");
@@ -205,9 +219,9 @@ export default function SellerSettingsPage() {
         email,
         phone: finalPhone,
         bankName,
+        bankCode,
         accountName,
         accountNumber,
-        routingNumber,
       });
 
       setSuccessMsg("Physical location and contact details updated successfully.");
@@ -220,18 +234,66 @@ export default function SellerSettingsPage() {
     }
   };
 
+  const handleVerifyBankAccount = async (targetAccNum?: string, targetBankCode?: string) => {
+    const codeToUse = targetBankCode ?? bankCode;
+    const accToUse = (targetAccNum ?? accountNumber).trim();
+
+    if (!codeToUse) {
+      setBankVerifyError("Please select your receiving bank first.");
+      return;
+    }
+    if (accToUse.length !== 10) {
+      setBankVerifyError("Account number must be exactly 10 digits.");
+      return;
+    }
+
+    setIsVerifyingBank(true);
+    setBankVerifyError("");
+    try {
+      const res = await resolveBankAccount({ accountNumber: accToUse, bankCode: codeToUse });
+      if (res.success && res.accountName) {
+        setAccountName(res.accountName);
+        setBankVerified(true);
+      } else {
+        setBankVerified(false);
+        setAccountName("");
+        setBankVerifyError(res.message || "Could not verify bank account with Paystack.");
+      }
+    } catch (err: any) {
+      setBankVerified(false);
+      setAccountName("");
+      setBankVerifyError(err.message || "Paystack account resolution failed.");
+    } finally {
+      setIsVerifyingBank(false);
+    }
+  };
+
+  // Auto-verify when 10th digit is entered & bank is selected
+  useEffect(() => {
+    const cleanAcc = accountNumber.trim();
+    if (bankCode && cleanAcc.length === 10 && !bankVerified && !isVerifyingBank) {
+      handleVerifyBankAccount(cleanAcc, bankCode);
+    }
+  }, [bankCode, accountNumber]);
+
   // Handle Payout Bank Details Submission
   const handleSaveBankDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeStoreId) return;
 
-    if (!bankName.trim() || !accountName.trim() || !accountNumber.trim()) {
-      setFormError("Bank details (Name, Account Holder Name, Account Number) are required.");
+    if (!bankCode || !bankName) {
+      setFormError("Please select your receiving bank.");
       return;
     }
 
-    if (routingNumber && routingNumber.length !== 9) {
-      setFormError("Routing number must be exactly 9 digits.");
+    const cleanAcc = accountNumber.trim();
+    if (!cleanAcc || cleanAcc.length !== 10) {
+      setFormError("Please enter a valid 10-digit Nigerian bank account number.");
+      return;
+    }
+
+    if (!bankVerified || !accountName.trim()) {
+      setFormError("Please verify your bank details with Paystack before saving.");
       return;
     }
 
@@ -258,9 +320,9 @@ export default function SellerSettingsPage() {
         email,
         phone: finalPhone,
         bankName,
+        bankCode,
         accountName,
-        accountNumber,
-        routingNumber,
+        accountNumber: cleanAcc,
       });
 
       setSuccessMsg("Payout bank credentials updated successfully.");
@@ -580,51 +642,87 @@ export default function SellerSettingsPage() {
           <form onSubmit={handleSaveBankDetails} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Receiving Bank Name *</label>
-                <input
-                  type="text"
+                <label className={styles.formLabel}>Receiving Bank *</label>
+                <select
                   required
-                  className={styles.formInput}
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                />
+                  className={styles.formSelect}
+                  value={bankCode}
+                  onChange={(e) => {
+                    const selectedCode = e.target.value;
+                    setBankCode(selectedCode);
+                    const foundBank = NIGERIAN_BANKS.find((b) => b.key === selectedCode);
+                    setBankName(foundBank ? foundBank.label : "");
+                    setBankVerified(false);
+                    setBankVerifyError("");
+                  }}
+                >
+                  <option value="">-- Select Bank --</option>
+                  {NIGERIAN_BANKS.map((b) => (
+                    <option key={b.key} value={b.key}>
+                      {b.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Routing Number (9 Digits) *</label>
-                <input
-                  type="text"
-                  maxLength={9}
-                  required
-                  className={styles.formInput}
-                  value={routingNumber}
-                  onChange={(e) => setRoutingNumber(e.target.value)}
-                />
+                <label className={styles.formLabel}>Account Number (10 Digits) *</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    maxLength={10}
+                    required
+                    placeholder="0123456789"
+                    className={styles.formInput}
+                    value={accountNumber}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setAccountNumber(val);
+                      setBankVerified(false);
+                      setBankVerifyError("");
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={isVerifyingBank || !bankCode || accountNumber.trim().length !== 10}
+                    onClick={() => handleVerifyBankAccount()}
+                    className={`${styles.btn} ${styles.btnGhost}`}
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    {isVerifyingBank ? "Verifying..." : bankVerified ? "Re-verify" : "Verify Account"}
+                  </button>
+                </div>
               </div>
             </div>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Account Holder Name *</label>
-                <input
-                  type="text"
-                  required
-                  className={styles.formInput}
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                />
+
+            {bankVerified && (
+              <div style={{ padding: "10px 14px", background: "rgba(72, 92, 44, 0.08)", border: "1px solid rgba(72, 92, 44, 0.18)", borderRadius: 8, fontSize: 13, color: "var(--seller-success)", fontWeight: 600 }}>
+                ✓ Account Verified via Paystack: <strong>{accountName}</strong>
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Account Number *</label>
-                <input
-                  type="text"
-                  required
-                  className={styles.formInput}
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                />
+            )}
+
+            {bankVerifyError && (
+              <div style={{ color: "var(--seller-danger)", fontSize: 13, fontWeight: 700 }}>
+                ⚠️ {bankVerifyError}
               </div>
+            )}
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Account Holder Name (Auto-filled by Paystack) *</label>
+              <input
+                type="text"
+                required
+                readOnly
+                placeholder="Verified account holder name"
+                className={styles.formInput}
+                style={{ background: "#f8f9fa", cursor: "not-allowed", fontWeight: 600 }}
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+              />
             </div>
+
             <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--seller-content-bg)", paddingTop: 16 }}>
-              <button type="submit" disabled={isSubmitting} className={`${styles.btn} ${styles.btnPrimary}`}>
+              <button type="submit" disabled={isSubmitting || !bankVerified} className={`${styles.btn} ${styles.btnPrimary}`}>
                 {isSubmitting ? "Saving..." : "Save Bank Details"}
               </button>
             </div>

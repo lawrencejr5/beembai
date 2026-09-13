@@ -151,3 +151,65 @@ export const verifyInlinePaymentForOrder = action({
     return { success: true, message: "Payment verified successfully" };
   },
 });
+
+/**
+ * Server-side resolution and verification of a Nigerian bank account via Paystack API.
+ */
+export const resolveBankAccount = action({
+  args: {
+    accountNumber: v.string(),
+    bankCode: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; accountName?: string; message?: string }> => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    if (!secretKey) {
+      console.log(`[Paystack Mock]: Resolving bank account ${args.accountNumber} for bank code ${args.bankCode}`);
+      if (args.accountNumber.length === 10) {
+        return {
+          success: true,
+          accountName: "VERIFIED ACCOUNT HOLDER",
+          message: "Account verified (Development Mode)",
+        };
+      } else {
+        return {
+          success: false,
+          message: "Invalid 10-digit account number.",
+        };
+      }
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.paystack.co/bank/resolve?account_number=${encodeURIComponent(
+          args.accountNumber
+        )}&bank_code=${encodeURIComponent(args.bankCode)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${secretKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.status) {
+        return {
+          success: false,
+          message: data.message || "Could not resolve bank account details. Please check the account number and selected bank.",
+        };
+      }
+
+      return {
+        success: true,
+        accountName: data.data.account_name,
+        message: "Account resolved successfully",
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err.message || "Failed to reach Paystack verification service.",
+      };
+    }
+  },
+});

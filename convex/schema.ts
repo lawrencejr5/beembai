@@ -91,6 +91,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     bankName: v.optional(v.string()),
+    bankCode: v.optional(v.string()),
     accountName: v.optional(v.string()),
     accountNumber: v.optional(v.string()),
     routingNumber: v.optional(v.string()),
