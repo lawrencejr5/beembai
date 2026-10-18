@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useSellerStore } from "../layout";
+import { useSellerStore } from "../SellerStoreContext";
 import styles from "../seller.module.css";
 import {
   NIGERIA_STATES_LIST,

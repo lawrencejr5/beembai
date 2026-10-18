@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useSellerStore } from "./layout";
+import { useSellerStore } from "./SellerStoreContext";
 import styles from "./seller.module.css";
 
 // Formatter Helpers
@@ -321,9 +321,10 @@ export default function SellerDashboardPage() {
 
       {/* New Orders Banner Alert */}
       {newOrdersCount > 0 && (
-        <div 
+        <Link 
+          href="/sell/orders"
           className={styles.newOrdersBanner}
-          onClick={() => router.push("/sell/orders")}
+          style={{ textDecoration: "none", color: "inherit" }}
         >
           <span className={styles.newOrdersBannerIcon}>🔔</span>
           <div style={{ flex: 1 }}>
@@ -335,7 +336,7 @@ export default function SellerDashboardPage() {
             </p>
           </div>
           <span className={styles.newOrdersBannerArrow}>→</span>
-        </div>
+        </Link>
       )}
 
       {/* Analytics Stats Grid */}

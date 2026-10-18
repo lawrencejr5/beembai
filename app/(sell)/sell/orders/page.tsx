@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useSellerStore } from "../layout";
+import { useSellerStore } from "../SellerStoreContext";
 import styles from "../seller.module.css";
 
 // Formatter Helpers

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useSellerStore } from "../../layout";
+import { useSellerStore } from "../../SellerStoreContext";
 import { AddProductModal } from "../page";
 import styles from "../../seller.module.css";
 

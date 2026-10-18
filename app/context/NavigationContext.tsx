@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 
 interface NavigationContextType {
   isLoading: boolean;
@@ -19,6 +19,26 @@ export const useNavigationLoader = () => {
   return context;
 };
 
+/**
+ * Custom router hook that automatically triggers the loading screen on programmatic navigation
+ */
+export const useAppRouter = () => {
+  const router = useRouter();
+  const { startLoading } = useNavigationLoader();
+
+  return {
+    ...router,
+    push: (href: string, options?: any) => {
+      startLoading();
+      return router.push(href, options);
+    },
+    replace: (href: string, options?: any) => {
+      startLoading();
+      return router.replace(href, options);
+    },
+  };
+};
+
 export const NavigationProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
@@ -29,64 +49,105 @@ export const NavigationProvider = ({ children }: { children: React.ReactNode }) 
     setIsLoading(false);
   }, [pathname, searchParams]);
 
-  // Handle global internal link navigation clicks
+  // Safety fallback: auto-clear loader after 8 seconds if navigation fails or is aborted
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsLoading(true);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Handle global link clicks with CAPTURE phase so it intercepts BEFORE Next.js <Link> prevents default
   useEffect(() => {
     const handleLinkClick = (e: MouseEvent) => {
-      if (e.defaultPrevented) return;
+      // Ignore non-primary clicks (middle click, right click) or modified clicks (cmd, ctrl, shift, alt)
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+        return;
+      }
 
-      const target = e.target as HTMLElement;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
       const anchor = target.closest("a");
-
       if (!anchor) return;
 
-      const href = anchor.getAttribute("href");
       const targetAttr = anchor.getAttribute("target");
-      const download = anchor.getAttribute("download");
+      if (targetAttr && targetAttr !== "_self") return;
 
-      // Verify that it is a standard internal navigation link
+      if (anchor.hasAttribute("download")) return;
+
+      const rawHref = anchor.getAttribute("href");
       if (
-        href &&
-        href.startsWith("/") &&
-        targetAttr !== "_blank" &&
-        download === null &&
-        !e.metaKey &&
-        !e.ctrlKey
+        !rawHref ||
+        rawHref.startsWith("javascript:") ||
+        rawHref.startsWith("mailto:") ||
+        rawHref.startsWith("tel:")
       ) {
-        // Skip loader only for home page hash anchors when already on the home page
-        if (href.startsWith("/#") && window.location.pathname === "/") {
+        return;
+      }
+
+      try {
+        const nextUrl = new URL(anchor.href, window.location.href);
+
+        // Verify same origin
+        if (nextUrl.origin !== window.location.origin) return;
+
+        // Skip loader if navigating to the exact same page & search (e.g. hash-only anchor like #reviews)
+        const isSamePage =
+          nextUrl.pathname === window.location.pathname &&
+          nextUrl.search === window.location.search;
+
+        if (isSamePage) {
           return;
         }
 
-        const currentUrl = window.location.pathname + window.location.search;
-        if (href !== currentUrl) {
-          setIsLoading(true);
-        }
+        // Show loading screen immediately!
+        setIsLoading(true);
+      } catch {
+        // Fallback for malformed URLs
       }
     };
 
-    document.addEventListener("click", handleLinkClick);
+    // CRITICAL: use { capture: true } so this fires before any child preventDefault or stopPropagation
+    document.addEventListener("click", handleLinkClick, { capture: true });
     return () => {
-      document.removeEventListener("click", handleLinkClick);
+      document.removeEventListener("click", handleLinkClick, { capture: true });
     };
   }, []);
+
+  const startLoading = useCallback(() => setIsLoading(true), []);
+  const stopLoading = useCallback(() => setIsLoading(false), []);
 
   return (
     <NavigationContext.Provider
       value={{
         isLoading,
-        startLoading: () => setIsLoading(true),
-        stopLoading: () => setIsLoading(false),
+        startLoading,
+        stopLoading,
       }}
     >
       {children}
       {isLoading && (
-        <div className="globalPageLoader">
-          <div className="globalPageLoaderDots">
-            <span className="globalPageLoaderDot" />
-            <span className="globalPageLoaderDot" />
-            <span className="globalPageLoaderDot" />
+        <>
+          <div className="globalPageProgressBar" />
+          <div className="globalPageLoader" role="status" aria-live="polite" aria-label="Loading page">
+            <div className="globalPageLoaderDots">
+              <span className="globalPageLoaderDot" />
+              <span className="globalPageLoaderDot" />
+              <span className="globalPageLoaderDot" />
+            </div>
           </div>
-        </div>
+        </>
       )}
     </NavigationContext.Provider>
   );

@@ -176,7 +176,7 @@ const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) =>
 };
 
 interface ProductPageProps {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
@@ -185,7 +185,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [updatingAction, setUpdatingAction] = useState<"increase" | "decrease" | null>(null);
   // Unwrap params if promise
-  const resolvedParams = params instanceof Promise ? use(params) : params;
+  const resolvedParams = use(params);
   const productId = resolvedParams?.id;
 
   // 1. Try mock data first
