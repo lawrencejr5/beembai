@@ -51,6 +51,7 @@ export default defineSchema({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),

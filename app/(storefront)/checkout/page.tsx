@@ -157,7 +157,10 @@ export default function CheckoutPage() {
           title: i.product.title,
           price: i.product.price,
           quantity: i.quantity,
-          weight: typeof i.product.weight === "number" ? i.product.weight : 0.5,
+          weight:
+            typeof i.product.weight === "number"
+              ? i.product.weight
+              : (parseFloat(String(i.product.weight || "").replace(/[^0-9.]/g, "")) || 0.5),
         }));
 
         const res = await calculateGiglFee({

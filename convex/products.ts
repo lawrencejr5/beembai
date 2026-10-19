@@ -48,6 +48,7 @@ export const createProduct = mutation({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),
@@ -95,6 +96,7 @@ export const createProduct = mutation({
       material: args.material,
       warranty: args.warranty,
       weight: args.weight,
+      weightClass: args.weightClass,
       ram: args.ram,
       storage: args.storage,
       batteryCapacity: args.batteryCapacity,
@@ -226,6 +228,7 @@ export const updateProduct = mutation({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),
@@ -270,6 +273,7 @@ export const updateProduct = mutation({
       material: args.material,
       warranty: args.warranty,
       weight: args.weight,
+      weightClass: args.weightClass,
       ram: args.ram,
       storage: args.storage,
       batteryCapacity: args.batteryCapacity,
@@ -397,6 +401,42 @@ export const createForeignProduct = mutation({
       storeId: beembaiStoreId as any,
     });
     return productId;
+  },
+});
+
+// Fast dedicated mutation to update only a product's weight and weight class
+export const updateProductWeight = mutation({
+  args: {
+    productId: v.id("products"),
+    weight: v.string(),
+    weightClass: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const product = await ctx.db.get(args.productId);
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    if (product.storeId) {
+      const store = await ctx.db.get(product.storeId);
+      if (!store || store.userId !== userId) {
+        throw new Error("Unauthorized: you do not own the store for this product");
+      }
+    } else {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.patch(args.productId, {
+      weight: args.weight,
+      weightClass: args.weightClass,
+    });
+
+    return args.productId;
   },
 });
 

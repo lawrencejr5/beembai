@@ -7,7 +7,9 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useSellerStore } from "../../SellerStoreContext";
-import { AddProductModal } from "../page";
+import { AddProductModal } from "../AddProductModal";
+import { QuickUpdateWeightModal } from "../ProductWeightComponents";
+import { detectWeightClass, getWeightClassById } from "@/app/data/weightClasses";
 import styles from "../../seller.module.css";
 
 const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
@@ -61,6 +63,7 @@ export default function SellerProductDetailsPage({
   const { stores } = useSellerStore();
   const [copied, setCopied] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showWeightModal, setShowWeightModal] = useState(false);
 
   const deleteProductMut = useMutation(api.products.sellerDeleteProduct);
 
@@ -268,6 +271,100 @@ export default function SellerProductDetailsPage({
                 </div>
               </div>
 
+              {/* Package Shipping Weight Card */}
+              {(() => {
+                const hasWeight = product.weight !== undefined && product.weight !== null && product.weight !== "";
+                const num = hasWeight
+                  ? typeof product.weight === "number"
+                    ? product.weight
+                    : parseFloat(String(product.weight).replace(/[^0-9.]/g, ""))
+                  : NaN;
+                const weightTier = !isNaN(num)
+                  ? getWeightClassById(product.weightClass) || detectWeightClass(num)
+                  : null;
+
+                return (
+                  <div
+                    style={{
+                      background: "rgba(99, 109, 33, 0.05)",
+                      border: "1.5px solid rgba(99, 109, 33, 0.18)",
+                      borderRadius: "12px",
+                      padding: "16px 20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontSize: "16px" }}>⚖️</span>
+                        <h4 style={{ fontSize: "14px", fontWeight: 800, color: "var(--seller-text-primary)", margin: 0 }}>
+                          Package Weight & Delivery Tier
+                        </h4>
+                      </div>
+                      <button
+                        onClick={() => setShowWeightModal(true)}
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          padding: "6px 12px",
+                          borderRadius: "8px",
+                          background: "#636d21",
+                          color: "#ffffff",
+                          border: "none",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          boxShadow: "0 1px 3px rgba(99, 109, 33, 0.2)",
+                        }}
+                      >
+                        <span>✏️</span>
+                        <span>{hasWeight ? "Edit Weight" : "+ Set Weight"}</span>
+                      </button>
+                    </div>
+
+                    {hasWeight && weightTier ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "20px", fontWeight: 800, color: "var(--seller-text-primary)" }}>
+                            {num} kg
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 750,
+                              padding: "3px 10px",
+                              borderRadius: "99px",
+                              background: weightTier.badgeBg,
+                              color: weightTier.badgeColor,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            <span>{weightTier.icon}</span>
+                            <span>{weightTier.fullLabel}</span>
+                          </span>
+                        </div>
+                        <p style={{ fontSize: "12px", color: "var(--seller-text-secondary)", margin: 0, lineHeight: 1.4 }}>
+                          Typical examples: <em>{weightTier.examples}</em>
+                        </p>
+                        <p style={{ fontSize: "11.5px", color: "#4d5519", margin: 0, fontWeight: 500 }}>
+                          ✓ This figure is used by GIG Logistics to compute live, accurate delivery fees at checkout.
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "13px", color: "#dc2626", fontWeight: 600 }}>
+                          ⚠️ No specific weight configured. Default (0.5 kg) is used for GIGL fee calculations.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div>
                 <h4 style={{ fontSize: "14px", fontWeight: 700, color: "var(--seller-text-primary)", marginBottom: "6px" }}>Condition</h4>
                 <p style={{ fontSize: "13.5px", color: "var(--seller-text-secondary)" }}>{product.condition || "New"}</p>
@@ -377,6 +474,14 @@ export default function SellerProductDetailsPage({
           onClose={() => {
             setShowEditModal(false);
           }}
+        />
+      )}
+
+      {/* Quick Weight Edit Modal Overlay */}
+      {showWeightModal && (
+        <QuickUpdateWeightModal
+          product={product}
+          onClose={() => setShowWeightModal(false)}
         />
       )}
 
