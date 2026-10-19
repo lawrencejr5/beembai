@@ -15,6 +15,7 @@ import type * as beembaiStore from "../beembaiStore.js";
 import type * as billing from "../billing.js";
 import type * as cart from "../cart.js";
 import type * as foreignScrape from "../foreignScrape.js";
+import type * as gigl from "../gigl.js";
 import type * as http from "../http.js";
 import type * as orders from "../orders.js";
 import type * as paystackActions from "../paystackActions.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   billing: typeof billing;
   cart: typeof cart;
   foreignScrape: typeof foreignScrape;
+  gigl: typeof gigl;
   http: typeof http;
   orders: typeof orders;
   paystackActions: typeof paystackActions;

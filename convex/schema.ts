@@ -193,10 +193,23 @@ export default defineSchema({
     ),
     paystackReference: v.optional(v.string()),
     isImportOrder: v.optional(v.boolean()),
+    waybillNumber: v.optional(v.string()),
+    giglStatus: v.optional(v.string()),
+    giglShipmentDetails: v.optional(v.any()),
+    vendorWaybills: v.optional(
+      v.array(
+        v.object({
+          storeId: v.id("stores"),
+          waybillNumber: v.string(),
+          status: v.string(),
+        })
+      )
+    ),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_waybillNumber", ["waybillNumber"]),
 
   reviews: defineTable({
     userId: v.id("users"),

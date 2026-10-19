@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatPrice } from "@/app/data/data";
@@ -153,9 +153,26 @@ function OrdersPageContent() {
   );
 
   const addOrUpdateReview = useMutation(api.reviews.addOrUpdateReview);
+  const trackShipmentAction = useAction(api.gigl.trackShipment);
 
   const [activeTab, setActiveTab] = useState<"active" | "history" | "track">("active");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+  // GIGL live tracking state keyed by orderId
+  const [giglTrackingMap, setGiglTrackingMap] = useState<Record<string, any>>({});
+  const [giglTrackingLoading, setGiglTrackingLoading] = useState<Record<string, boolean>>({});
+
+  const handleTrackGIGL = async (orderId: string, waybillNumber: string) => {
+    setGiglTrackingLoading((prev) => ({ ...prev, [orderId]: true }));
+    try {
+      const result = await trackShipmentAction({ waybillNumber });
+      setGiglTrackingMap((prev) => ({ ...prev, [orderId]: result }));
+    } catch (err: any) {
+      setGiglTrackingMap((prev) => ({ ...prev, [orderId]: { success: false, message: err.message, scans: [] } }));
+    } finally {
+      setGiglTrackingLoading((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
 
   // Guest tracking states
   const [trackOrderId, setTrackOrderId] = useState("");
@@ -684,6 +701,56 @@ function OrdersPageContent() {
                             </div>
                           </div>
                         </div>
+
+                        {/* ── GIG Logistics Live Tracking ── */}
+                        {(order as any).waybillNumber && (
+                          <div className={styles.detailSection} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "1.5rem" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+                              <h4 className={styles.detailSectionTitle} style={{ margin: 0 }}>🚚 GIG Logistics Live Tracking</h4>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 700, fontSize: "0.78rem", background: "#f0fdf4", color: "#166534", border: "1px solid #86efac", padding: "2px 10px", borderRadius: 100 }}>
+                                  Waybill: {(order as any).waybillNumber}
+                                </span>
+                                <button
+                                  onClick={() => handleTrackGIGL(order._id, (order as any).waybillNumber)}
+                                  disabled={giglTrackingLoading[order._id]}
+                                  style={{ fontSize: "0.78rem", fontWeight: 700, background: "var(--color-palm)", color: "white", border: "none", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}
+                                >
+                                  {giglTrackingLoading[order._id] ? "Loading..." : "Refresh Status"}
+                                </button>
+                              </div>
+                            </div>
+
+                            {giglTrackingMap[order._id] ? (
+                              giglTrackingMap[order._id].scans?.length > 0 ? (
+                                <div className={styles.logsTimeline}>
+                                  {[...giglTrackingMap[order._id].scans].reverse().map((scan: any, scanIdx: number) => {
+                                    const GIGL_ICONS: Record<string, string> = { MCRT: "📋", MPIK: "📦", APT: "🏭", WC: "🚚", SHD: "✅", OFD: "🛵" };
+                                    return (
+                                      <div key={scanIdx} className={styles.logRow}>
+                                        <div className={styles.logDot} style={{ background: scanIdx === 0 ? "var(--color-palm)" : undefined }} />
+                                        <div className={styles.logContent}>
+                                          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.25rem" }}>
+                                            <span className={styles.logStatusName}>{GIGL_ICONS[scan.status] || "📌"} {scan.incident || scan.status}</span>
+                                            {scan.time && <span className={styles.logTime}>{new Date(scan.time).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>}
+                                          </div>
+                                          <p className={styles.logMessage}>
+                                            {scan.comment || "—"}
+                                            {scan.location && <span style={{ opacity: 0.7, fontSize: "0.78rem" }}> · {scan.location}</span>}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p style={{ fontSize: "0.85rem", opacity: 0.7 }}>{giglTrackingMap[order._id].message || "No courier scan records found yet."}</p>
+                              )
+                            ) : (
+                              <p style={{ fontSize: "0.85rem", opacity: 0.6 }}>Click “Refresh Status” to load real-time courier updates from GIG Logistics.</p>
+                            )}
+                          </div>
+                        )}
 
                         {/* Status History Logs */}
                         <div className={styles.detailSection} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "1.5rem" }}>

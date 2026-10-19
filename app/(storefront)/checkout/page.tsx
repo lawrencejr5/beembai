@@ -101,11 +101,21 @@ export default function CheckoutPage() {
   const createOrder = useMutation(api.orders.createUnpaidOrder);
   const chargeCard = useAction(api.paystackBilling.chargeSavedCardForOrder);
   const verifyInlinePayment = useAction(api.paystackActions.verifyInlinePaymentForOrder);
+  const calculateGiglFee = useAction(api.gigl.calculateShippingFee);
 
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  // GIG Logistics Live Shipping Calculation State
+  const [giglQuotes, setGiglQuotes] = useState({
+    standardFee: 3500,
+    expressFee: 5500,
+    estimatedDaysStandard: "2 - 4 business days",
+    estimatedDaysExpress: "1 - 2 business days",
+    isCalculating: false,
+  });
 
   // Initialize selected address/payment
   useEffect(() => {
@@ -125,7 +135,61 @@ export default function CheckoutPage() {
   const activeAddress = addresses?.find((a: any) => a._id === selectedAddressId);
   const activePayment = paymentMethods?.find((p: any) => p._id === selectedPaymentId);
 
-  const shippingFee = shippingMethod === "express" ? 15 : (selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10);
+  // Recalculate GIG Logistics fee dynamically whenever the destination changes
+  const destinationState = isGuest || useManualAddress || !activeAddress
+    ? guestAddress.stateName
+    : activeAddress?.stateName;
+
+  const destinationCity = isGuest || useManualAddress || !activeAddress
+    ? guestAddress.city
+    : activeAddress?.city;
+
+  useEffect(() => {
+    if (!destinationState && !destinationCity) return;
+    if (selectedCart.length === 0) return;
+
+    let isMounted = true;
+    setGiglQuotes((prev) => ({ ...prev, isCalculating: true }));
+
+    const timer = setTimeout(async () => {
+      try {
+        const itemsPayload = selectedCart.map((i: any) => ({
+          title: i.product.title,
+          price: i.product.price,
+          quantity: i.quantity,
+          weight: typeof i.product.weight === "number" ? i.product.weight : 0.5,
+        }));
+
+        const res = await calculateGiglFee({
+          receiverState: destinationState || "Lagos",
+          receiverCity: destinationCity || undefined,
+          items: itemsPayload,
+        });
+
+        if (isMounted && res) {
+          setGiglQuotes({
+            standardFee: res.standardFee,
+            expressFee: res.expressFee,
+            estimatedDaysStandard: res.estimatedDaysStandard,
+            estimatedDaysExpress: res.estimatedDaysExpress,
+            isCalculating: false,
+          });
+        }
+      } catch (err) {
+        console.error("GIGL delivery fee calculation error:", err);
+        if (isMounted) {
+          setGiglQuotes((prev) => ({ ...prev, isCalculating: false }));
+        }
+      }
+    }, 450);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [destinationState, destinationCity, selectedCart, calculateGiglFee]);
+
+  const shippingFee = selectedCart.length === 0 ? 0 : (shippingMethod === "express" ? giglQuotes.expressFee : giglQuotes.standardFee);
   const finalTotal = selectedSubtotalPrice + shippingFee;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -558,11 +622,17 @@ export default function CheckoutPage() {
 
             {/* Step 2: Shipping Method */}
             <div className={styles.stepCard}>
-              <h2 className={styles.cardTitle}>
-                <span className={styles.titleNum}>2</span>
-                <span>Shipping Method</span>
-              </h2>
-              <div className={styles.shippingOptions}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 className={styles.cardTitle} style={{ margin: 0 }}>
+                  <span className={styles.titleNum}>2</span>
+                  <span>Shipping Method</span>
+                </h2>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.78rem", color: "var(--color-palm)", fontWeight: 600, background: "rgba(35, 78, 64, 0.08)", padding: "3px 10px", borderRadius: "100px" }}>
+                  <span>🚚 Powered by GIG Logistics</span>
+                  {giglQuotes.isCalculating && <span style={{ opacity: 0.6, fontSize: "0.72rem" }}>(calculating live fee...)</span>}
+                </div>
+              </div>
+              <div className={styles.shippingOptions} style={{ marginTop: "1rem" }}>
                 <label className={styles.shippingRadioLabel}>
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <input
@@ -574,12 +644,14 @@ export default function CheckoutPage() {
                       disabled={isProcessing}
                     />
                     <div>
-                      <span className={styles.radioLabelText}>Standard Shipping</span>
-                      <p className={styles.radioLabelDesc}>Delivered within 3–5 business days</p>
+                      <span className={styles.radioLabelText}>GIGL Standard Delivery</span>
+                      <p className={styles.radioLabelDesc}>
+                        Delivered in {giglQuotes.estimatedDaysStandard} to your doorstep
+                      </p>
                     </div>
                   </div>
                   <span className={styles.shippingPrice}>
-                    {selectedSubtotalPrice > 100 ? "FREE" : "₦15,000"}
+                    ₦{formatPrice(giglQuotes.standardFee)}
                   </span>
                 </label>
 
@@ -594,11 +666,15 @@ export default function CheckoutPage() {
                       disabled={isProcessing}
                     />
                     <div>
-                      <span className={styles.radioLabelText}>Express Courier</span>
-                      <p className={styles.radioLabelDesc}>Delivered within 1–2 business days</p>
+                      <span className={styles.radioLabelText}>GIGL Priority Express</span>
+                      <p className={styles.radioLabelDesc}>
+                        Expedited delivery in {giglQuotes.estimatedDaysExpress}
+                      </p>
                     </div>
                   </div>
-                  <span className={styles.shippingPrice}>₦22,500</span>
+                  <span className={styles.shippingPrice}>
+                    ₦{formatPrice(giglQuotes.expressFee)}
+                  </span>
                 </label>
               </div>
             </div>

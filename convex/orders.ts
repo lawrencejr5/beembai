@@ -425,6 +425,9 @@ export const getSellerOrderById = query({
       paymentStatus: order.paymentStatus,
       status: order.status,
       statusHistory: order.statusHistory,
+      waybillNumber: order.waybillNumber,
+      giglStatus: order.giglStatus,
+      giglShipmentDetails: order.giglShipmentDetails,
       createdAt: order.createdAt,
       storeId,
     };

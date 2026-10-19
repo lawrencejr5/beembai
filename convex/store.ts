@@ -1,4 +1,4 @@
-import { query, mutation, action } from "./_generated/server";
+import { query, mutation, action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { api } from "./_generated/api";
@@ -708,6 +708,14 @@ export const sellerDeleteStore = mutation({
     await ctx.db.delete(args.storeId);
 
     return { success: true };
+  },
+});
+
+/** Internal query to fetch a store by ID (used by GIGL logistics action) */
+export const getStoreByIdInternal = internalQuery({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.storeId);
   },
 });
 
