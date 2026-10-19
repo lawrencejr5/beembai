@@ -152,6 +152,7 @@ export default function CheckoutPage() {
   const [giglQuotes, setGiglQuotes] = useState({
     standardFee: 3500,
     expressFee: 5500,
+    totalWeight: 0.5,
     estimatedDaysStandard: "2 - 4 business days",
     estimatedDaysExpress: "1 - 2 business days",
     isCalculating: false,
@@ -213,6 +214,7 @@ export default function CheckoutPage() {
           setGiglQuotes({
             standardFee: res.standardFee,
             expressFee: res.expressFee,
+            totalWeight: res.totalWeight ?? 0.5,
             estimatedDaysStandard: res.estimatedDaysStandard,
             estimatedDaysExpress: res.estimatedDaysExpress,
             isCalculating: false,
@@ -780,7 +782,11 @@ export default function CheckoutPage() {
                 </h2>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.78rem", color: "var(--color-palm)", fontWeight: 600, background: "rgba(35, 78, 64, 0.08)", padding: "3px 10px", borderRadius: "100px" }}>
                   <span>🚚 Powered by GIG Logistics</span>
-                  {giglQuotes.isCalculating && <span style={{ opacity: 0.6, fontSize: "0.72rem" }}>(calculating live fee...)</span>}
+                  {giglQuotes.isCalculating ? (
+                    <span style={{ opacity: 0.6, fontSize: "0.72rem" }}>(calculating...)</span>
+                  ) : (
+                    <span style={{ opacity: 0.85, fontSize: "0.72rem" }}>• Parcel: {giglQuotes.totalWeight}kg</span>
+                  )}
                 </div>
               </div>
               <div className={styles.shippingOptions} style={{ marginTop: "1rem" }}>

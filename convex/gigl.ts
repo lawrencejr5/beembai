@@ -594,30 +594,52 @@ export const calculateShippingFee = action({
     );
     const { channelCode } = getGIGLConfig();
 
-    // Compute package weight and value
-    const totalWeight = args.items.reduce(
-      (sum, item) => sum + (item.weight || 0.5) * item.quantity,
-      0,
+    // Compute aggregated package weight and value
+    const totalWeight = Math.max(
+      0.1,
+      Number(
+        args.items
+          .reduce(
+            (sum, item) => sum + (item.weight || 0.5) * item.quantity,
+            0,
+          )
+          .toFixed(2),
+      ),
     );
-    const totalValue = args.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
+    const totalValue = Math.max(
+      100,
+      args.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     );
 
-    const shipmentItems = args.items.map((item, idx) => ({
-      ItemName: item.title.slice(0, 50) || `Item ${idx + 1}`,
-      Description: item.title.slice(0, 100) || "Merchandise",
-      Quantity: Math.max(1, item.quantity),
-      Weight: Math.max(0.1, Number((item.weight || 0.5).toFixed(2))),
-      IsVolumetric: false,
-      ShipmentType: 1, // Regular e-commerce goods
-      Value: Math.max(100, item.price * item.quantity),
-    }));
+    const totalItemCount = args.items.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
+    const itemsSummary = args.items
+      .map((i) => `${i.quantity}x ${i.title.slice(0, 30)}`)
+      .join(", ");
+
+    // Consolidate order items into a single shipping parcel so GIGL applies the 1kg minimum
+    // to the total combined package rather than charging 1kg separately on every item.
+    const shipmentItems = [
+      {
+        ItemName:
+          args.items.length === 1
+            ? args.items[0].title.slice(0, 50)
+            : `Consolidated Package (${totalItemCount} items)`,
+        Description: itemsSummary.slice(0, 100) || "Merchandise",
+        Quantity: 1,
+        Weight: totalWeight,
+        IsVolumetric: false,
+        ShipmentType: 1, // Regular e-commerce goods
+        Value: totalValue,
+      },
+    ];
 
     const payload = {
       SenderStationId: senderStation.stationId,
       ReceiverStationId: receiverStation.stationId,
-      VehicleType: totalWeight > 10 ? 2 : 1, // Bike for light parcels, Van for heavier
+      VehicleType: totalWeight > 10 ? 2 : 1, // Bike for parcels <= 10kg, Van for heavier
       ReceiverLocation: {
         Latitude: receiverStation.latitude,
         Longitude: receiverStation.longitude,
@@ -650,6 +672,7 @@ export const calculateShippingFee = action({
           success: true,
           standardFee,
           expressFee,
+          totalWeight,
           pickupCharge: response.data.PickupCharge || 0,
           currency: response.data.CurrencySymbol || "₦",
           senderStation: senderStation.stationName,
@@ -682,6 +705,7 @@ export const calculateShippingFee = action({
         isFallback: true,
         standardFee: fallbackStandard,
         expressFee: Math.round(fallbackStandard * 1.5),
+        totalWeight,
         currency: "₦",
         senderStation: senderStation.stationName,
         receiverStation: receiverStation.stationName,
@@ -759,16 +783,51 @@ export const createShipmentForOrder = action({
       order.address?.stateName || order.address?.city,
     );
 
-    // 3. Format shipment items
-    const shipmentItems = order.items.map((item: any, idx: number) => ({
-      ItemName: item.title.slice(0, 50) || `Item ${idx + 1}`,
-      Description: item.title.slice(0, 100) || "E-commerce product",
-      ShipmentType: 1, // Regular
-      Quantity: Math.max(1, item.quantity),
-      Weight: 0.5,
-      IsVolumetric: false,
-      Value: Math.max(100, item.price * item.quantity),
-    }));
+    // 3. Format shipment items (consolidated package with aggregated weight)
+    const totalOrderWeight = Math.max(
+      0.1,
+      Number(
+        order.items
+          .reduce((sum: number, item: any) => {
+            const w = typeof item.weight === "number" ? item.weight : 0.5;
+            return sum + w * (item.quantity || 1);
+          }, 0)
+          .toFixed(2),
+      ),
+    );
+
+    const totalOrderValue = Math.max(
+      100,
+      order.totalAmount ||
+        order.items.reduce(
+          (sum: number, item: any) =>
+            sum + item.price * (item.quantity || 1),
+          0,
+        ),
+    );
+
+    const totalItemCount = order.items.reduce(
+      (sum: number, i: any) => sum + (i.quantity || 1),
+      0,
+    );
+    const itemsSummary = order.items
+      .map((i: any) => `${i.quantity || 1}x ${i.title.slice(0, 30)}`)
+      .join(", ");
+
+    const shipmentItems = [
+      {
+        ItemName:
+          order.items.length === 1
+            ? order.items[0].title.slice(0, 50)
+            : `Order Package (${totalItemCount} items)`,
+        Description: itemsSummary.slice(0, 100) || "E-commerce product",
+        ShipmentType: 1, // Regular
+        Quantity: 1,
+        Weight: totalOrderWeight,
+        IsVolumetric: false,
+        Value: totalOrderValue,
+      },
+    ];
 
     const fullReceiverAddress = [
       order.address.streetAddress,
@@ -805,7 +864,7 @@ export const createShipmentForOrder = action({
         },
       },
       ShipmentDetails: {
-        VehicleType: 1, // Bike
+        VehicleType: totalOrderWeight > 10 ? 2 : 1, // 1: Bike (<=10kg), 2: Van (>10kg)
         IsPriorityShipment: order.shippingMethod === "express",
       },
       ShipmentItems: shipmentItems,
