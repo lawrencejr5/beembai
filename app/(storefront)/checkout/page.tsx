@@ -9,6 +9,11 @@ import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/data/data";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import {
+  NIGERIA_STATES_LIST,
+  getLgasByState,
+  getCitiesByState,
+} from "@/app/data/nigeriaLocations";
 
 const ShieldCheckIcon = () => (
   <svg
@@ -82,10 +87,44 @@ export default function CheckoutPage() {
     streetAddress: "",
     apartment: "",
     city: "",
+    lga: "",
     stateName: "",
     postalCode: "",
     country: "Nigeria",
   });
+  const [isCustomCity, setIsCustomCity] = useState(false);
+  const [customCity, setCustomCity] = useState("");
+  const [saveAddressToAccount, setSaveAddressToAccount] = useState(true);
+
+  // Cascading options for state, LGA, and city selection
+  const availableLgas = guestAddress.stateName ? getLgasByState(guestAddress.stateName) : [];
+  const availableCities = guestAddress.stateName ? getCitiesByState(guestAddress.stateName) : [];
+
+  const handleStateChange = (newState: string) => {
+    setGuestAddress((prev) => ({
+      ...prev,
+      stateName: newState,
+      lga: "",
+      city: "",
+    }));
+    setIsCustomCity(false);
+    setCustomCity("");
+  };
+
+  const handleCitySelectChange = (val: string) => {
+    if (val === "__custom__") {
+      setIsCustomCity(true);
+      setGuestAddress((prev) => ({ ...prev, city: customCity }));
+    } else {
+      setIsCustomCity(false);
+      setGuestAddress((prev) => ({ ...prev, city: val }));
+    }
+  };
+
+  const handleCustomCityChange = (val: string) => {
+    setCustomCity(val);
+    setGuestAddress((prev) => ({ ...prev, city: val }));
+  };
 
   // Fetch saved shipping addresses and tokenized card details from Convex
   const addresses = useQuery(api.addresses.getUserAddresses);
@@ -98,6 +137,7 @@ export default function CheckoutPage() {
   const [isChangingAddress, setIsChangingAddress] = useState(false);
   const [isChangingPayment, setIsChangingPayment] = useState(false);
 
+  const addAddress = useMutation(api.addresses.addAddress);
   const createOrder = useMutation(api.orders.createUnpaidOrder);
   const chargeCard = useAction(api.paystackBilling.chargeSavedCardForOrder);
   const verifyInlinePayment = useAction(api.paystackActions.verifyInlinePaymentForOrder);
@@ -205,23 +245,29 @@ export default function CheckoutPage() {
       streetAddress: guestAddress.streetAddress,
       apartment: guestAddress.apartment,
       city: guestAddress.city,
+      lga: guestAddress.lga,
       stateName: guestAddress.stateName,
-      postalCode: guestAddress.postalCode,
-      country: guestAddress.country,
+      postalCode: guestAddress.postalCode || "100001",
+      country: guestAddress.country || "Nigeria",
     } : {
       fullName: activeAddress.fullName,
       phone: activeAddress.phone,
       streetAddress: activeAddress.streetAddress,
       apartment: activeAddress.apartment,
       city: activeAddress.city,
+      lga: activeAddress.lga,
       stateName: activeAddress.stateName,
       postalCode: activeAddress.postalCode,
       country: activeAddress.country,
     };
 
     if (selectedCart.length === 0) return;
-    if (!activeAddrObj.fullName || !activeAddrObj.phone || !activeAddrObj.streetAddress || !activeAddrObj.city || !activeAddrObj.stateName || !activeAddrObj.postalCode || !activeAddrObj.country) {
-      setPaymentError("Please fill in all shipping address fields.");
+    if (!activeAddrObj.fullName || !activeAddrObj.phone || !activeAddrObj.streetAddress || !activeAddrObj.city || !activeAddrObj.stateName) {
+      setPaymentError("Please fill in all required shipping address fields.");
+      return;
+    }
+    if ((isGuest || useManualAddress || !activeAddress) && !activeAddrObj.lga) {
+      setPaymentError("Please select your Local Government Area (LGA).");
       return;
     }
     if (isGuest && !guestAddress.email) {
@@ -262,6 +308,25 @@ export default function CheckoutPage() {
         shippingFee,
         totalAmount: finalTotal,
       });
+
+      // Optional: Save new address to user profile if authenticated and requested
+      if (!isGuest && (useManualAddress || !activeAddress) && saveAddressToAccount) {
+        try {
+          await addAddress({
+            fullName: activeAddrObj.fullName,
+            phone: activeAddrObj.phone,
+            streetAddress: activeAddrObj.streetAddress,
+            apartment: activeAddrObj.apartment,
+            city: activeAddrObj.city,
+            lga: activeAddrObj.lga,
+            stateName: activeAddrObj.stateName,
+            postalCode: activeAddrObj.postalCode || "100001",
+            country: activeAddrObj.country || "Nigeria",
+          });
+        } catch (e) {
+          console.error("Failed to save address to user account:", e);
+        }
+      }
 
       if (isUsingSavedCard) {
         // 3. Request Paystack billing server-side via saved card authorization
@@ -473,8 +538,102 @@ export default function CheckoutPage() {
                       placeholder="+234..."
                     />
                   </div>
+                  {/* State / Region */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>State / Region *</label>
+                    <select
+                      className={styles.selectField}
+                      value={guestAddress.stateName}
+                      onChange={(e) => handleStateChange(e.target.value)}
+                      required
+                    >
+                      <option value="">Select State</option>
+                      {NIGERIA_STATES_LIST.map((st) => (
+                        <option key={st} value={st}>
+                          {st === "Federal Capital Territory" ? "Abuja (Federal Capital Territory)" : st}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Local Government Area (LGA) */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Local Government Area (LGA) *</label>
+                    <select
+                      className={styles.selectField}
+                      value={guestAddress.lga}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, lga: e.target.value })}
+                      disabled={!guestAddress.stateName}
+                      required
+                    >
+                      <option value="">
+                        {guestAddress.stateName ? "Select LGA" : "Select State First"}
+                      </option>
+                      {availableLgas.map((lga) => (
+                        <option key={lga} value={lga}>
+                          {lga}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* City / Hub */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>City / Delivery Hub *</label>
+                    <select
+                      className={styles.selectField}
+                      value={isCustomCity ? "__custom__" : guestAddress.city}
+                      onChange={(e) => handleCitySelectChange(e.target.value)}
+                      disabled={!guestAddress.stateName}
+                      required
+                    >
+                      <option value="">
+                        {guestAddress.stateName ? "Select City / Hub" : "Select State First"}
+                      </option>
+                      {availableCities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                      {guestAddress.stateName && (
+                        <option value="__custom__">Other / Specific Area...</option>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Postal / ZIP Code */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Postal / ZIP Code</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.postalCode}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, postalCode: e.target.value })}
+                      placeholder="100001 (optional)"
+                    />
+                  </div>
+
+                  {/* Specific City / Area if "Other" is chosen */}
+                  {isCustomCity && (
+                    <div className={styles.formGroupFull}>
+                      <label className={styles.formLabel}>Specific City / Area Name *</label>
+                      <input
+                        type="text"
+                        className={styles.inputField}
+                        value={customCity}
+                        onChange={(e) => handleCustomCityChange(e.target.value)}
+                        required
+                        placeholder="e.g. Sangotedo, Magodo, Satellite Town"
+                      />
+                      <span className={styles.formHint}>
+                        Enter your specific town, district, or landmark area for door-step dispatch.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Street Address */}
                   <div className={styles.formGroupFull}>
-                    <label className={styles.formLabel}>Street Address</label>
+                    <label className={styles.formLabel}>Street Address *</label>
                     <input
                       type="text"
                       className={styles.inputField}
@@ -484,62 +643,51 @@ export default function CheckoutPage() {
                       placeholder="123 Main Street"
                     />
                   </div>
-                  <div className={styles.formGroup}>
+
+                  {/* Apartment, Suite */}
+                  <div className={styles.formGroupFull}>
                     <label className={styles.formLabel}>Apartment, Suite, etc. (optional)</label>
                     <input
                       type="text"
                       className={styles.inputField}
                       value={guestAddress.apartment}
                       onChange={(e) => setGuestAddress({ ...guestAddress, apartment: e.target.value })}
-                      placeholder="Apt 4B"
+                      placeholder="Penthouse A / Suite 402"
                     />
                   </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>City</label>
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      value={guestAddress.city}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, city: e.target.value })}
-                      required
-                      placeholder="Lagos"
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>State / Region</label>
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      value={guestAddress.stateName}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, stateName: e.target.value })}
-                      required
-                      placeholder="Lagos State"
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Postal / ZIP Code</label>
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      value={guestAddress.postalCode}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, postalCode: e.target.value })}
-                      required
-                      placeholder="100001"
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
+
+                  {/* Country */}
+                  <div className={styles.formGroupFull}>
                     <label className={styles.formLabel}>Country</label>
                     <input
                       type="text"
                       className={styles.inputField}
-                      value={guestAddress.country}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, country: e.target.value })}
-                      required
-                      placeholder="Nigeria"
+                      value="Nigeria"
+                      readOnly
+                      style={{ opacity: 0.85, cursor: "not-allowed" }}
                     />
+                    <span className={styles.formHint}>
+                      Nationwide domestic delivery handled via GIG Logistics network.
+                    </span>
                   </div>
+
+                  {/* Save address checkbox for authenticated users */}
+                  {!isGuest && (
+                    <div className={styles.formGroupFull} style={{ marginTop: "0.25rem" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}>
+                        <input
+                          type="checkbox"
+                          checked={saveAddressToAccount}
+                          onChange={(e) => setSaveAddressToAccount(e.target.checked)}
+                          style={{ accentColor: "var(--color-palm)", width: 16, height: 16 }}
+                        />
+                        Save this address to my saved addresses
+                      </label>
+                    </div>
+                  )}
+
                   {!isGuest && addresses.length > 0 && (
-                    <div className={styles.formGroupFull} style={{ marginTop: "1rem" }}>
+                    <div className={styles.formGroupFull} style={{ marginTop: "0.75rem" }}>
                       <button
                         type="button"
                         onClick={() => setUseManualAddress(false)}
@@ -571,7 +719,7 @@ export default function CheckoutPage() {
                       <div className={styles.selectionInfo}>
                         <span className={styles.selectionName}>{addr.fullName} ({addr.phone})</span>
                         <span className={styles.selectionText}>
-                          {addr.streetAddress}{addr.apartment ? `, ${addr.apartment}` : ""}, {addr.city}, {addr.stateName}
+                          {addr.streetAddress}{addr.apartment ? `, ${addr.apartment}` : ""}, {addr.city}{addr.lga ? `, ${addr.lga} LGA` : ""}, {addr.stateName}
                         </span>
                       </div>
                     </label>
@@ -605,9 +753,9 @@ export default function CheckoutPage() {
                     {activeAddress.apartment ? `, ${activeAddress.apartment}` : ""}
                   </p>
                   <p className={styles.previewText}>
-                    {activeAddress.city}, {activeAddress.stateName} {activeAddress.postalCode}
+                    {activeAddress.city}{activeAddress.lga ? `, ${activeAddress.lga} LGA` : ""}, {activeAddress.stateName} {activeAddress.postalCode ? `(${activeAddress.postalCode})` : ""}
                   </p>
-                  <p className={styles.previewText}>{activeAddress.country}</p>
+                  <p className={styles.previewText}>{activeAddress.country || "Nigeria"}</p>
                   <p className={styles.previewPhone}>📞 {activeAddress.phone}</p>
                   <div style={{ marginTop: "1rem" }}>
                     <button

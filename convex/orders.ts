@@ -71,6 +71,7 @@ export const createUnpaidOrder = mutation({
       streetAddress: v.string(),
       apartment: v.optional(v.string()),
       city: v.string(),
+      lga: v.optional(v.string()),
       stateName: v.string(),
       postalCode: v.string(),
       country: v.string(),
