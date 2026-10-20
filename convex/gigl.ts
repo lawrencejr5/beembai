@@ -547,6 +547,31 @@ export const attachOrderWaybillInternal = internalMutation({
     if (!order) return;
 
     const now = Date.now();
+
+    // 1. Direct single-store order: direct document patch without nested shipment complexity
+    if (order.storeId !== undefined) {
+      await ctx.db.patch(args.orderId, {
+        waybillNumber: args.waybillNumber,
+        giglStatus: "shipped",
+        status: "shipped",
+        giglShipmentDetails: {
+          waybill: args.waybillNumber,
+          createdAt: now,
+          ...(args.details ? { raw: args.details } : {}),
+        },
+        statusHistory: [
+          ...order.statusHistory,
+          {
+            status: "shipped",
+            timestamp: now,
+            message: `Handed to GIG Logistics. Waybill: ${args.waybillNumber}`,
+          },
+        ],
+      });
+      return;
+    }
+
+    // 2. Legacy fallback for multi-store single-document orders
     const store = args.storeId ? await ctx.db.get(args.storeId) : null;
 
     const patch = applyShipmentUpdate(order, args.storeId, {

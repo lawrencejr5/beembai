@@ -148,10 +148,22 @@ export const getBeembaiStoreOrders = query({
       .unique();
     const beembaiStoreId = store?._id;
 
-    // Collect all orders to filter correctly by item storeId (Convex filter query doesn't scan nested arrays)
-    const allOrders = await ctx.db.query("orders").collect();
+    // Fetch directly via index: orders belonging to Beembai Store (storeId: beembaiStoreId) or unassigned orders (storeId: undefined)
+    const directStoreOrders = beembaiStoreId
+      ? await ctx.db
+          .query("orders")
+          .withIndex("by_storeId", (q) => q.eq("storeId", beembaiStoreId))
+          .collect()
+      : [];
 
-    const filteredOrders = allOrders
+    const unassignedOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_storeId", (q) => q.eq("storeId", undefined))
+      .collect();
+
+    const allBeembaiCandidateOrders = [...directStoreOrders, ...unassignedOrders];
+
+    const filteredOrders = allBeembaiCandidateOrders
       .filter((order) => {
         // Exclude placed but unpaid orders
         if (order.status === "placed" && order.paymentStatus !== "paid") return false;

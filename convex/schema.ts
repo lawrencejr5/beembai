@@ -230,11 +230,18 @@ export default defineSchema({
         })
       )
     ),
+    checkoutId: v.optional(v.string()),
+    storeId: v.optional(v.id("stores")),
+    subtotal: v.optional(v.number()),
+    totalCheckoutAmount: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
     .index("by_email", ["email"])
-    .index("by_waybillNumber", ["waybillNumber"]),
+    .index("by_waybillNumber", ["waybillNumber"])
+    .index("by_storeId", ["storeId"])
+    .index("by_checkoutId", ["checkoutId"])
+    .index("by_storeId_and_status", ["storeId", "status"]),
 
   reviews: defineTable({
     userId: v.id("users"),

@@ -47,9 +47,30 @@ export const getGuestOrder = query({
     if (!order.email || order.email.toLowerCase() !== args.email.toLowerCase()) {
       return null;
     }
+
+    if (order.checkoutId) {
+      // Find all sibling orders placed together in this checkout
+      const linkedOrders = await ctx.db
+        .query("orders")
+        .withIndex("by_checkoutId", (q) => q.eq("checkoutId", order.checkoutId!))
+        .collect();
+
+      const allGroups = (
+        await Promise.all(linkedOrders.map((o) => buildStoreGroups(ctx, o)))
+      ).flat();
+
+      return {
+        ...order,
+        totalAmount: order.totalCheckoutAmount ?? order.totalAmount,
+        groups: allGroups,
+      };
+    }
+
     return { ...order, groups: await buildStoreGroups(ctx, order) };
   },
 });
+
+// ── Internal Queries ──────────────────────────────────────
 
 /** Internal query to fetch an order by ID (needed by actions) */
 export const getOrderByIdInternal = internalQuery({
@@ -59,10 +80,24 @@ export const getOrderByIdInternal = internalQuery({
   },
 });
 
+/** Internal query to fetch all orders for a given checkoutId */
+export const getOrdersByCheckoutIdInternal = internalQuery({
+  args: { checkoutId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("orders")
+      .withIndex("by_checkoutId", (q) => q.eq("checkoutId", args.checkoutId))
+      .collect();
+  },
+});
+
 // ── Mutations ─────────────────────────────────────────────
 
-/** Create a new unpaid checkout order */
-export const createUnpaidOrder = mutation({
+/**
+ * Creates independent store orders grouped by storeId linked by a shared checkoutId.
+ * This guarantees zero OCC lock contention, clean vendor isolation, and 1-to-1 logistics tracking.
+ */
+export const createCheckoutOrders = mutation({
   args: {
     email: v.optional(v.string()),
     items: v.array(
@@ -111,7 +146,7 @@ export const createUnpaidOrder = mutation({
 
     const now = Date.now();
 
-    // Look up and attach storeId for each product
+    // 1. Look up and attach storeId for each product if missing
     const itemsWithStoreId = await Promise.all(
       args.items.map(async (item) => {
         if (item.storeId) return item;
@@ -123,43 +158,209 @@ export const createUnpaidOrder = mutation({
       })
     );
 
-    // Detect if this order contains any foreign import items
-    const productTags = await Promise.all(
-      args.items.map(async (item) => {
-        const product = await ctx.db.get(item.productId);
-        return product?.tag;
-      })
-    );
-    const isImportOrder = productTags.some((tag) => tag === "import");
+    // 2. Group items by storeId (undefined storeId represents Beembai official store)
+    const storeMap = new Map<string, typeof itemsWithStoreId>();
+    for (const item of itemsWithStoreId) {
+      const key = item.storeId ? String(item.storeId) : "__beembai_official__";
+      const existing = storeMap.get(key) || [];
+      existing.push(item);
+      storeMap.set(key, existing);
+    }
 
-    return await ctx.db.insert("orders", {
-      userId: userId || undefined,
-      email: orderEmail,
-      items: itemsWithStoreId,
-      address: args.address,
-      shippingMethod: args.shippingMethod,
-      shippingFee: args.shippingFee,
+    // 3. Generate a shared unique checkoutId
+    const checkoutId = `chk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // 4. Calculate total items subtotal to proportionally distribute shipping fee
+    const grandSubtotal = itemsWithStoreId.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    const storeEntries = Array.from(storeMap.entries());
+    let allocatedShippingSum = 0;
+    const orderIds: string[] = [];
+
+    for (let i = 0; i < storeEntries.length; i++) {
+      const [key, groupItems] = storeEntries[i];
+      const isLast = i === storeEntries.length - 1;
+      const groupStoreId = key === "__beembai_official__" ? undefined : (groupItems[0].storeId as any);
+
+      const storeSubtotal = groupItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
+      // Proportionate shipping fee allocation (last group absorbs any rounding discrepancy)
+      let storeShippingFee = 0;
+      if (storeEntries.length === 1) {
+        storeShippingFee = args.shippingFee;
+      } else if (isLast) {
+        storeShippingFee = Math.max(0, args.shippingFee - allocatedShippingSum);
+      } else {
+        const ratio = grandSubtotal > 0 ? storeSubtotal / grandSubtotal : 1 / storeEntries.length;
+        storeShippingFee = Math.round(args.shippingFee * ratio);
+        allocatedShippingSum += storeShippingFee;
+      }
+
+      const storeTotalAmount = storeSubtotal + storeShippingFee;
+
+      // Check if this store package contains import products
+      const isImportOrder = (
+        await Promise.all(
+          groupItems.map(async (item) => {
+            const prod = await ctx.db.get(item.productId);
+            return prod?.tag === "import";
+          })
+        )
+      ).some(Boolean);
+
+      const orderId = await ctx.db.insert("orders", {
+        checkoutId,
+        storeId: groupStoreId,
+        userId: userId || undefined,
+        email: orderEmail,
+        items: groupItems,
+        address: args.address,
+        shippingMethod: args.shippingMethod,
+        subtotal: storeSubtotal,
+        shippingFee: storeShippingFee,
+        totalAmount: storeTotalAmount,
+        totalCheckoutAmount: args.totalAmount,
+        paymentStatus: "unpaid",
+        status: "placed",
+        isImportOrder: isImportOrder || undefined,
+        statusHistory: [
+          {
+            status: "placed",
+            timestamp: now,
+            message: isImportOrder
+              ? "Import order placed. Beembai will source, inspect, and ship your item. Awaiting payment."
+              : "Order placed. Awaiting secure payment verification.",
+          },
+        ],
+        createdAt: now,
+      });
+
+      orderIds.push(orderId);
+    }
+
+    return {
+      checkoutId,
       totalAmount: args.totalAmount,
-      paymentStatus: "unpaid",
-      status: "placed",
-      isImportOrder: isImportOrder || undefined,
-      statusHistory: [
-        {
-          status: "placed",
-          timestamp: now,
-          message: isImportOrder
-            ? "Import order placed. Beembai will source, inspect, and ship your item. Awaiting payment."
-            : "Order placed. Awaiting secure payment verification.",
-        },
-      ],
-      createdAt: now,
-    });
+      orderIds,
+    };
   },
 });
 
+/** Create a new unpaid checkout order (legacy compatible wrapper) */
+export const createUnpaidOrder = mutation({
+  args: {
+    email: v.optional(v.string()),
+    items: v.array(
+      v.object({
+        productId: v.id("products"),
+        storeId: v.optional(v.id("stores")),
+        title: v.string(),
+        price: v.number(),
+        quantity: v.number(),
+        color: v.optional(v.string()),
+        image: v.string(),
+      })
+    ),
+    address: v.object({
+      fullName: v.string(),
+      phone: v.string(),
+      streetAddress: v.string(),
+      apartment: v.optional(v.string()),
+      city: v.string(),
+      lga: v.optional(v.string()),
+      stateName: v.string(),
+      postalCode: v.string(),
+      country: v.string(),
+      pickupStationName: v.optional(v.string()),
+      pickupStationAddress: v.optional(v.string()),
+      pickupStationId: v.optional(v.number()),
+    }),
+    shippingMethod: v.string(),
+    shippingFee: v.number(),
+    totalAmount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Delegates to multi-store order creation and returns primary orderId
+    const res = await (createCheckoutOrders as any)._handler(ctx, args);
+    return res.orderIds[0];
+  },
+});
 
+/** Mark all orders under a checkoutId as paid successfully (internal only, secure) */
+export const markCheckoutPaidInternal = internalMutation({
+  args: {
+    checkoutId: v.string(),
+    paystackReference: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const orders = await ctx.db
+      .query("orders")
+      .withIndex("by_checkoutId", (q) => q.eq("checkoutId", args.checkoutId))
+      .collect();
 
-/** Mark an order as paid successfully (internal only, secure) */
+    if (orders.length === 0) {
+      throw new Error(`No orders found for checkoutId: ${args.checkoutId}`);
+    }
+
+    const now = Date.now();
+    const shortRef =
+      args.paystackReference.length > 15
+        ? args.paystackReference.slice(-12).toUpperCase()
+        : args.paystackReference.toUpperCase();
+
+    for (const order of orders) {
+      await ctx.db.patch(order._id, {
+        paymentStatus: "paid",
+        paystackReference: args.paystackReference,
+        status: "placed", // Retain placed status so the merchant is notified
+        statusHistory: [
+          ...order.statusHistory,
+          {
+            status: "paid",
+            timestamp: now,
+            message: `Payment authorized successfully. Ref: #${shortRef}`,
+          },
+        ],
+      });
+    }
+  },
+});
+
+/** Mark all orders under a checkoutId as failed (internal only, secure) */
+export const markCheckoutFailedInternal = internalMutation({
+  args: {
+    checkoutId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const orders = await ctx.db
+      .query("orders")
+      .withIndex("by_checkoutId", (q) => q.eq("checkoutId", args.checkoutId))
+      .collect();
+
+    const now = Date.now();
+    for (const order of orders) {
+      await ctx.db.patch(order._id, {
+        paymentStatus: "failed",
+        statusHistory: [
+          ...order.statusHistory,
+          {
+            status: "failed",
+            timestamp: now,
+            message: "Payment charge attempt failed. Please check card details or update billing profile.",
+          },
+        ],
+      });
+    }
+  },
+});
+
+/** Mark an individual order as paid successfully (legacy compatible) */
 export const markOrderPaidInternal = internalMutation({
   args: {
     orderId: v.id("orders"),
@@ -171,16 +372,25 @@ export const markOrderPaidInternal = internalMutation({
       throw new Error("Order not found");
     }
 
-    const now = Date.now();
+    // If order has checkoutId, mark all linked orders
+    if (order.checkoutId) {
+      await (markCheckoutPaidInternal as any)._handler(ctx, {
+        checkoutId: order.checkoutId,
+        paystackReference: args.paystackReference,
+      });
+      return;
+    }
 
-    const shortRef = args.paystackReference.length > 15
-      ? args.paystackReference.slice(-12).toUpperCase()
-      : args.paystackReference.toUpperCase();
+    const now = Date.now();
+    const shortRef =
+      args.paystackReference.length > 15
+        ? args.paystackReference.slice(-12).toUpperCase()
+        : args.paystackReference.toUpperCase();
 
     await ctx.db.patch(args.orderId, {
       paymentStatus: "paid",
       paystackReference: args.paystackReference,
-      status: "placed", // Retain placed status so the merchant is notified
+      status: "placed",
       statusHistory: [
         ...order.statusHistory,
         {
@@ -193,7 +403,7 @@ export const markOrderPaidInternal = internalMutation({
   },
 });
 
-/** Mark an order payment as failed (internal only, secure) */
+/** Mark an individual order payment as failed (legacy compatible) */
 export const markOrderFailedInternal = internalMutation({
   args: {
     orderId: v.id("orders"),
@@ -202,6 +412,13 @@ export const markOrderFailedInternal = internalMutation({
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error("Order not found");
+    }
+
+    if (order.checkoutId) {
+      await (markCheckoutFailedInternal as any)._handler(ctx, {
+        checkoutId: order.checkoutId,
+      });
+      return;
     }
 
     await ctx.db.patch(args.orderId, {
@@ -232,45 +449,80 @@ export const getOrdersForStore = query({
       throw new Error("Unauthorized access to store orders");
     }
 
-    const allOrders = await ctx.db.query("orders").collect();
+    // 1. Fast indexed query for modern decoupled store orders
+    const directOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
+      .collect();
 
-    const storeOrders = allOrders
+    // 2. Query legacy unassigned orders without top-level storeId
+    const legacyOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_storeId", (q) => q.eq("storeId", undefined))
+      .collect();
+
+    const directMapped = directOrders
       .filter((order) => {
-        // Exclude placed but unpaid orders
+        if (order.status === "placed" && order.paymentStatus !== "paid") return false;
+        return true;
+      })
+      .map((order) => {
+        const sellerSubtotal =
+          order.subtotal ??
+          order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+        return {
+          _id: order._id,
+          _creationTime: order._creationTime,
+          userId: order.userId,
+          items: order.items,
+          address: order.address,
+          shippingMethod: order.shippingMethod,
+          shippingFee: order.shippingFee,
+          totalAmount: order.totalAmount,
+          sellerSubtotal,
+          paymentStatus: order.paymentStatus,
+          status: order.status,
+          statusHistory: order.statusHistory,
+          waybillNumber: order.waybillNumber,
+          giglStatus: order.giglStatus,
+          createdAt: order.createdAt,
+        };
+      });
+
+    const legacyMapped = legacyOrders
+      .filter((order) => {
         if (order.status === "placed" && order.paymentStatus !== "paid") return false;
         return order.items.some((item) => item.storeId === args.storeId);
       })
       .map((order) => {
-        // Filter items to show only this seller's products
         const sellerItems = order.items.filter((item) => item.storeId === args.storeId);
-        
-        // Calculate the subtotal for this seller's products
         const sellerSubtotal = sellerItems.reduce(
           (sum, item) => sum + item.price * item.quantity,
           0
         );
-
         const view = getShipmentView(order, args.storeId);
 
         return {
           _id: order._id,
           _creationTime: order._creationTime,
           userId: order.userId,
-          items: sellerItems, // only return seller's items
+          items: sellerItems,
           address: order.address,
           shippingMethod: order.shippingMethod,
           shippingFee: order.shippingFee,
-          totalAmount: order.totalAmount, // full order total
-          sellerSubtotal, // subtotal for this seller
+          totalAmount: order.totalAmount,
+          sellerSubtotal,
           paymentStatus: order.paymentStatus,
-          status: view.status as typeof order.status, // this store's status only
+          status: view.status as typeof order.status,
           statusHistory: view.statusHistory,
+          waybillNumber: view.waybillNumber,
+          giglStatus: view.giglStatus,
           createdAt: order.createdAt,
         };
-      })
-      .sort((a, b) => b.createdAt - a.createdAt);
+      });
 
-    return storeOrders;
+    return [...directMapped, ...legacyMapped].sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -299,19 +551,36 @@ export const updateOrderShippingStatus = mutation({
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
 
-    const hasStoreItems = order.items.some((item) => item.storeId === args.storeId);
-    if (!hasStoreItems) {
-      throw new Error("Unauthorized: Order does not contain items from this store");
-    }
-
     const defaultMessages = {
       processing: "Order is being packaged and prepared for shipping.",
       shipped: "Order has been dispatched and is on its way to you.",
       delivered: "Order has been delivered successfully.",
       cancelled: "Order has been cancelled by the store owner.",
     };
-
     const statusMsg = args.message || defaultMessages[args.status];
+    const now = Date.now();
+
+    // 1. Direct store order: single-document update without array collisions
+    if (order.storeId === args.storeId) {
+      await ctx.db.patch(args.orderId, {
+        status: args.status,
+        statusHistory: [
+          ...order.statusHistory,
+          {
+            status: args.status,
+            timestamp: now,
+            message: statusMsg,
+          },
+        ],
+      });
+      return { success: true };
+    }
+
+    // 2. Legacy fallback for multi-store single-document orders
+    const hasStoreItems = order.items.some((item) => item.storeId === args.storeId);
+    if (!hasStoreItems) {
+      throw new Error("Unauthorized: Order does not contain items from this store");
+    }
 
     const patch = applyShipmentUpdate(order, args.storeId, {
       status: args.status,
@@ -340,32 +609,67 @@ export const getSellerOrdersAllStores = query({
     if (stores.length === 0) return [];
     const storeIds = new Set(stores.map((s) => s._id));
 
-    // Fetch all orders
-    const allOrders = await ctx.db.query("orders").collect();
+    // 1. Direct indexed queries for each store owned by seller
+    const directStoreOrders = (
+      await Promise.all(
+        stores.map((store) =>
+          ctx.db
+            .query("orders")
+            .withIndex("by_storeId", (q) => q.eq("storeId", store._id))
+            .collect()
+        )
+      )
+    ).flat();
 
-    // Filter to orders containing items belonging to any of the user's stores
-    const sellerOrders = allOrders
+    // 2. Legacy unassigned orders
+    const legacyOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_storeId", (q) => q.eq("storeId", undefined))
+      .collect();
+
+    const directMapped = directStoreOrders
       .filter((order) => {
-        // Exclude placed but unpaid orders
+        if (order.status === "placed" && order.paymentStatus !== "paid") return false;
+        return true;
+      })
+      .map((order) => {
+        const sellerSubtotal =
+          order.subtotal ??
+          order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+        return {
+          _id: order._id,
+          _creationTime: order._creationTime,
+          userId: order.userId,
+          items: order.items,
+          address: order.address,
+          shippingMethod: order.shippingMethod,
+          shippingFee: order.shippingFee,
+          totalAmount: order.totalAmount,
+          sellerSubtotal,
+          paymentStatus: order.paymentStatus,
+          status: order.status,
+          statusHistory: order.statusHistory,
+          waybillNumber: order.waybillNumber,
+          giglStatus: order.giglStatus,
+          createdAt: order.createdAt,
+        };
+      });
+
+    const legacyMapped = legacyOrders
+      .filter((order) => {
         if (order.status === "placed" && order.paymentStatus !== "paid") return false;
         return order.items.some((item) => item.storeId && storeIds.has(item.storeId));
       })
       .map((order) => {
-        // Filter items to show only this seller's products
         const sellerItems = order.items.filter(
           (item) => item.storeId && storeIds.has(item.storeId)
         );
-
-        // Calculate subtotal for this seller
         const sellerSubtotal = sellerItems.reduce(
           (sum, item) => sum + item.price * item.quantity,
           0
         );
-
-        const view = getShipmentView(
-          order,
-          sellerItems[0].storeId
-        );
+        const view = getShipmentView(order, sellerItems[0]?.storeId);
 
         return {
           _id: order._id,
@@ -380,12 +684,13 @@ export const getSellerOrdersAllStores = query({
           paymentStatus: order.paymentStatus,
           status: view.status as typeof order.status,
           statusHistory: view.statusHistory,
+          waybillNumber: view.waybillNumber,
+          giglStatus: view.giglStatus,
           createdAt: order.createdAt,
         };
-      })
-      .sort((a, b) => b.createdAt - a.createdAt);
+      });
 
-    return sellerOrders;
+    return [...directMapped, ...legacyMapped].sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -408,31 +713,60 @@ export const getSellerOrderById = query({
     if (stores.length === 0) return null;
     const storeIds = new Set(stores.map((s) => s._id));
 
-    // Verify if this order contains items from the user's stores
+    // Fetch buyer info
+    const buyer = order.userId ? await ctx.db.get(order.userId) : null;
+    const buyerEmail = buyer?.email ?? order.email ?? "Guest";
+    const buyerName = buyer?.name ?? order.address.fullName;
+
+    // 1. Direct store order check
+    if (order.storeId && storeIds.has(order.storeId)) {
+      const sellerSubtotal =
+        order.subtotal ??
+        order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      return {
+        _id: order._id,
+        _creationTime: order._creationTime,
+        userId: order.userId,
+        buyerEmail,
+        buyerName,
+        items: order.items,
+        address: order.address,
+        shippingMethod: order.shippingMethod,
+        shippingFee: order.shippingFee,
+        totalAmount: order.totalAmount,
+        sellerSubtotal,
+        paymentStatus: order.paymentStatus,
+        status: order.status,
+        statusHistory: order.statusHistory,
+        waybillNumber: order.waybillNumber,
+        giglStatus: order.giglStatus,
+        giglShipmentDetails: order.giglShipmentDetails,
+        createdAt: order.createdAt,
+        storeId: order.storeId,
+      };
+    }
+
+    // 2. Legacy fallback for multi-store orders without top-level storeId
     const sellerItems = order.items.filter(
       (item) => item.storeId && storeIds.has(item.storeId)
     );
     if (sellerItems.length === 0) return null;
 
-    // Calculate subtotal for this seller
     const sellerSubtotal = sellerItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
 
-    // Find the first storeId in the seller's items to facilitate status updates
     const storeId = sellerItems[0].storeId;
     const view = getShipmentView(order, storeId);
-
-    // Fetch buyer info
-    const buyer = order.userId ? await ctx.db.get(order.userId) : null;
 
     return {
       _id: order._id,
       _creationTime: order._creationTime,
       userId: order.userId,
-      buyerEmail: buyer?.email ?? order.email ?? "Guest",
-      buyerName: buyer?.name ?? order.address.fullName,
+      buyerEmail,
+      buyerName,
       items: sellerItems,
       address: order.address,
       shippingMethod: order.shippingMethod,

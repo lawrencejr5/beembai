@@ -146,10 +146,12 @@ export default function CheckoutPage() {
   const [isChangingPayment, setIsChangingPayment] = useState(false);
 
   const addAddress = useMutation(api.addresses.addAddress);
-  const createOrder = useMutation(api.orders.createUnpaidOrder);
-  const chargeCard = useAction(api.paystackBilling.chargeSavedCardForOrder);
-  const verifyInlinePayment = useAction(
-    api.paystackActions.verifyInlinePaymentForOrder,
+  const createCheckout = useMutation(api.orders.createCheckoutOrders);
+  const chargeCardForCheckout = useAction(
+    api.paystackBilling.chargeSavedCardForCheckout,
+  );
+  const verifyInlinePaymentForCheckout = useAction(
+    api.paystackActions.verifyInlinePaymentForCheckout,
   );
   const calculateGiglFee = useAction(api.gigl.calculateShippingFee);
   const getServiceCentres = useAction(api.gigl.getServiceCentres);
@@ -440,8 +442,8 @@ export default function CheckoutPage() {
         };
       });
 
-      // 2. Create the unpaid order record in Convex
-      const orderId = await createOrder({
+      // 2. Create the unpaid order records in Convex (1 order per store, linked by checkoutId)
+      const checkoutResult = await createCheckout({
         email: isGuest ? guestAddress.email : user?.email || undefined,
         items: orderItems,
         address: activeAddrObj,
@@ -449,6 +451,8 @@ export default function CheckoutPage() {
         shippingFee,
         totalAmount: finalTotal,
       });
+
+      const { checkoutId, orderIds } = checkoutResult;
 
       // Optional: Save new address to user profile if authenticated and requested
       if (
@@ -475,8 +479,8 @@ export default function CheckoutPage() {
 
       if (isUsingSavedCard) {
         // 3. Request Paystack billing server-side via saved card authorization
-        const result = await chargeCard({
-          orderId,
+        const result = await chargeCardForCheckout({
+          checkoutId,
           authorizationCode: activePayment.authorizationCode,
           email: user?.email || activePayment.email || "shopper@beembai.com",
           amount: finalTotal,
@@ -513,8 +517,8 @@ export default function CheckoutPage() {
               onSuccess: async (transaction: { reference: string }) => {
                 try {
                   // Verify on Convex
-                  const result = await verifyInlinePayment({
-                    orderId,
+                  const result = await verifyInlinePaymentForCheckout({
+                    checkoutId,
                     reference: transaction.reference,
                   });
 
@@ -531,7 +535,7 @@ export default function CheckoutPage() {
                   setTimeout(() => {
                     if (isGuest) {
                       router.push(
-                        `/orders?track=true&orderId=${orderId}&email=${customerEmail}`,
+                        `/orders?track=true&checkoutId=${checkoutId}&orderId=${orderIds[0]}&email=${customerEmail}`,
                       );
                     } else {
                       router.push("/orders");
