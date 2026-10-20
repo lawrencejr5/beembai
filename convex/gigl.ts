@@ -661,30 +661,45 @@ export const calculateShippingFee = action({
       });
 
       if (response && response.data) {
-        const standardFee = Math.round(
+        const rawFee = Math.round(
           response.data.GrandTotal || response.data.DeliverPrice || 3500,
         );
-        const expressFee = Math.round(
-          response.data.PriorityGrandTotal || standardFee * 1.5,
-        );
+        const isInterstate =
+          senderStation.stationId !== receiverStation.stationId;
+
+        // 1. Station Pickup: lower terminal-to-terminal rate (no last-mile dispatch bike)
+        const pickupFee = isInterstate
+          ? Math.max(2200, Math.round(rawFee * 0.72))
+          : Math.min(rawFee, 1500);
+
+        // 2. Doorstep Delivery: standard home delivery with dispatch rider
+        const doorstepFee = isInterstate
+          ? rawFee
+          : Math.max(rawFee, 2500);
+
+        // 3. Priority Express: expedited same-day / next-day delivery
+        const expressFee = Math.round(doorstepFee * 1.5);
 
         return {
           success: true,
-          standardFee,
+          pickupFee,
+          doorstepFee,
           expressFee,
+          standardFee: doorstepFee, // alias for backwards compatibility
           totalWeight,
           pickupCharge: response.data.PickupCharge || 0,
           currency: response.data.CurrencySymbol || "₦",
           senderStation: senderStation.stationName,
           receiverStation: receiverStation.stationName,
-          estimatedDaysStandard:
-            senderStation.stationId === receiverStation.stationId
-              ? "1 - 2 business days"
-              : "2 - 4 business days",
-          estimatedDaysExpress:
-            senderStation.stationId === receiverStation.stationId
-              ? "Same day / Next day"
-              : "1 - 2 business days",
+          estimatedDaysPickup: isInterstate
+            ? "2 - 4 business days"
+            : "1 - 2 business days",
+          estimatedDaysDoorstep: isInterstate
+            ? "3 - 5 business days"
+            : "2 - 3 business days",
+          estimatedDaysExpress: isInterstate
+            ? "1 - 2 business days"
+            : "Same day / Next day",
         };
       }
 
@@ -695,27 +710,67 @@ export const calculateShippingFee = action({
       // Graceful fallback estimation so checkout never crashes if GIGL dev sandbox experiences OCC or maintenance
       const isInterstate =
         senderStation.stationId !== receiverStation.stationId;
-      const baseFee = isInterstate ? 4500 : 2500;
       const weightFee = Math.max(0, Math.ceil(totalWeight - 1)) * 500;
-      const fallbackStandard = baseFee + weightFee;
+
+      const pickupFee = (isInterstate ? 3500 : 1500) + weightFee;
+      const doorstepFee = (isInterstate ? 5000 : 2500) + weightFee;
+      const expressFee = Math.round(doorstepFee * 1.5);
 
       return {
         success: false,
         error: err.message,
         isFallback: true,
-        standardFee: fallbackStandard,
-        expressFee: Math.round(fallbackStandard * 1.5),
+        pickupFee,
+        doorstepFee,
+        expressFee,
+        standardFee: doorstepFee,
         totalWeight,
         currency: "₦",
         senderStation: senderStation.stationName,
         receiverStation: receiverStation.stationName,
-        estimatedDaysStandard: isInterstate
-          ? "3 - 5 business days"
+        estimatedDaysPickup: isInterstate
+          ? "2 - 4 business days"
           : "1 - 2 business days",
+        estimatedDaysDoorstep: isInterstate
+          ? "3 - 5 business days"
+          : "2 - 3 business days",
         estimatedDaysExpress: isInterstate
           ? "1 - 2 business days"
           : "Same day / Next day",
       };
+    }
+  },
+});
+
+/**
+ * Fetches physical GIGL service centres / pickup stations for a given state or city.
+ */
+export const getServiceCentres = action({
+  args: {
+    stateOrCity: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const station = resolveGIGLStation(args.stateOrCity);
+    try {
+      const response = await giglFetch(
+        `/serviceCentresByStation?StationId=${station.stationId}`,
+        { method: "GET" },
+      );
+
+      if (response && response.data && Array.isArray(response.data)) {
+        return response.data.map((c: any) => ({
+          serviceCentreId: c.ServiceCentreId,
+          name: c.ServiceCentreName,
+          code: c.ServiceCentreCode,
+          address: c.Address,
+          stationId: c.StationId,
+          stationName: c.StationName,
+        }));
+      }
+      return [];
+    } catch (e: any) {
+      console.error("Failed to fetch service centres from GIGL:", e.message);
+      return [];
     }
   },
 });
@@ -839,6 +894,11 @@ export const createShipmentForOrder = action({
       .filter(Boolean)
       .join(", ");
 
+    const isPickup = order.shippingMethod === "pickup";
+    const receiverAddress = isPickup && order.address?.pickupStationAddress
+      ? `GIGL Station Pickup: ${order.address.pickupStationName || "Service Centre"} - ${order.address.pickupStationAddress}`
+      : fullReceiverAddress;
+
     const payload = {
       SenderDetails: {
         SenderName: senderName,
@@ -856,8 +916,8 @@ export const createShipmentForOrder = action({
         ReceiverStationId: receiverStation.stationId,
         ReceiverName: order.address.fullName,
         ReceiverPhoneNumber: order.address.phone,
-        ReceiverAddress: fullReceiverAddress,
-        InputtedReceiverAddress: fullReceiverAddress,
+        ReceiverAddress: receiverAddress,
+        InputtedReceiverAddress: receiverAddress,
         ReceiverLocation: {
           Latitude: receiverStation.latitude,
           Longitude: receiverStation.longitude,
