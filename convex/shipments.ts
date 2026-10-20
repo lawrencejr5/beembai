@@ -47,10 +47,41 @@ export function getShipmentView(
   storeId?: Id<"stores">
 ): Shipment {
   const existing = order.shipments?.find((s) => s.storeId === storeId);
-  if (existing) return existing;
+  if (existing) {
+    return {
+      ...existing,
+      waybillNumber: existing.waybillNumber ?? order.waybillNumber,
+      giglStatus: existing.giglStatus ?? order.giglStatus,
+    };
+  }
+
+  // If storeId is provided but no exact match, check for unassigned store shipment (Beembai store)
+  if (storeId) {
+    const unassigned = order.shipments?.find((s) => s.storeId === undefined);
+    if (unassigned) {
+      return {
+        ...unassigned,
+        storeId,
+        waybillNumber: unassigned.waybillNumber ?? order.waybillNumber,
+        giglStatus: unassigned.giglStatus ?? order.giglStatus,
+      };
+    }
+  }
 
   if (!order.shipments || order.shipments.length === 0) {
-    // Legacy order: one shared shipment
+    // Legacy or single-store order: one shared shipment using top-level fields
+    return {
+      storeId,
+      status: order.status,
+      statusHistory: order.statusHistory,
+      waybillNumber: order.waybillNumber,
+      giglStatus: order.giglStatus,
+    };
+  }
+
+  // If this order only has one store's items or is a dedicated store order
+  const storeKeys = getStoreKeys(order);
+  if (storeKeys.length <= 1) {
     return {
       storeId,
       status: order.status,
@@ -111,7 +142,10 @@ export function applyShipmentUpdate(
 ) {
   const now = Date.now();
   const shipments = ensureShipments(order);
-  const idx = shipments.findIndex((s) => s.storeId === storeId);
+  let idx = shipments.findIndex((s) => s.storeId === storeId);
+  if (idx < 0 && storeId) {
+    idx = shipments.findIndex((s) => s.storeId === undefined);
+  }
 
   const entry: HistoryEntry = {
     status: update.status,

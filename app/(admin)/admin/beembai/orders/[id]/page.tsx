@@ -59,7 +59,7 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
 
   // Auto-advance placed → processing when admin views the order (mirrors sell dashboard)
   useEffect(() => {
-    if (order && order.status === "placed") {
+    if (order && order.status === "placed" && !order.waybillNumber) {
       updateStatus({
         orderId,
         status: "processing",

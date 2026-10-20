@@ -255,14 +255,33 @@ export const getBeembaiOrderById = query({
       })
     );
 
+    const isSingleStore = !order.items.some(
+      (i) => i.storeId && beembaiStoreId && i.storeId !== beembaiStoreId
+    );
+
+    if (isSingleStore) {
+      return {
+        ...order,
+        status: order.status,
+        statusHistory: order.statusHistory,
+        waybillNumber: order.waybillNumber,
+        giglStatus: order.giglStatus,
+        buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
+        buyerEmail: buyer?.email ?? order.email ?? "Guest",
+        items: itemsWithSource,
+        beembaiSubtotal: beembaiItems.reduce((s, i) => s + i.price * i.quantity, 0),
+        beembaiStoreId: beembaiStoreId ?? null,
+      };
+    }
+
     const view = getShipmentView(order, beembaiStoreId);
 
     return {
       ...order,
-      status: view.status as typeof order.status,
-      statusHistory: view.statusHistory,
-      waybillNumber: view.waybillNumber,
-      giglStatus: view.giglStatus,
+      status: (view.status !== "placed" ? view.status : order.status) as typeof order.status,
+      statusHistory: view.statusHistory && view.statusHistory.length > 0 ? view.statusHistory : order.statusHistory,
+      waybillNumber: view.waybillNumber ?? order.waybillNumber,
+      giglStatus: view.giglStatus ?? order.giglStatus,
       buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
       buyerEmail: buyer?.email ?? order.email ?? "Guest",
       items: itemsWithSource,
@@ -308,9 +327,30 @@ export const updateBeembaiOrderStatus = mutation({
       cancelled: "Order has been cancelled.",
     };
 
+    const isSingleStore = !order.items.some(
+      (i) => i.storeId && beembaiStoreId && i.storeId !== beembaiStoreId
+    );
+    const now = Date.now();
+    const statusMsg = args.message ?? defaultMessages[args.status];
+
+    if (isSingleStore) {
+      await ctx.db.patch(args.orderId, {
+        status: args.status,
+        statusHistory: [
+          ...order.statusHistory,
+          {
+            status: args.status,
+            timestamp: now,
+            message: statusMsg,
+          },
+        ],
+      });
+      return { success: true };
+    }
+
     const patch = applyShipmentUpdate(order, beembaiStoreId, {
       status: args.status,
-      message: args.message ?? defaultMessages[args.status],
+      message: statusMsg,
       storeLabel: store?.name ?? "Beembai",
     });
     await ctx.db.patch(args.orderId, patch);

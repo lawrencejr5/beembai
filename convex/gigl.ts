@@ -298,11 +298,20 @@ export const createShipmentForOrder = action({
 
     // Check if THIS store's shipment already has a waybill
     const existing = getShipmentView(order, args.storeId);
-    if (existing.waybillNumber) {
+    const existingWaybill = existing.waybillNumber || order.waybillNumber;
+    if (existingWaybill) {
+      if (order.status !== "shipped") {
+        await ctx.runMutation(internal.gigl.attachOrderWaybillInternal, {
+          orderId: args.orderId,
+          waybillNumber: existingWaybill,
+          details: null,
+          storeId: args.storeId,
+        });
+      }
       return {
         success: true,
-        waybill: existing.waybillNumber,
-        message: "Waybill already exists for this store's shipment.",
+        waybill: existingWaybill,
+        message: "Waybill already exists for this order.",
       };
     }
 
@@ -337,9 +346,27 @@ export const createShipmentForOrder = action({
     );
 
     // 3. Format shipment items (only this store's items, aggregated weight)
-    const orderItems: any[] = args.storeId
-      ? order.items.filter((i: any) => i.storeId === args.storeId)
-      : order.items;
+    let orderItems: any[] = order.items;
+    if (args.storeId) {
+      const store: any = await ctx.runQuery(
+        internal.store.getStoreByIdInternal,
+        {
+          storeId: args.storeId,
+        },
+      );
+      const isBeembaiStore = store?.slug === "beembai-official";
+
+      if (isBeembaiStore) {
+        const beembaiItems = order.items.filter(
+          (i: any) => !i.storeId || i.storeId === args.storeId
+        );
+        orderItems = beembaiItems.length > 0 ? beembaiItems : order.items;
+      } else {
+        const vendorItems = order.items.filter((i: any) => i.storeId === args.storeId);
+        orderItems = vendorItems.length > 0 ? vendorItems : order.items;
+      }
+    }
+
     if (orderItems.length === 0) {
       throw new Error("This order has no items belonging to your store.");
     }
@@ -548,8 +575,13 @@ export const attachOrderWaybillInternal = internalMutation({
 
     const now = Date.now();
 
-    // 1. Direct single-store order: direct document patch without nested shipment complexity
-    if (order.storeId !== undefined) {
+    // 1. Direct single-store order check (covers decoupled orders and Beembai store orders)
+    const isSingleStore =
+      order.storeId !== undefined ||
+      order.checkoutId !== undefined ||
+      !order.items.some((i) => i.storeId && args.storeId && i.storeId !== args.storeId);
+
+    if (isSingleStore) {
       await ctx.db.patch(args.orderId, {
         waybillNumber: args.waybillNumber,
         giglStatus: "shipped",
