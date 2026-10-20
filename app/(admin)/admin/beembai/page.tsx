@@ -404,7 +404,7 @@ export default function BeembaiOverviewPage() {
                             {order.items.reduce((s: number, i: any) => s + i.quantity, 0)} items
                           </td>
                           <td style={{ fontSize: 13, fontWeight: 700 }}>
-                            {formatCurrency(order.totalAmount)}
+                            {formatCurrency(order.beembaiSubtotal ?? order.totalAmount)}
                           </td>
                           <td>
                             <span className={`${styles.badge} ${styles[order.status]}`}>

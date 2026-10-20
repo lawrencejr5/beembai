@@ -448,17 +448,9 @@ export default function SellerOrderDetailPage() {
 
             {/* Financial Summary */}
             <div style={{ padding: "16px 24px", borderTop: "1px solid var(--seller-content-bg)", display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--seller-text-secondary)" }}>
-                <span>Subtotal (Your store items)</span>
-                <span>{formatCurrency(order.sellerSubtotal)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--seller-text-secondary)" }}>
-                <span>Buyer Paid Shipping ({order.shippingMethod})</span>
-                <span>{formatCurrency(order.shippingFee)}</span>
-              </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 800, color: "var(--seller-text-primary)" }}>
-                <span>Total Payment Value</span>
-                <span>{formatCurrency(order.totalAmount)}</span>
+                <span>Your Items Total</span>
+                <span>{formatCurrency(order.sellerSubtotal)}</span>
               </div>
             </div>
           </div>

@@ -92,8 +92,11 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
     setDispatchError(null);
     setDispatchSuccess(null);
     try {
-      // No storeId → backend uses Beembai HQ as the sender
-      const result = await createShipment({ orderId });
+      // Pass the Beembai store id so only Beembai's items are shipped
+      const result = await createShipment({
+        orderId,
+        storeId: (order.beembaiStoreId ?? undefined) as Id<"stores"> | undefined,
+      });
       if (result.success) {
         setDispatchSuccess(`✅ Waybill generated: ${result.waybill}. GIGL courier will be notified for pickup.`);
       } else {
@@ -369,13 +372,9 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
               </table>
             </div>
             <div style={{ padding: "14px 20px", borderTop: "1px solid #f0ebe0", display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#6b6540" }}>
-                <span>Shipping ({shippingMethodLabel(order.shippingMethod)})</span>
-                <span>{formatCurrency(order.shippingFee)}</span>
-              </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 800, color: "#282600" }}>
-                <span>Total Amount Paid</span>
-                <span>{formatCurrency(order.totalAmount)}</span>
+                <span>Beembai Items Total</span>
+                <span>{formatCurrency(order.beembaiSubtotal)}</span>
               </div>
             </div>
           </div>

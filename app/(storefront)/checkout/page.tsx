@@ -1629,7 +1629,7 @@ export default function CheckoutPage() {
             <span
               style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}
             >
-              Redirecting you to homepage...
+              Redirecting you to checkout...
             </span>
           </div>
         </div>

@@ -321,9 +321,10 @@ export const createShipmentForOrder = action({
       if (store) {
         senderName = store.name;
         senderPhone = store.phone || senderPhone;
-        senderAddress = [store.physicalAddress, store.city, store.stateName]
-          .filter(Boolean)
-          .join(", ");
+        senderAddress =
+          [store.physicalAddress, store.city, store.stateName]
+            .filter(Boolean)
+            .join(", ") || senderAddress;
         senderState = store.stateName || "Lagos";
       }
     }
@@ -333,11 +334,18 @@ export const createShipmentForOrder = action({
       order.address?.stateName || order.address?.city,
     );
 
-    // 3. Format shipment items (consolidated package with aggregated weight)
+    // 3. Format shipment items (only this store's items, aggregated weight)
+    const orderItems: any[] = args.storeId
+      ? order.items.filter((i: any) => i.storeId === args.storeId)
+      : order.items;
+    if (orderItems.length === 0) {
+      throw new Error("This order has no items belonging to your store.");
+    }
+
     const totalOrderWeight = Math.max(
       0.1,
       Number(
-        order.items
+        orderItems
           .reduce((sum: number, item: any) => {
             const w = typeof item.weight === "number" ? item.weight : 0.5;
             return sum + w * (item.quantity || 1);
@@ -348,27 +356,25 @@ export const createShipmentForOrder = action({
 
     const totalOrderValue = Math.max(
       100,
-      order.totalAmount ||
-        order.items.reduce(
-          (sum: number, item: any) =>
-            sum + item.price * (item.quantity || 1),
-          0,
-        ),
+      orderItems.reduce(
+        (sum: number, item: any) => sum + item.price * (item.quantity || 1),
+        0,
+      ),
     );
 
-    const totalItemCount = order.items.reduce(
+    const totalItemCount = orderItems.reduce(
       (sum: number, i: any) => sum + (i.quantity || 1),
       0,
     );
-    const itemsSummary = order.items
+    const itemsSummary = orderItems
       .map((i: any) => `${i.quantity || 1}x ${i.title.slice(0, 30)}`)
       .join(", ");
 
     const shipmentItems = [
       {
         ItemName:
-          order.items.length === 1
-            ? order.items[0].title.slice(0, 50)
+          orderItems.length === 1
+            ? orderItems[0].title.slice(0, 50)
             : `Order Package (${totalItemCount} items)`,
         Description: itemsSummary.slice(0, 100) || "E-commerce product",
         ShipmentType: 1, // Regular

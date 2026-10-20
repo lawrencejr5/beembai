@@ -16,6 +16,19 @@ async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   return userId;
 }
 
+// Items in an order that belong to the Beembai Official store.
+// Import-order items without a storeId are treated as Beembai's (legacy data).
+function getBeembaiItems<T extends { storeId?: any }>(
+  order: { isImportOrder?: boolean; items: T[] },
+  beembaiStoreId: any
+): T[] {
+  return order.items.filter(
+    (item) =>
+      (beembaiStoreId && item.storeId === beembaiStoreId) ||
+      (order.isImportOrder === true && !item.storeId)
+  );
+}
+
 // ── Internal: Get or create the Beembai Official Store ────
 // Called from createForeignProduct so every import product has a storeId.
 export const getOrCreateBeembaiStoreInternal = internalMutation({
@@ -142,10 +155,7 @@ export const getBeembaiStoreOrders = query({
         // Exclude placed but unpaid orders
         if (order.status === "placed" && order.paymentStatus !== "paid") return false;
         
-        return (
-          order.isImportOrder === true ||
-          (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId))
-        );
+        return getBeembaiItems(order, beembaiStoreId).length > 0;
       })
       .sort((a, b) => b.createdAt - a.createdAt);
 
@@ -176,8 +186,11 @@ export const getBeembaiStoreOrders = query({
     const pageWithBuyer = await Promise.all(
       page.map(async (order) => {
         const buyer = order.userId ? await ctx.db.get(order.userId) : null;
+        const beembaiItems = getBeembaiItems(order, beembaiStoreId);
         return {
           ...order,
+          items: beembaiItems,
+          beembaiSubtotal: beembaiItems.reduce((s, i) => s + i.price * i.quantity, 0),
           buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
           buyerEmail: buyer?.email ?? order.email ?? "Guest",
         };
@@ -206,17 +219,14 @@ export const getBeembaiOrderById = query({
       .unique();
     const beembaiStoreId = store?._id;
 
-    const isBeembaiOrder =
-      order.isImportOrder === true ||
-      (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId));
-
-    if (!isBeembaiOrder) return null;
+    const beembaiItems = getBeembaiItems(order, beembaiStoreId);
+    if (beembaiItems.length === 0) return null;
 
     const buyer = order.userId ? await ctx.db.get(order.userId) : null;
 
-    // Attach sourceUrl from products table for each item
+    // Attach sourceUrl from products table for each Beembai item
     const itemsWithSource = await Promise.all(
-      order.items.map(async (item) => {
+      beembaiItems.map(async (item) => {
         const product = await ctx.db.get(item.productId);
         return {
           ...item,
@@ -231,6 +241,8 @@ export const getBeembaiOrderById = query({
       buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
       buyerEmail: buyer?.email ?? order.email ?? "Guest",
       items: itemsWithSource,
+      beembaiSubtotal: beembaiItems.reduce((s, i) => s + i.price * i.quantity, 0),
+      beembaiStoreId: beembaiStoreId ?? null,
     };
   },
 });
@@ -259,11 +271,9 @@ export const updateBeembaiOrderStatus = mutation({
       .unique();
     const beembaiStoreId = store?._id;
 
-    const isBeembaiOrder =
-      order.isImportOrder === true ||
-      (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId));
-
-    if (!isBeembaiOrder) throw new Error("Unauthorized access to this order");
+    if (getBeembaiItems(order, beembaiStoreId).length === 0) {
+      throw new Error("Unauthorized access to this order");
+    }
 
     const defaultMessages: Record<string, string> = {
       placed: "Order placed and awaiting processing.",
