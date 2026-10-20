@@ -44,7 +44,7 @@ export const getStoreBySlug = query({
   },
 });
 
-// Get all products belonging to a specific store publicly (only approved)
+// Get all products belonging to a specific store publicly (only approved, excluding foreign imports)
 export const getProductsByStore = query({
   args: { storeId: v.id("stores") },
   handler: async (ctx, args) => {
@@ -52,16 +52,20 @@ export const getProductsByStore = query({
       .query("products")
       .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
       .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "approved"),
-          q.eq(q.field("status"), undefined),
+        q.and(
+          q.or(
+            q.eq(q.field("status"), "approved"),
+            q.eq(q.field("status"), undefined),
+          ),
+          q.neq(q.field("categorySlug"), "foreign-import"),
+          q.neq(q.field("tag"), "import"),
         ),
       )
       .collect();
   },
 });
 
-// Get all products belonging to a specific store for the owner (including pending ones)
+// Get all products belonging to a specific store for the owner (including pending ones, excluding foreign imports)
 export const getProductsByStoreForOwner = query({
   args: { storeId: v.id("stores") },
   handler: async (ctx, args) => {
@@ -76,6 +80,12 @@ export const getProductsByStoreForOwner = query({
     return await ctx.db
       .query("products")
       .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
+      .filter((q) =>
+        q.and(
+          q.neq(q.field("categorySlug"), "foreign-import"),
+          q.neq(q.field("tag"), "import"),
+        ),
+      )
       .order("desc")
       .collect();
   },

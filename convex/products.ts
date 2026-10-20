@@ -1,4 +1,9 @@
-import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
@@ -9,11 +14,13 @@ export const getProducts = query({
     // Only return approved products to regular queries
     return await ctx.db
       .query("products")
-      .filter((q) => q.or(
-        q.eq(q.field("status"), "approved"),
-        // Backwards compatibility with seeded products that don't have a status field yet
-        q.eq(q.field("status"), undefined)
-      ))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "approved"),
+          // Backwards compatibility with seeded products that don't have a status field yet
+          q.eq(q.field("status"), undefined),
+        ),
+      )
       .collect();
   },
 });
@@ -26,8 +33,8 @@ export const getStores = query({
       .filter((q) =>
         q.or(
           q.eq(q.field("status"), "approved"),
-          q.eq(q.field("status"), undefined)
-        )
+          q.eq(q.field("status"), undefined),
+        ),
       )
       .collect();
   },
@@ -181,9 +188,7 @@ export const searchProducts = query({
 
     const results = await ctx.db
       .query("products")
-      .withSearchIndex("search_products", (q) =>
-        q.search("title", args.query),
-      )
+      .withSearchIndex("search_products", (q) => q.search("title", args.query))
       .filter((q) =>
         q.or(
           q.eq(q.field("status"), "approved"),
@@ -317,12 +322,14 @@ export const getProductsByCategorySlug = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("products")
-      .withIndex("by_categorySlug", (q) => q.eq("categorySlug", args.categorySlug))
+      .withIndex("by_categorySlug", (q) =>
+        q.eq("categorySlug", args.categorySlug),
+      )
       .filter((q) =>
         q.or(
           q.eq(q.field("status"), "approved"),
-          q.eq(q.field("status"), undefined)
-        )
+          q.eq(q.field("status"), undefined),
+        ),
       )
       .collect();
   },
@@ -374,7 +381,7 @@ export const createForeignProduct = mutation({
     // Ensure the Beembai Official Store exists and get its ID
     const beembaiStoreId: string = await ctx.runMutation(
       internal.beembaiStore.getOrCreateBeembaiStoreInternal,
-      {}
+      {},
     );
 
     const productId = await ctx.db.insert("products", {
@@ -429,7 +436,9 @@ export const updateProductWeight = mutation({
       if (product.storeId) {
         const store = await ctx.db.get(product.storeId);
         if (!store || store.userId !== userId) {
-          throw new Error("Unauthorized: you do not own the store for this product");
+          throw new Error(
+            "Unauthorized: you do not own the store for this product",
+          );
         }
       } else {
         throw new Error("Unauthorized");
@@ -444,7 +453,3 @@ export const updateProductWeight = mutation({
     return args.productId;
   },
 });
-
-
-
-

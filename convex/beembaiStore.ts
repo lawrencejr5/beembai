@@ -358,7 +358,7 @@ export const updateBeembaiOrderStatus = mutation({
   },
 });
 
-// ── Query: All products belonging to Beembai (including imports) ──
+// ── Query: All products belonging to Beembai Official Store (excluding foreign imports) ──
 export const getBeembaiStoreProducts = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -381,6 +381,12 @@ export const getBeembaiStoreProducts = query({
     return await ctx.db
       .query("products")
       .withIndex("by_storeId", (q) => q.eq("storeId", store._id))
+      .filter((q) =>
+        q.and(
+          q.neq(q.field("categorySlug"), "foreign-import"),
+          q.neq(q.field("tag"), "import")
+        )
+      )
       .order("desc")
       .paginate(args.paginationOpts);
   },
@@ -564,40 +570,38 @@ export const adminDeleteProduct = mutation({
   },
 });
 
-// ── Internal Mutation: Backfill existing foreign-import products ──
-export const backfillForeignProductStoreIds = internalMutation({
+// ── Internal Mutation: Unassign any foreign-import products from Beembai store ──
+export const unassignForeignProductStoreIds = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const storeId: string = await ctx.runMutation(
-      internal.beembaiStore.getOrCreateBeembaiStoreInternal,
-      {}
-    );
-
     const products = await ctx.db
       .query("products")
-      .withIndex("by_categorySlug", (q) =>
-        q.eq("categorySlug", "foreign-import")
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("categorySlug"), "foreign-import"),
+          q.eq(q.field("tag"), "import")
+        )
       )
       .collect();
 
-    let patched = 0;
+    let unassigned = 0;
     for (const product of products) {
-      if (!product.storeId) {
-        await ctx.db.patch(product._id, { storeId: storeId as any });
-        patched++;
+      if (product.storeId) {
+        await ctx.db.patch(product._id, { storeId: undefined });
+        unassigned++;
       }
     }
-    return { patched };
+    return { unassigned };
   },
 });
 
-// ── Public Mutation: Trigger backfill (admin only) ────────
-export const runBackfillForeignProducts = mutation({
+// ── Public Mutation: Clean up foreign product store assignments (admin only) ────────
+export const runUnassignForeignProducts = mutation({
   args: {},
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    const result: { patched: number } = await ctx.runMutation(
-      internal.beembaiStore.backfillForeignProductStoreIds,
+    const result: { unassigned: number } = await ctx.runMutation(
+      internal.beembaiStore.unassignForeignProductStoreIds,
       {}
     );
     return result;
@@ -628,8 +632,10 @@ export const getBeembaiStoreAnalytics = query({
       .withIndex("by_storeId", (q) => q.eq("storeId", store._id))
       .collect();
 
-    // Only count local products (excluding foreign imports)
-    const localProducts = products.filter((p) => p.categorySlug !== "foreign-import");
+    // Only count local products (strictly excluding foreign imports)
+    const localProducts = products.filter(
+      (p) => p.categorySlug !== "foreign-import" && p.tag !== "import"
+    );
 
     const allOrders = await ctx.db.query("orders").collect();
     const beembaiOrders = allOrders.filter((o) => {

@@ -60,8 +60,10 @@ export default function BeembaiProductsPage() {
 
   const filtered = useMemo(() => {
     const list = products ?? [];
-    // Hide scraped products
-    const beembaiLocal = list.filter((p) => p.categorySlug !== "foreign-import");
+    // Hide scraped foreign products
+    const beembaiLocal = list.filter(
+      (p: any) => p.categorySlug !== "foreign-import" && p.tag !== "import"
+    );
     
     const term = search.toLowerCase().trim();
     if (!term) return beembaiLocal;

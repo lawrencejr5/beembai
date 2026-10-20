@@ -184,12 +184,14 @@ export default function StoreDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Get store inventory mapped with id for ProductCard compatibility
-  const rawProducts = dbProducts.map((p) => ({
-    id: p._id,
-    ...p,
-    condition: p.condition as any,
-  }));
+  // Get store inventory mapped with id for ProductCard compatibility (strictly exclude foreign imports)
+  const rawProducts = (dbProducts ?? [])
+    .filter((p) => p.categorySlug !== "foreign-import" && p.tag !== "import")
+    .map((p) => ({
+      id: p._id,
+      ...p,
+      condition: p.condition as any,
+    }));
 
   // Filter store products
   const filteredProducts = rawProducts.filter(
