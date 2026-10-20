@@ -160,14 +160,15 @@ export default function StoreShipmentGroup({
   trackShipment,
 }: {
   group: StoreGroup;
-  multi: boolean;
-  roadmap: React.ReactNode;
+  multi?: boolean;
+  roadmap?: React.ReactNode;
   reviewsMap?: Map<string, any>;
   onReview?: (productId: string, title: string) => void;
   trackShipment: (args: { waybillNumber: string }) => Promise<any>;
 }) {
   const [tracking, setTracking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const refresh = async () => {
     if (!group.waybillNumber) return;
@@ -178,6 +179,17 @@ export default function StoreShipmentGroup({
       setTracking({ success: false, message: err?.message, scans: [] });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyWaybill = async () => {
+    if (!group.waybillNumber) return;
+    try {
+      await navigator.clipboard.writeText(group.waybillNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy waybill", err);
     }
   };
 
@@ -192,167 +204,163 @@ export default function StoreShipmentGroup({
   const timeline = useMemo(() => buildTimeline(group, tracking), [group, tracking]);
 
   return (
-    <div
-      style={{
-        border: multi ? "1px solid var(--color-border)" : "none",
-        borderRadius: 14,
-        padding: multi ? "1rem 1.1rem" : 0,
-        background: multi ? "rgba(0,0,0,0.015)" : "transparent",
-      }}
-    >
-      {/* Store header */}
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      {/* Optional store header if multi is explicitly requested */}
       {multi && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "0.5rem",
-            marginBottom: "0.9rem",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        <div className={styles.storeHeaderRow}>
+          <div className={styles.storeIdentity}>
             {group.storeLogo ? (
-              <img
-                src={group.storeLogo}
-                alt=""
-                style={{ width: 28, height: 28, borderRadius: 8, objectFit: "cover" }}
-              />
+              <img src={group.storeLogo} alt="" className={styles.storeLogo} />
             ) : (
-              <span style={{ fontSize: "1.2rem" }}>🏬</span>
+              <div className={styles.storeDefaultIcon}>🏬</div>
             )}
-            <div>
-              <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>{group.storeName}</div>
-              <div style={{ fontSize: "0.75rem", opacity: 0.65 }}>
+            <div className={styles.storeTitleGroup}>
+              <span className={styles.storeName}>{group.storeName}</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-olive-gray)" }}>
                 {group.items.length} {group.items.length === 1 ? "item" : "items"} · ₦
                 {formatPrice(group.subtotal)}
-              </div>
+              </span>
             </div>
           </div>
           <StatusChip status={group.status} />
         </div>
       )}
 
-      {/* Per-store roadmap (only needed when more than one store) */}
-      {multi && <div style={{ marginBottom: "0.9rem" }}>{roadmap}</div>}
+      {/* Per-store roadmap if passed */}
+      {roadmap && <div>{roadmap}</div>}
 
-      {/* Items */}
-      <div className={styles.itemsList}>
-        {group.items.map((item: any, idx: number) => {
-          const hasReviewed = reviewsMap?.has(item.productId);
-          return (
-            <div key={idx} className={styles.itemRow}>
-              <img src={item.image} alt={item.title} className={styles.itemRowImg} />
-              <div className={styles.itemRowInfo}>
-                <span className={styles.itemRowTitle}>{item.title}</span>
-                <span className={styles.itemRowMeta}>
-                  Qty: {item.quantity} {item.color ? `| Color: ${item.color}` : ""}
+      {/* Items List (if items provided and not rendered by parent) */}
+      {group.items && group.items.length > 0 && (
+        <div className={styles.itemsList}>
+          {group.items.map((item: any, idx: number) => {
+            const hasReviewed = reviewsMap?.has(item.productId);
+            return (
+              <div key={idx} className={styles.itemRow}>
+                <img src={item.image} alt={item.title} className={styles.itemRowImg} />
+                <div className={styles.itemRowInfo}>
+                  <span className={styles.itemRowTitle}>{item.title}</span>
+                  <span className={styles.itemRowMeta}>
+                    Qty: {item.quantity} {item.color ? `| Color: ${item.color}` : ""}
+                  </span>
+                </div>
+                <span className={styles.itemRowPrice}>
+                  ₦{formatPrice(item.price * item.quantity)}
                 </span>
+                {group.status === "delivered" && onReview && (
+                  <button
+                    type="button"
+                    onClick={() => onReview(item.productId, item.title)}
+                    style={{
+                      border: hasReviewed
+                        ? "1px solid var(--color-border)"
+                        : "1px solid var(--color-palm)",
+                      color: hasReviewed ? "var(--color-olive-gray)" : "var(--color-palm)",
+                      background: "transparent",
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {hasReviewed ? "Update Review" : "Write Review"}
+                  </button>
+                )}
               </div>
-              <span className={styles.itemRowPrice}>
-                ₦{formatPrice(item.price * item.quantity)}
-              </span>
-              {group.status === "delivered" && onReview && (
-                <button
-                  onClick={() => onReview(item.productId, item.title)}
-                  style={{
-                    border: hasReviewed
-                      ? "1px solid var(--color-border)"
-                      : "1px solid var(--color-palm)",
-                    color: hasReviewed ? "var(--color-olive-gray)" : "var(--color-palm)",
-                    background: "transparent",
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {hasReviewed ? "Update Review" : "Write Review"}
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Blended delivery log */}
-      <div style={{ marginTop: "1rem" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "0.5rem",
-            marginBottom: "0.6rem",
-          }}
-        >
-          <h4 className={styles.detailSectionTitle} style={{ margin: 0 }}>
-            Delivery Updates{multi ? ` · ${group.storeName}` : ""}
+      {/* Polished Delivery Updates & Tracking Card */}
+      <div className={styles.deliveryCard}>
+        <div className={styles.deliveryHeader}>
+          <h4 className={styles.deliveryTitle}>
+            <span>🚚</span>
+            <span>Delivery & Tracking Updates</span>
           </h4>
-          {group.waybillNumber && (
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-              <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  background: "#f0fdf4",
-                  color: "#166534",
-                  border: "1px solid #86efac",
-                  padding: "2px 10px",
-                  borderRadius: 100,
-                }}
+
+          {group.waybillNumber ? (
+            <div className={styles.waybillActions}>
+              <div className={styles.waybillBadge}>
+                <span>Waybill: {group.waybillNumber}</span>
+                <button
+                  type="button"
+                  onClick={handleCopyWaybill}
+                  className={styles.waybillCopyBtn}
+                  title="Copy waybill number"
+                >
+                  {copied ? "✓ Copied" : "📋 Copy"}
+                </button>
+              </div>
+
+              <a
+                href={`https://www.giglogistics.com/shipment-tracking?waybill=${encodeURIComponent(group.waybillNumber)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.waybillLink}
+                title="Track directly on GIG Logistics official tracking portal"
               >
-                Tracking: {group.waybillNumber}
-              </span>
+                Track on GIG Logistics ↗
+              </a>
+
               <button
+                type="button"
                 onClick={refresh}
                 disabled={loading}
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  background: "var(--color-palm)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "4px 12px",
-                  cursor: "pointer",
-                }}
+                className={styles.waybillRefreshBtn}
+                title="Refresh latest courier scans"
               >
-                {loading ? "Updating..." : "Refresh"}
+                {loading ? "Refreshing..." : "↻ Refresh"}
               </button>
             </div>
+          ) : (
+            <span style={{ fontSize: "0.78rem", color: "var(--color-olive-gray)", fontWeight: 600 }}>
+              Tracking will appear once dispatched
+            </span>
           )}
         </div>
 
-        <div className={styles.logsTimeline}>
-          {timeline.map((entry, i) => (
-            <div key={entry.key} className={styles.logRow}>
-              <div
-                className={styles.logDot}
-                style={{ background: i === 0 ? "var(--color-palm)" : undefined }}
-              />
-              <div className={styles.logContent}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: "0.25rem",
-                  }}
-                >
-                  <span className={styles.logStatusName}>
-                    {entry.icon} {entry.title}
-                  </span>
-                  <span className={styles.logTime}>{formatLogTime(entry.time)}</span>
+        {timeline.length > 0 ? (
+          <div className={styles.logsTimeline}>
+            {timeline.map((entry, i) => {
+              const isLatest = i === 0;
+              const isDelivered = group.status === "delivered";
+              // Latest status is active/unfilled (just borders) unless the order is delivered
+              const isChecked = !isLatest || isDelivered;
+              const isActive = isLatest && !isDelivered;
+
+              let dotClass = styles.logDot;
+              if (isActive) dotClass += ` ${styles.logDotActive}`;
+              else if (isChecked) dotClass += ` ${styles.logDotCompleted}`;
+
+              return (
+                <div key={entry.key} className={styles.logRow}>
+                  <div className={dotClass}>
+                    {isChecked ? "✓" : ""}
+                  </div>
+                  <div className={styles.logContent}>
+                    <div className={styles.logHeader}>
+                      <span className={styles.logStatusName}>
+                        <span style={{ fontSize: "1rem" }}>{entry.icon}</span>
+                        <span>{entry.title}</span>
+                      </span>
+                      {entry.time > 0 && (
+                        <span className={styles.logTime}>{formatLogTime(entry.time)}</span>
+                      )}
+                    </div>
+                    {entry.detail && <p className={styles.logMessage}>{entry.detail}</p>}
+                  </div>
                 </div>
-                {entry.detail && <p className={styles.logMessage}>{entry.detail}</p>}
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--color-olive-gray)" }}>
+            Order placed. Dispatch and transit logs will appear here.
+          </p>
+        )}
       </div>
     </div>
   );

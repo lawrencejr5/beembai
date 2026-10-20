@@ -247,10 +247,10 @@
 }
 
 .stepDotActive {
-  background-color: var(--background);
+  background-color: var(--color-palm);
   border-color: var(--color-palm);
-  color: var(--color-palm);
-  box-shadow: 0 0 0 4px rgba(99, 109, 33, 0.15);
+  color: var(--color-coconut);
+  box-shadow: 0 0 0 4px rgba(99, 109, 33, 0.22);
 }
 
 .stepLabel {
@@ -813,5 +813,299 @@
 .changeBtn:hover {
   background-color: var(--color-border);
 }
+
+/* ── Store Badge & Card Header Enhancements ── */
+.storeHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.storeIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.storeLogo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  background: var(--color-sand);
+}
+
+.storeDefaultIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-sand);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.storeTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.storeName {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.multiStoreTag {
+  font-size: 0.7rem;
+  font-weight: 750;
+  color: var(--color-palm);
+  background: rgba(99, 109, 33, 0.08);
+  border: 1px solid rgba(99, 109, 33, 0.18);
+  padding: 1px 7px;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+}
+
+/* ── Delivery Updates Timeline ── */
+.deliveryCard {
+  background: var(--background);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.deliveryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.deliveryTitle {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.waybillActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.waybillBadge {
+  font-size: 0.76rem;
+  font-weight: 750;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #86efac;
+  padding: 3px 10px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.waybillCopyBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.74rem;
+  color: #166534;
+  opacity: 0.75;
+  display: inline-flex;
+  align-items: center;
+  transition: opacity 0.2s;
+}
+
+.waybillCopyBtn:hover {
+  opacity: 1;
+}
+
+.waybillLink {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--color-palm);
+  border: 1px solid var(--color-palm);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.waybillLink:hover {
+  background: #4d5519;
+  border-color: #4d5519;
+}
+
+.waybillRefreshBtn {
+  font-size: 0.76rem;
+  font-weight: 700;
+  background: var(--color-sand);
+  color: var(--foreground);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+}
+
+.waybillRefreshBtn:hover:not(:disabled) {
+  background: var(--color-border);
+}
+
+.waybillRefreshBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.logsTimeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 6px;
+  font-family: var(--font-figtree), system-ui, -apple-system, sans-serif;
+}
+
+.logRow {
+  display: flex;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 18px;
+  font-family: inherit;
+}
+
+.logRow:last-child {
+  padding-bottom: 0;
+}
+
+.logRow:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 22px;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.logDot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-sand);
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  z-index: 1;
+  font-size: 10px;
+  transition: all 0.2s;
+}
+
+.logDotCompleted {
+  background: var(--color-palm);
+  border-color: var(--color-palm);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.logDotActive {
+  background: var(--background);
+  border: 2.5px solid var(--color-palm);
+  color: transparent;
+  box-shadow: 0 0 0 4px rgba(99, 109, 33, 0.18);
+}
+
+.logContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-family: inherit;
+}
+
+.logHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.logStatusName {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logTime {
+  font-size: 0.74rem;
+  color: var(--color-olive-gray);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.logMessage {
+  font-size: 0.82rem;
+  color: var(--foreground);
+  line-height: 1.45;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.logLocation {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.74rem;
+  color: var(--color-palm);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 
 
