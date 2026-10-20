@@ -78,6 +78,15 @@ export const NavigationProvider = ({ children }: { children: React.ReactNode }) 
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
+      // Ignore if clicking on interactive controls (buttons, form inputs, etc.)
+      if (
+        target.closest(
+          "button, input, select, textarea, [data-no-nav-loader]",
+        )
+      ) {
+        return;
+      }
+
       const anchor = target.closest("a");
       if (!anchor) return;
 
