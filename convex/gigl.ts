@@ -2,6 +2,7 @@ import { action, mutation, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { applyShipmentUpdate, getShipmentView } from "./shipments";
 
 import {
   GIGL_STATIONS,
@@ -295,12 +296,13 @@ export const createShipmentForOrder = action({
       throw new Error("Order not found");
     }
 
-    // Check if waybill is already generated
-    if (order.waybillNumber) {
+    // Check if THIS store's shipment already has a waybill
+    const existing = getShipmentView(order, args.storeId);
+    if (existing.waybillNumber) {
       return {
         success: true,
-        waybill: order.waybillNumber,
-        message: "Waybill already exists for this order.",
+        waybill: existing.waybillNumber,
+        message: "Waybill already exists for this store's shipment.",
       };
     }
 
@@ -545,24 +547,25 @@ export const attachOrderWaybillInternal = internalMutation({
     if (!order) return;
 
     const now = Date.now();
-    const statusMsg = `Shipped via GIG Logistics. Waybill Number: ${args.waybillNumber}`;
+    const store = args.storeId ? await ctx.db.get(args.storeId) : null;
 
-    await ctx.db.patch(args.orderId, {
+    const patch = applyShipmentUpdate(order, args.storeId, {
+      status: "shipped",
+      message: `Handed to GIG Logistics. Waybill: ${args.waybillNumber}`,
+      source: "gigl",
+      storeLabel: store?.name ?? "Beembai",
       waybillNumber: args.waybillNumber,
       giglStatus: "shipped",
-      giglShipmentDetails: {
+    });
+
+    await ctx.db.patch(args.orderId, {
+      ...patch,
+      waybillNumber: order.waybillNumber ?? args.waybillNumber,
+      giglStatus: order.giglStatus ?? "shipped",
+      giglShipmentDetails: order.giglShipmentDetails ?? {
         waybill: args.waybillNumber,
         createdAt: now,
       },
-      status: "shipped",
-      statusHistory: [
-        ...order.statusHistory,
-        {
-          status: "shipped",
-          timestamp: now,
-          message: statusMsg,
-        },
-      ],
     });
   },
 });

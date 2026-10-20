@@ -1,6 +1,11 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import {
+  applyShipmentUpdate,
+  buildStoreGroups,
+  getShipmentView,
+} from "./shipments";
 
 // ── Queries ──────────────────────────────────────────────
 
@@ -17,7 +22,13 @@ export const getUserOrders = query({
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
 
-    return orders.sort((a, b) => b.createdAt - a.createdAt);
+    const sorted = orders.sort((a, b) => b.createdAt - a.createdAt);
+    return await Promise.all(
+      sorted.map(async (order) => ({
+        ...order,
+        groups: await buildStoreGroups(ctx, order),
+      }))
+    );
   },
 });
 
@@ -36,7 +47,7 @@ export const getGuestOrder = query({
     if (!order.email || order.email.toLowerCase() !== args.email.toLowerCase()) {
       return null;
     }
-    return order;
+    return { ...order, groups: await buildStoreGroups(ctx, order) };
   },
 });
 
@@ -239,6 +250,8 @@ export const getOrdersForStore = query({
           0
         );
 
+        const view = getShipmentView(order, args.storeId);
+
         return {
           _id: order._id,
           _creationTime: order._creationTime,
@@ -250,8 +263,8 @@ export const getOrdersForStore = query({
           totalAmount: order.totalAmount, // full order total
           sellerSubtotal, // subtotal for this seller
           paymentStatus: order.paymentStatus,
-          status: order.status,
-          statusHistory: order.statusHistory,
+          status: view.status as typeof order.status, // this store's status only
+          statusHistory: view.statusHistory,
           createdAt: order.createdAt,
         };
       })
@@ -291,7 +304,6 @@ export const updateOrderShippingStatus = mutation({
       throw new Error("Unauthorized: Order does not contain items from this store");
     }
 
-    const now = Date.now();
     const defaultMessages = {
       processing: "Order is being packaged and prepared for shipping.",
       shipped: "Order has been dispatched and is on its way to you.",
@@ -301,17 +313,12 @@ export const updateOrderShippingStatus = mutation({
 
     const statusMsg = args.message || defaultMessages[args.status];
 
-    await ctx.db.patch(args.orderId, {
+    const patch = applyShipmentUpdate(order, args.storeId, {
       status: args.status,
-      statusHistory: [
-        ...order.statusHistory,
-        {
-          status: args.status,
-          timestamp: now,
-          message: statusMsg,
-        },
-      ],
+      message: statusMsg,
+      storeLabel: store.name,
     });
+    await ctx.db.patch(args.orderId, patch);
 
     return { success: true };
   },
@@ -355,6 +362,11 @@ export const getSellerOrdersAllStores = query({
           0
         );
 
+        const view = getShipmentView(
+          order,
+          sellerItems[0].storeId
+        );
+
         return {
           _id: order._id,
           _creationTime: order._creationTime,
@@ -366,8 +378,8 @@ export const getSellerOrdersAllStores = query({
           totalAmount: order.totalAmount,
           sellerSubtotal,
           paymentStatus: order.paymentStatus,
-          status: order.status,
-          statusHistory: order.statusHistory,
+          status: view.status as typeof order.status,
+          statusHistory: view.statusHistory,
           createdAt: order.createdAt,
         };
       })
@@ -410,6 +422,7 @@ export const getSellerOrderById = query({
 
     // Find the first storeId in the seller's items to facilitate status updates
     const storeId = sellerItems[0].storeId;
+    const view = getShipmentView(order, storeId);
 
     // Fetch buyer info
     const buyer = order.userId ? await ctx.db.get(order.userId) : null;
@@ -427,10 +440,10 @@ export const getSellerOrderById = query({
       totalAmount: order.totalAmount,
       sellerSubtotal,
       paymentStatus: order.paymentStatus,
-      status: order.status,
-      statusHistory: order.statusHistory,
-      waybillNumber: order.waybillNumber,
-      giglStatus: order.giglStatus,
+      status: view.status as typeof order.status,
+      statusHistory: view.statusHistory,
+      waybillNumber: view.waybillNumber,
+      giglStatus: view.giglStatus,
       giglShipmentDetails: order.giglShipmentDetails,
       createdAt: order.createdAt,
       storeId,

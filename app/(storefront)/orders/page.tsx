@@ -7,6 +7,7 @@ import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatPrice } from "@/app/data/data";
 import styles from "./orders.module.css";
+import StoreShipmentGroup, { StatusChip } from "./StoreShipmentGroup";
 
 // ── Icons ─────────────────────────────────────────────────
 
@@ -378,30 +379,40 @@ function OrdersPageContent() {
 
                   {/* Details Body */}
                   <div className={styles.orderDetailsBody} style={{ display: "block" }}>
-                    {/* Ordered Items List */}
-                    <div className={styles.detailSection}>
-                      <h4 className={styles.detailSectionTitle}>Ordered Items ({guestOrderResult.items.length})</h4>
-                      <div className={styles.itemsList}>
-                        {guestOrderResult.items.map((item: any, idx: number) => (
-                          <div key={idx} className={styles.itemRow}>
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className={styles.itemRowImg}
-                            />
-                            <div className={styles.itemRowInfo}>
-                              <span className={styles.itemRowTitle}>{item.title}</span>
-                              <span className={styles.itemRowMeta}>
-                                Qty: {item.quantity} {item.color ? `| Color: ${item.color}` : ""}
-                              </span>
-                            </div>
-                            <span className={styles.itemRowPrice}>
-                              ₦{formatPrice(item.price * item.quantity)}
-                            </span>
+                    {/* Per-store shipments (grouped by store, same order) */}
+                    {(() => {
+                      const groups = guestOrderResult.groups || [
+                        {
+                          storeId: null,
+                          storeName: "Beembai",
+                          storeLogo: null,
+                          items: guestOrderResult.items,
+                          subtotal: guestOrderResult.totalAmount,
+                          status: guestOrderResult.status,
+                          statusHistory: guestOrderResult.statusHistory || [],
+                          waybillNumber: (guestOrderResult as any).waybillNumber ?? null,
+                          giglStatus: (guestOrderResult as any).giglStatus ?? null,
+                        },
+                      ];
+                      return (
+                        <div className={styles.detailSection}>
+                          <h4 className={styles.detailSectionTitle}>
+                            {groups.length > 1 ? `Shipments · ${groups.length} stores in 1 order` : "Ordered Items"}
+                          </h4>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                            {groups.map((g: any) => (
+                              <StoreShipmentGroup
+                                key={g.storeId ?? "beembai"}
+                                group={g}
+                                multi={groups.length > 1}
+                                roadmap={<OrderRoadmap currentStatus={g.status} />}
+                                trackShipment={trackShipmentAction}
+                              />
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Order Details & Summary columns */}
                     <div className={styles.detailsGrid}>
@@ -451,24 +462,6 @@ function OrdersPageContent() {
                       </div>
                     </div>
 
-                    {/* Status History Logs */}
-                    <div className={styles.detailSection} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "1.5rem" }}>
-                      <h4 className={styles.detailSectionTitle}>Shipment Progress Logs</h4>
-                      <div className={styles.logsTimeline}>
-                        {guestOrderResult.statusHistory.map((log: any, logIdx: number) => (
-                          <div key={logIdx} className={styles.logRow}>
-                            <div className={styles.logDot} />
-                            <div className={styles.logContent}>
-                              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.25rem" }}>
-                                <span className={styles.logStatusName}>{log.status.toUpperCase()}</span>
-                                <span className={styles.logTime}>{formatDate(log.timestamp)}</span>
-                              </div>
-                              <p className={styles.logMessage}>{log.message}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
 
                   </div>
                 </div>
@@ -574,6 +567,15 @@ function OrdersPageContent() {
                             ₦{formatPrice(order.totalAmount)}
                           </strong>
                         </p>
+                        {order.groups && order.groups.length > 1 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.5rem" }}>
+                            {order.groups.map((g: any) => (
+                              <span key={g.storeId ?? "beembai"} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem", fontWeight: 600 }}>
+                                {g.storeName} <StatusChip status={g.status} />
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {/* Product thumbnail images displayed on collapsed card */}
                         {!isExpanded && (
                           <div className={styles.collapsedImages}>
@@ -606,53 +608,42 @@ function OrdersPageContent() {
                     {isExpanded && (
                       <div className={styles.orderDetailsBody}>
                         
-                        {/* Ordered Items List */}
-                        <div className={styles.detailSection}>
-                          <h4 className={styles.detailSectionTitle}>Ordered Items ({order.items.length})</h4>
-                          <div className={styles.itemsList}>
-                            {order.items.map((item: any, idx: number) => {
-                              const hasReviewed = reviewsMap.has(item.productId);
-                              return (
-                                <div key={idx} className={styles.itemRow}>
-                                  <img
-                                    src={item.image}
-                                    alt={item.title}
-                                    className={styles.itemRowImg}
+                        {/* Per-store shipments (grouped by store, same order) */}
+                        {(() => {
+                          const groups = order.groups || [
+                            {
+                              storeId: null,
+                              storeName: "Beembai",
+                              storeLogo: null,
+                              items: order.items,
+                              subtotal: order.totalAmount,
+                              status: order.status,
+                              statusHistory: order.statusHistory || [],
+                              waybillNumber: (order as any).waybillNumber ?? null,
+                              giglStatus: (order as any).giglStatus ?? null,
+                            },
+                          ];
+                          return (
+                            <div className={styles.detailSection}>
+                              <h4 className={styles.detailSectionTitle}>
+                                {groups.length > 1 ? `Shipments · ${groups.length} stores in 1 order` : "Ordered Items"}
+                              </h4>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                                {groups.map((g: any) => (
+                                  <StoreShipmentGroup
+                                    key={g.storeId ?? "beembai"}
+                                    group={g}
+                                    multi={groups.length > 1}
+                                    roadmap={<OrderRoadmap currentStatus={g.status} />}
+                                    reviewsMap={reviewsMap}
+                                    onReview={handleOpenReviewModal}
+                                    trackShipment={trackShipmentAction}
                                   />
-                                  <div className={styles.itemRowInfo}>
-                                    <span className={styles.itemRowTitle}>{item.title}</span>
-                                    <span className={styles.itemRowMeta}>
-                                      Qty: {item.quantity} {item.color ? `| Color: ${item.color}` : ""}
-                                    </span>
-                                  </div>
-                                  <span className={styles.itemRowPrice}>
-                                    ₦{formatPrice(item.price * item.quantity)}
-                                  </span>
-                                  
-                                  {/* Review trigger button */}
-                                  {order.status === "delivered" && (
-                                    <button
-                                      onClick={() => handleOpenReviewModal(item.productId, item.title)}
-                                      className={styles.reviewTriggerBtn}
-                                      style={{
-                                        border: hasReviewed ? "1px solid var(--color-border)" : "1px solid var(--color-palm)",
-                                        color: hasReviewed ? "var(--color-olive-gray)" : "var(--color-palm)",
-                                        background: "transparent",
-                                        padding: "4px 10px",
-                                        borderRadius: "6px",
-                                        fontSize: "0.78rem",
-                                        fontWeight: 700,
-                                        cursor: "pointer"
-                                      }}
-                                    >
-                                      {hasReviewed ? "Update Review" : "Write Review"}
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* Order Details & Summary columns */}
                         <div className={styles.detailsGrid}>
@@ -702,74 +693,6 @@ function OrdersPageContent() {
                           </div>
                         </div>
 
-                        {/* ── GIG Logistics Live Tracking ── */}
-                        {(order as any).waybillNumber && (
-                          <div className={styles.detailSection} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "1.5rem" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
-                              <h4 className={styles.detailSectionTitle} style={{ margin: 0 }}>🚚 GIG Logistics Live Tracking</h4>
-                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                                <span style={{ fontWeight: 700, fontSize: "0.78rem", background: "#f0fdf4", color: "#166534", border: "1px solid #86efac", padding: "2px 10px", borderRadius: 100 }}>
-                                  Waybill: {(order as any).waybillNumber}
-                                </span>
-                                <button
-                                  onClick={() => handleTrackGIGL(order._id, (order as any).waybillNumber)}
-                                  disabled={giglTrackingLoading[order._id]}
-                                  style={{ fontSize: "0.78rem", fontWeight: 700, background: "var(--color-palm)", color: "white", border: "none", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}
-                                >
-                                  {giglTrackingLoading[order._id] ? "Loading..." : "Refresh Status"}
-                                </button>
-                              </div>
-                            </div>
-
-                            {giglTrackingMap[order._id] ? (
-                              giglTrackingMap[order._id].scans?.length > 0 ? (
-                                <div className={styles.logsTimeline}>
-                                  {[...giglTrackingMap[order._id].scans].reverse().map((scan: any, scanIdx: number) => {
-                                    const GIGL_ICONS: Record<string, string> = { MCRT: "📋", MPIK: "📦", APT: "🏭", WC: "🚚", SHD: "✅", OFD: "🛵" };
-                                    return (
-                                      <div key={scanIdx} className={styles.logRow}>
-                                        <div className={styles.logDot} style={{ background: scanIdx === 0 ? "var(--color-palm)" : undefined }} />
-                                        <div className={styles.logContent}>
-                                          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.25rem" }}>
-                                            <span className={styles.logStatusName}>{GIGL_ICONS[scan.status] || "📌"} {scan.incident || scan.status}</span>
-                                            {scan.time && <span className={styles.logTime}>{new Date(scan.time).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>}
-                                          </div>
-                                          <p className={styles.logMessage}>
-                                            {scan.comment || "—"}
-                                            {scan.location && <span style={{ opacity: 0.7, fontSize: "0.78rem" }}> · {scan.location}</span>}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <p style={{ fontSize: "0.85rem", opacity: 0.7 }}>{giglTrackingMap[order._id].message || "No courier scan records found yet."}</p>
-                              )
-                            ) : (
-                              <p style={{ fontSize: "0.85rem", opacity: 0.6 }}>Click “Refresh Status” to load real-time courier updates from GIG Logistics.</p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Status History Logs */}
-                        <div className={styles.detailSection} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "1.5rem" }}>
-                          <h4 className={styles.detailSectionTitle}>Shipment Progress Logs</h4>
-                          <div className={styles.logsTimeline}>
-                            {order.statusHistory.map((log: any, logIdx: number) => (
-                              <div key={logIdx} className={styles.logRow}>
-                                <div className={styles.logDot} />
-                                <div className={styles.logContent}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.25rem" }}>
-                                    <span className={styles.logStatusName}>{log.status.toUpperCase()}</span>
-                                    <span className={styles.logTime}>{formatDate(log.timestamp)}</span>
-                                  </div>
-                                  <p className={styles.logMessage}>{log.message}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
 
                       </div>
                     )}

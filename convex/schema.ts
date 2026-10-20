@@ -211,6 +211,25 @@ export default defineSchema({
         })
       )
     ),
+    shipments: v.optional(
+      v.array(
+        v.object({
+          storeId: v.optional(v.id("stores")),
+          status: v.string(),
+          statusHistory: v.array(
+            v.object({
+              status: v.string(),
+              timestamp: v.number(),
+              message: v.string(),
+              source: v.optional(v.string()),
+            })
+          ),
+          waybillNumber: v.optional(v.string()),
+          giglStatus: v.optional(v.string()),
+          dispatchedAt: v.optional(v.number()),
+        })
+      )
+    ),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])

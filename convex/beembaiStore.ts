@@ -4,6 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { applyShipmentUpdate, getShipmentView } from "./shipments";
 
 const BEEMBAI_STORE_SLUG = "beembai-official";
 
@@ -159,10 +160,12 @@ export const getBeembaiStoreOrders = query({
       })
       .sort((a, b) => b.createdAt - a.createdAt);
 
-    // Apply status and payment filters in JS
+    // Apply status and payment filters in JS (status = Beembai's own shipment status)
+    const beembaiStatusOf = (o: (typeof filteredOrders)[number]) =>
+      getShipmentView(o, beembaiStoreId).status;
     let finalOrders = filteredOrders;
     if (args.status && args.status !== "all") {
-      finalOrders = finalOrders.filter((o) => o.status === args.status);
+      finalOrders = finalOrders.filter((o) => beembaiStatusOf(o) === args.status);
     }
     if (args.paymentStatus && args.paymentStatus !== "all") {
       finalOrders = finalOrders.filter((o) => o.paymentStatus === args.paymentStatus);
@@ -187,8 +190,12 @@ export const getBeembaiStoreOrders = query({
       page.map(async (order) => {
         const buyer = order.userId ? await ctx.db.get(order.userId) : null;
         const beembaiItems = getBeembaiItems(order, beembaiStoreId);
+        const view = getShipmentView(order, beembaiStoreId);
         return {
           ...order,
+          status: view.status as typeof order.status,
+          statusHistory: view.statusHistory,
+          waybillNumber: view.waybillNumber,
           items: beembaiItems,
           beembaiSubtotal: beembaiItems.reduce((s, i) => s + i.price * i.quantity, 0),
           buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
@@ -236,8 +243,14 @@ export const getBeembaiOrderById = query({
       })
     );
 
+    const view = getShipmentView(order, beembaiStoreId);
+
     return {
       ...order,
+      status: view.status as typeof order.status,
+      statusHistory: view.statusHistory,
+      waybillNumber: view.waybillNumber,
+      giglStatus: view.giglStatus,
       buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
       buyerEmail: buyer?.email ?? order.email ?? "Guest",
       items: itemsWithSource,
@@ -283,17 +296,12 @@ export const updateBeembaiOrderStatus = mutation({
       cancelled: "Order has been cancelled.",
     };
 
-    await ctx.db.patch(args.orderId, {
+    const patch = applyShipmentUpdate(order, beembaiStoreId, {
       status: args.status,
-      statusHistory: [
-        ...order.statusHistory,
-        {
-          status: args.status,
-          timestamp: Date.now(),
-          message: args.message ?? defaultMessages[args.status],
-        },
-      ],
+      message: args.message ?? defaultMessages[args.status],
+      storeLabel: store?.name ?? "Beembai",
     });
+    await ctx.db.patch(args.orderId, patch);
     return { success: true };
   },
 });
