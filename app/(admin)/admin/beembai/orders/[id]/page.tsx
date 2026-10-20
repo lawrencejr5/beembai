@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import styles from "../../../admin.module.css";
@@ -17,16 +17,45 @@ function formatDate(ts: number) {
 
 type OrderStatus = "placed" | "processing" | "shipped" | "delivered" | "cancelled";
 
+// GIGL scan code descriptions
+const GIGL_SCAN_LABELS: Record<string, { label: string; icon: string }> = {
+  MCRT: { label: "Shipment Created", icon: "📋" },
+  MPIK: { label: "Package Picked Up", icon: "📦" },
+  APT: { label: "Arrived at Hub", icon: "🏭" },
+  WC: { label: "With Courier", icon: "🚚" },
+  SHD: { label: "Delivered", icon: "✅" },
+  OFD: { label: "Out for Delivery", icon: "🛵" },
+};
+
+function shippingMethodLabel(method?: string) {
+  if (method === "express") return "Priority Express";
+  if (method === "pickup") return "GIGL Station Pickup";
+  return "Home Delivery";
+}
+
 export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = React.use(params);
   const orderId = unwrappedParams.id as Id<"orders">;
   const order = useQuery(api.beembaiStore.getBeembaiOrderById, { orderId });
   const updateStatus = useMutation(api.beembaiStore.updateBeembaiOrderStatus);
+  const createShipment = useAction(api.gigl.createShipmentForOrder);
+  const trackShipment = useAction(api.gigl.trackShipment);
 
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>("processing");
   const [customMessage, setCustomMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
+
+  // GIGL Dispatch state
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
+
+  // GIGL Live tracking state
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const [showTracking, setShowTracking] = useState(false);
+  const [copiedWaybill, setCopiedWaybill] = useState(false);
 
   // Auto-advance placed → processing when admin views the order (mirrors sell dashboard)
   useEffect(() => {
@@ -58,7 +87,52 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
     }
   };
 
+  const handleDispatchWithGIGL = async () => {
+    setIsDispatching(true);
+    setDispatchError(null);
+    setDispatchSuccess(null);
+    try {
+      // No storeId → backend uses Beembai HQ as the sender
+      const result = await createShipment({ orderId });
+      if (result.success) {
+        setDispatchSuccess(`✅ Waybill generated: ${result.waybill}. GIGL courier will be notified for pickup.`);
+      } else {
+        setDispatchError("Dispatch failed. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("GIGL dispatch error:", err);
+      setDispatchError(err.message || "Failed to create GIGL shipment.");
+    } finally {
+      setIsDispatching(false);
+    }
+  };
+
+  const handleTrackWaybill = async () => {
+    if (!order.waybillNumber) return;
+    setIsTracking(true);
+    setShowTracking(true);
+    try {
+      const result = await trackShipment({ waybillNumber: order.waybillNumber });
+      setTrackingData(result);
+    } catch (err: any) {
+      console.error("GIGL tracking error:", err);
+      setTrackingData({ success: false, message: err.message || "Failed to fetch tracking data.", scans: [] });
+    } finally {
+      setIsTracking(false);
+    }
+  };
+
+  const handleCopyWaybill = () => {
+    if (!order.waybillNumber) return;
+    navigator.clipboard.writeText(order.waybillNumber).then(() => {
+      setCopiedWaybill(true);
+      setTimeout(() => setCopiedWaybill(false), 2000);
+    });
+  };
+
   const statusOptions: OrderStatus[] = ["placed", "processing", "shipped", "delivered", "cancelled"];
+  const hasWaybill = !!order.waybillNumber;
+  const canDispatch = order.paymentStatus === "paid" && !hasWaybill && order.status !== "cancelled" && !order.isImportOrder;
 
   return (
     <div className={styles.adminContent}>
@@ -78,6 +152,141 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
           <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setShowUpdate(!showUpdate)} id="update-import-status-btn">
             Update Status
           </button>
+        </div>
+      </div>
+
+      {/* ── GIG Logistics Dispatch Card ── */}
+      <div className={styles.adminCard} style={{ marginBottom: 20, borderColor: hasWaybill ? "#4ade80" : canDispatch ? "#d4a72c" : undefined }}>
+        <div className={styles.adminCardHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>🚚</span>
+            <h3 className={styles.adminCardTitle} style={{ margin: 0 }}>GIG Logistics Fulfillment</h3>
+          </div>
+          {hasWaybill && (
+            <span style={{ fontSize: 12, fontWeight: 700, background: "#dcfce7", color: "#166534", padding: "3px 10px", borderRadius: 100 }}>
+              DISPATCHED
+            </span>
+          )}
+        </div>
+
+        <div className={styles.adminCardBody}>
+          {hasWaybill ? (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: "#166534" }}>Waybill No.</span>
+                  <code style={{ fontWeight: 900, fontSize: 16, color: "#15803d", letterSpacing: 1 }}>{order.waybillNumber}</code>
+                  <button
+                    onClick={handleCopyWaybill}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a", fontSize: 13, fontWeight: 700, padding: "0 6px" }}
+                    title="Copy waybill number"
+                  >
+                    {copiedWaybill ? "✅ Copied!" : "📋 Copy"}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={handleTrackWaybill}
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  disabled={isTracking}
+                  style={{ fontSize: 13 }}
+                >
+                  {isTracking ? "Fetching..." : "🔍 Refresh Live Status"}
+                </button>
+                <a
+                  href={`https://www.giglogistics.com/shipment-tracking?waybill=${order.waybillNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${styles.btn} ${styles.btnGhost}`}
+                  style={{ fontSize: 13, textDecoration: "none" }}
+                >
+                  Open GIGL Tracker ↗
+                </a>
+              </div>
+
+              {showTracking && (
+                <div style={{ marginTop: 20, borderTop: "1px solid #f0ebe0", paddingTop: 16 }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#282600" }}>📡 Live Courier Scan History</h4>
+                  {isTracking ? (
+                    <div style={{ color: "#6b6540", fontSize: 13 }}>Fetching…</div>
+                  ) : trackingData?.scans?.length > 0 ? (
+                    <div className={styles.timeline}>
+                      {[...trackingData.scans].reverse().map((scan: any, idx: number) => {
+                        const meta = GIGL_SCAN_LABELS[scan.status] || { label: scan.status, icon: "📌" };
+                        return (
+                          <div key={idx} className={styles.timelineItem}>
+                            <div className={styles.timelineDot} />
+                            <div className={styles.timelineContent}>
+                              <div className={styles.timelineStatus}>{meta.icon} {meta.label}</div>
+                              <div className={styles.timelineMessage}>
+                                {scan.comment || scan.incident || "—"}
+                                {scan.location && <span style={{ color: "#6b6540", fontSize: 12 }}> · {scan.location}</span>}
+                              </div>
+                              {scan.time && (
+                                <div className={styles.timelineTime}>
+                                  {new Date(scan.time).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, color: "#6b6540" }}>
+                      {trackingData?.message || "No scan records found yet. GIGL courier pickup may not have happened yet."}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : canDispatch ? (
+            <div>
+              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 16 }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <p style={{ fontSize: 13, color: "#6b6540", lineHeight: 1.6, margin: 0 }}>
+                    Order is paid and ready for dispatch. Click <strong>Dispatch with GIGL</strong> to create a GIG Logistics waybill and schedule a pickup from Beembai HQ.
+                  </p>
+                  <p style={{ fontSize: 12, color: "#6b6540", marginTop: 8, opacity: 0.7 }}>
+                    📍 Deliver to: {order.address ? `${order.address.city}, ${order.address.stateName}` : "Customer address on file"} &nbsp;|&nbsp;
+                    🚀 Method: {shippingMethodLabel(order.shippingMethod)}
+                  </p>
+                </div>
+                <button
+                  onClick={handleDispatchWithGIGL}
+                  disabled={isDispatching}
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  style={{ minWidth: 180, background: "#16a34a", color: "white", border: "none", whiteSpace: "nowrap" }}
+                  id="dispatch-with-gigl-btn"
+                >
+                  {isDispatching ? "Creating shipment..." : "🚚 Dispatch with GIGL"}
+                </button>
+              </div>
+
+              {dispatchError && (
+                <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#dc2626" }}>
+                  ⚠️ {dispatchError}
+                </div>
+              )}
+              {dispatchSuccess && (
+                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#166534" }}>
+                  {dispatchSuccess}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: "#6b6540", margin: 0 }}>
+              {order.isImportOrder
+                ? "🇺🇸 Import orders are fulfilled via the source store, not GIGL dispatch."
+                : order.paymentStatus !== "paid"
+                ? "⏳ Waiting for buyer payment confirmation before dispatch can be created."
+                : order.status === "cancelled"
+                ? "❌ This order has been cancelled and cannot be dispatched."
+                : "Shipment has already been handled for this order."}
+            </p>
+          )}
         </div>
       </div>
 
@@ -161,7 +370,7 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
             </div>
             <div style={{ padding: "14px 20px", borderTop: "1px solid #f0ebe0", display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#6b6540" }}>
-                <span>Shipping ({order.shippingMethod})</span>
+                <span>Shipping ({shippingMethodLabel(order.shippingMethod)})</span>
                 <span>{formatCurrency(order.shippingFee)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 800, color: "#282600" }}>
