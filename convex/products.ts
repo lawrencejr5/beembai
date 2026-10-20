@@ -422,13 +422,18 @@ export const updateProductWeight = mutation({
       throw new Error("Product not found");
     }
 
-    if (product.storeId) {
-      const store = await ctx.db.get(product.storeId);
-      if (!store || store.userId !== userId) {
-        throw new Error("Unauthorized: you do not own the store for this product");
+    const user = await ctx.db.get(userId);
+    const isAdmin = !!user?.isAdmin;
+
+    if (!isAdmin) {
+      if (product.storeId) {
+        const store = await ctx.db.get(product.storeId);
+        if (!store || store.userId !== userId) {
+          throw new Error("Unauthorized: you do not own the store for this product");
+        }
+      } else {
+        throw new Error("Unauthorized");
       }
-    } else {
-      throw new Error("Unauthorized");
     }
 
     await ctx.db.patch(args.productId, {

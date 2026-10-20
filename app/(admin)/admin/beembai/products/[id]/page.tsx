@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { ProductModal } from "../page";
+import { AddProductModal } from "@/app/(sell)/sell/products/AddProductModal";
+import { QuickUpdateWeightModal, ProductWeightBadge } from "@/app/(sell)/sell/products/ProductWeightComponents";
 import styles from "../../../admin.module.css";
 
 const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
@@ -59,6 +60,7 @@ export default function BeembaiProductDetailsPage({
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showWeightModal, setShowWeightModal] = useState(false);
 
   const deleteProductMut = useMutation(api.beembaiStore.adminDeleteProduct);
   const product = useQuery(api.products.getProductDetails, { productId });
@@ -139,6 +141,12 @@ export default function BeembaiProductDetailsPage({
             className={`${styles.btn} ${styles.btnPrimary}`}
           >
             ✏️ Edit Details
+          </button>
+          <button
+            onClick={() => setShowWeightModal(true)}
+            className={`${styles.btn} ${styles.btnSecondary}`}
+          >
+            ⚖️ Edit Weight
           </button>
           <button
             onClick={handleDeleteProduct}
@@ -260,6 +268,37 @@ export default function BeembaiProductDetailsPage({
                 </div>
               </div>
 
+              {/* Package Weight & Delivery Tier */}
+              <div style={{
+                padding: "16px",
+                background: "rgba(99, 109, 33, 0.05)",
+                borderRadius: "8px",
+                border: "1px solid rgba(99, 109, 33, 0.18)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}>
+                <div>
+                  <h4 style={{ fontSize: "13px", fontWeight: 700, color: "var(--admin-text-primary)", margin: "0 0 6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>⚖️</span> Package Weight & Delivery Tier
+                  </h4>
+                  <ProductWeightBadge
+                    weight={product.weight}
+                    weightClass={product.weightClass}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowWeightModal(true)}
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                  style={{ fontSize: "12.5px", padding: "6px 14px", cursor: "pointer" }}
+                >
+                  Quick Edit Weight
+                </button>
+              </div>
+
               <div>
                 <h4 style={{ fontSize: "14px", fontWeight: 700, color: "var(--admin-text-primary)", marginBottom: "6px" }}>Condition</h4>
                 <p style={{ fontSize: "13.5px", color: "var(--admin-text-secondary)" }}>{product.condition || "New"}</p>
@@ -360,10 +399,21 @@ export default function BeembaiProductDetailsPage({
 
       {/* Edit Modal Overlay */}
       {showEditModal && (
-        <ProductModal
+        <AddProductModal
           productToEdit={product}
+          isAdmin={true}
           onClose={() => {
             setShowEditModal(false);
+          }}
+        />
+      )}
+
+      {/* Quick Weight Modal Overlay */}
+      {showWeightModal && (
+        <QuickUpdateWeightModal
+          product={product}
+          onClose={() => {
+            setShowWeightModal(false);
           }}
         />
       )}

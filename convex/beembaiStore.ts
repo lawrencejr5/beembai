@@ -331,6 +331,7 @@ export const adminCreateProduct = mutation({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),
@@ -373,6 +374,7 @@ export const adminCreateProduct = mutation({
       material: args.material,
       warranty: args.warranty,
       weight: args.weight,
+      weightClass: args.weightClass,
       ram: args.ram,
       storage: args.storage,
       batteryCapacity: args.batteryCapacity,
@@ -409,6 +411,7 @@ export const adminUpdateProduct = mutation({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),
@@ -453,6 +456,7 @@ export const adminUpdateProduct = mutation({
     if (args.material !== undefined) patch.material = args.material;
     if (args.warranty !== undefined) patch.warranty = args.warranty;
     if (args.weight !== undefined) patch.weight = args.weight;
+    if (args.weightClass !== undefined) patch.weightClass = args.weightClass;
     if (args.ram !== undefined) patch.ram = args.ram;
     if (args.storage !== undefined) patch.storage = args.storage;
     if (args.batteryCapacity !== undefined) patch.batteryCapacity = args.batteryCapacity;

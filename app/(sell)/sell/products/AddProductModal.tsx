@@ -16,20 +16,22 @@ import {
 
 export function AddProductModal({
   onClose,
-  preSelectedStoreId,
-  allowedStores,
+  preSelectedStoreId = null,
+  allowedStores = [],
   productToEdit,
+  isAdmin = false,
 }: {
   onClose: () => void;
-  preSelectedStoreId: string | null;
-  allowedStores: any[];
+  preSelectedStoreId?: string | null;
+  allowedStores?: any[];
   productToEdit?: any;
+  isAdmin?: boolean;
 }) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedStoreId, setSelectedStoreId] = useState<string>(
     productToEdit?.storeId ||
       preSelectedStoreId ||
-      (allowedStores[0]?._id as string) ||
+      (allowedStores && allowedStores[0]?._id ? (allowedStores[0]._id as string) : "") ||
       "",
   );
 
@@ -108,14 +110,16 @@ export function AddProductModal({
   const resolveStorageUrl = useMutation(api.products.resolveStorageUrl);
   const createProductMut = useMutation(api.products.createProduct);
   const updateProductMut = useMutation(api.products.updateProduct);
+  const adminCreateProductMut = useMutation(api.beembaiStore.adminCreateProduct);
+  const adminUpdateProductMut = useMutation(api.beembaiStore.adminUpdateProduct);
 
   const categories = useQuery(api.products.getCategories);
 
   // Step 1 → Step 2
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productTitle.trim() || !productPrice.trim() || !selectedStoreId)
-      return;
+    if (!productTitle.trim() || !productPrice.trim()) return;
+    if (!isAdmin && !selectedStoreId) return;
     setStep(2);
   };
 
@@ -252,16 +256,29 @@ export function AddProductModal({
         youtubeLink: youtubeLink || undefined,
       };
 
-      if (productToEdit) {
-        await updateProductMut({
-          productId: productToEdit._id,
-          ...payload,
-        });
+      if (isAdmin) {
+        if (productToEdit) {
+          await adminUpdateProductMut({
+            productId: productToEdit._id,
+            ...payload,
+          });
+        } else {
+          await adminCreateProductMut({
+            ...payload,
+          });
+        }
       } else {
-        await createProductMut({
-          ...payload,
-          storeId: selectedStoreId as Id<"stores">,
-        });
+        if (productToEdit) {
+          await updateProductMut({
+            productId: productToEdit._id,
+            ...payload,
+          });
+        } else {
+          await createProductMut({
+            ...payload,
+            storeId: selectedStoreId as Id<"stores">,
+          });
+        }
       }
 
       onClose();
@@ -342,7 +359,7 @@ export function AddProductModal({
           {/* Step 2 (Dedicated Middle Page) */}
           <div
             onClick={() => {
-              if (productTitle.trim() && productPrice.trim() && selectedStoreId) {
+              if (productTitle.trim() && productPrice.trim() && (isAdmin || selectedStoreId)) {
                 setStep(2);
               }
             }}
@@ -381,7 +398,7 @@ export function AddProductModal({
           <div
             onClick={() => {
               const num = parseFloat(productWeight);
-              if (productTitle.trim() && productPrice.trim() && selectedStoreId && !isNaN(num)) {
+              if (productTitle.trim() && productPrice.trim() && (isAdmin || selectedStoreId) && !isNaN(num)) {
                 setStep(3);
               }
             }}
@@ -426,27 +443,33 @@ export function AddProductModal({
               style={{ display: "flex", flexDirection: "column", gap: 16 }}
             >
               {/* Store Selector */}
-              {preSelectedStoreId === null && (
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>
-                    Target Store storefront *
-                  </label>
-                  <select
-                    className={styles.formSelect}
-                    value={selectedStoreId}
-                    onChange={(e) => setSelectedStoreId(e.target.value)}
-                    required
-                  >
-                    <option value="" disabled>
-                      Select Store
-                    </option>
-                    {approvedStores.map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+              {isAdmin ? (
+                <div style={{ padding: "10px 14px", background: "rgba(99, 109, 33, 0.08)", borderRadius: "8px", fontSize: "12.5px", color: "var(--seller-text-primary, #282600)", display: "flex", alignItems: "center", gap: "8px", fontWeight: 600, border: "1px solid rgba(99, 109, 33, 0.2)" }}>
+                  <span style={{ fontSize: "15px" }}>🏬</span> Store Catalog: <strong>Beembai Official Store (HQ Admin)</strong>
                 </div>
+              ) : (
+                preSelectedStoreId === null && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>
+                      Target Store storefront *
+                    </label>
+                    <select
+                      className={styles.formSelect}
+                      value={selectedStoreId}
+                      onChange={(e) => setSelectedStoreId(e.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select Store
+                      </option>
+                      {approvedStores.map((s) => (
+                        <option key={s._id} value={s._id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )
               )}
 
               {/* Category Selector placed at top below Store */}
@@ -1134,3 +1157,5 @@ export function AddProductModal({
     </div>
   );
 }
+
+export { AddProductModal as ProductModal };
