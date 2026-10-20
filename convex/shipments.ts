@@ -48,9 +48,16 @@ export function getShipmentView(
 ): Shipment {
   const existing = order.shipments?.find((s) => s.storeId === storeId);
   if (existing) {
+    const effectiveWaybill = existing.waybillNumber ?? order.waybillNumber;
+    const effectiveStatus =
+      effectiveWaybill || order.status === "shipped" || order.status === "delivered"
+        ? (existing.status === "delivered" || order.status === "delivered" ? "delivered" : "shipped")
+        : existing.status;
+
     return {
       ...existing,
-      waybillNumber: existing.waybillNumber ?? order.waybillNumber,
+      status: effectiveStatus,
+      waybillNumber: effectiveWaybill,
       giglStatus: existing.giglStatus ?? order.giglStatus,
     };
   }
@@ -59,13 +66,32 @@ export function getShipmentView(
   if (storeId) {
     const unassigned = order.shipments?.find((s) => s.storeId === undefined);
     if (unassigned) {
+      const effectiveWaybill = unassigned.waybillNumber ?? order.waybillNumber;
+      const effectiveStatus =
+        effectiveWaybill || order.status === "shipped" || order.status === "delivered"
+          ? (unassigned.status === "delivered" || order.status === "delivered" ? "delivered" : "shipped")
+          : unassigned.status;
+
       return {
         ...unassigned,
         storeId,
-        waybillNumber: unassigned.waybillNumber ?? order.waybillNumber,
+        status: effectiveStatus,
+        waybillNumber: effectiveWaybill,
         giglStatus: unassigned.giglStatus ?? order.giglStatus,
       };
     }
+  }
+
+  // Check if any shipment in order.shipments has a waybill or is shipped
+  const anyShippedShipment = order.shipments?.find((s) => s.waybillNumber || s.status === "shipped");
+  if (anyShippedShipment && (!storeId || getStoreKeys(order).length <= 1)) {
+    return {
+      storeId,
+      status: anyShippedShipment.status,
+      statusHistory: anyShippedShipment.statusHistory,
+      waybillNumber: anyShippedShipment.waybillNumber ?? order.waybillNumber,
+      giglStatus: anyShippedShipment.giglStatus ?? order.giglStatus,
+    };
   }
 
   if (!order.shipments || order.shipments.length === 0) {
@@ -189,21 +215,30 @@ export function applyShipmentUpdate(
 /** Buyer-facing grouping: items + shipment state per store. */
 export async function buildStoreGroups(ctx: QueryCtx, order: OrderDoc) {
   const keys = getStoreKeys(order);
+  const isSingleStore = keys.length <= 1 || order.storeId !== undefined || order.checkoutId !== undefined;
+
   return await Promise.all(
     keys.map(async (storeId) => {
       const store = storeId ? await ctx.db.get(storeId) : null;
       const items = order.items.filter((i) => i.storeId === storeId);
       const view = getShipmentView(order, storeId);
+
+      const effectiveWaybill = view.waybillNumber ?? (isSingleStore ? order.waybillNumber : null);
+      const effectiveStatus =
+        effectiveWaybill || (isSingleStore && (order.status === "shipped" || order.status === "delivered"))
+          ? (view.status === "delivered" || order.status === "delivered" ? "delivered" : "shipped")
+          : view.status;
+
       return {
         storeId: storeId ?? null,
         storeName: store?.name ?? "Beembai",
         storeLogo: store?.logo ?? null,
         items,
         subtotal: items.reduce((s, i) => s + i.price * i.quantity, 0),
-        status: view.status,
-        statusHistory: view.statusHistory,
-        waybillNumber: view.waybillNumber ?? null,
-        giglStatus: view.giglStatus ?? null,
+        status: effectiveStatus,
+        statusHistory: view.statusHistory && view.statusHistory.length > 0 ? view.statusHistory : order.statusHistory,
+        waybillNumber: effectiveWaybill ?? null,
+        giglStatus: view.giglStatus ?? (isSingleStore ? order.giglStatus : null) ?? null,
       };
     })
   );

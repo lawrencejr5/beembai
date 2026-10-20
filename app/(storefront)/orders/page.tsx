@@ -610,30 +610,38 @@ function OrdersPageContent() {
             ];
       const isMultiStoreOrder = groups.length > 1;
 
-      return groups.map((g: any, groupIndex: number) => ({
-        cardKey: `${order._id}_${g.storeId ?? "beembai"}_${groupIndex}`,
-        orderId: order._id,
-        orderNumber: order._id.slice(-6).toUpperCase(),
-        createdAt: order.createdAt,
-        paymentStatus: order.paymentStatus,
-        shippingMethod: order.shippingMethod,
-        shippingFee: order.shippingFee,
-        totalOrderAmount: order.totalAmount,
-        address: order.address,
-        email: order.email,
-        storeId: g.storeId,
-        storeName: g.storeName,
-        storeLogo: g.storeLogo,
-        items: g.items,
-        subtotal: g.subtotal,
-        status: g.status,
-        statusHistory: g.statusHistory || [],
-        waybillNumber: g.waybillNumber ?? null,
-        giglStatus: g.giglStatus ?? null,
-        isMultiStoreOrder,
-        groupNumber: groupIndex + 1,
-        totalGroups: groups.length,
-      }));
+      return groups.map((g: any, groupIndex: number) => {
+        const packageWaybill = g.waybillNumber ?? (isMultiStoreOrder ? null : (order as any).waybillNumber) ?? null;
+        const packageStatus =
+          packageWaybill && (g.status === "placed" || g.status === "processing")
+            ? "shipped"
+            : (g.status || order.status);
+
+        return {
+          cardKey: `${order._id}_${g.storeId ?? "beembai"}_${groupIndex}`,
+          orderId: order._id,
+          orderNumber: order._id.slice(-6).toUpperCase(),
+          createdAt: order.createdAt,
+          paymentStatus: order.paymentStatus,
+          shippingMethod: order.shippingMethod,
+          shippingFee: order.shippingFee,
+          totalOrderAmount: order.totalAmount,
+          address: order.address,
+          email: order.email,
+          storeId: g.storeId,
+          storeName: g.storeName,
+          storeLogo: g.storeLogo,
+          items: g.items,
+          subtotal: g.subtotal,
+          status: packageStatus,
+          statusHistory: g.statusHistory || [],
+          waybillNumber: packageWaybill,
+          giglStatus: g.giglStatus ?? (isMultiStoreOrder ? null : (order as any).giglStatus) ?? null,
+          isMultiStoreOrder,
+          groupNumber: groupIndex + 1,
+          totalGroups: groups.length,
+        };
+      });
     });
   }, [orders]);
 
@@ -658,30 +666,39 @@ function OrdersPageContent() {
           ];
     const isMultiStoreOrder = groups.length > 1;
 
-    return groups.map((g: any, groupIndex: number) => ({
-      cardKey: `guest_${guestOrderResult._id}_${g.storeId ?? "beembai"}_${groupIndex}`,
-      orderId: guestOrderResult._id,
-      orderNumber: guestOrderResult._id.slice(-6).toUpperCase(),
-      createdAt: guestOrderResult.createdAt,
-      paymentStatus: guestOrderResult.paymentStatus,
-      shippingMethod: guestOrderResult.shippingMethod,
-      shippingFee: guestOrderResult.shippingFee,
-      totalOrderAmount: guestOrderResult.totalAmount,
-      address: guestOrderResult.address,
-      email: guestOrderResult.email,
-      storeId: g.storeId,
-      storeName: g.storeName,
-      storeLogo: g.storeLogo,
-      items: g.items,
-      subtotal: g.subtotal,
-      status: g.status,
-      statusHistory: g.statusHistory || [],
-      waybillNumber: g.waybillNumber ?? null,
-      giglStatus: g.giglStatus ?? null,
-      isMultiStoreOrder,
-      groupNumber: groupIndex + 1,
-      totalGroups: groups.length,
-    }));
+    return groups.map((g: any, groupIndex: number) => {
+      const packageWaybill =
+        g.waybillNumber ?? (isMultiStoreOrder ? null : (guestOrderResult as any).waybillNumber) ?? null;
+      const packageStatus =
+        packageWaybill && (g.status === "placed" || g.status === "processing")
+          ? "shipped"
+          : (g.status || guestOrderResult.status);
+
+      return {
+        cardKey: `guest_${guestOrderResult._id}_${g.storeId ?? "beembai"}_${groupIndex}`,
+        orderId: guestOrderResult._id,
+        orderNumber: guestOrderResult._id.slice(-6).toUpperCase(),
+        createdAt: guestOrderResult.createdAt,
+        paymentStatus: guestOrderResult.paymentStatus,
+        shippingMethod: guestOrderResult.shippingMethod,
+        shippingFee: guestOrderResult.shippingFee,
+        totalOrderAmount: guestOrderResult.totalAmount,
+        address: guestOrderResult.address,
+        email: guestOrderResult.email,
+        storeId: g.storeId,
+        storeName: g.storeName,
+        storeLogo: g.storeLogo,
+        items: g.items,
+        subtotal: g.subtotal,
+        status: packageStatus,
+        statusHistory: g.statusHistory || [],
+        waybillNumber: packageWaybill,
+        giglStatus: g.giglStatus ?? (isMultiStoreOrder ? null : (guestOrderResult as any).giglStatus) ?? null,
+        isMultiStoreOrder,
+        groupNumber: groupIndex + 1,
+        totalGroups: groups.length,
+      };
+    });
   }, [guestOrderResult]);
 
   // Tab filtering: individual store packages in Active vs History
