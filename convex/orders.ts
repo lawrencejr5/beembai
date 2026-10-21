@@ -1,6 +1,7 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 import {
   applyShipmentUpdate,
   buildStoreGroups,
@@ -328,6 +329,17 @@ export const markCheckoutPaidInternal = internalMutation({
           },
         ],
       });
+
+      // Credit store wallet balance (held in escrow until delivery)
+      if (order.storeId) {
+        const creditAmount = order.subtotal ?? (order.totalAmount - (order.shippingFee ?? 0));
+        await (ctx as any).runMutation((internal as any).wallets.creditStoreWalletOnOrderInternal, {
+          storeId: order.storeId,
+          orderId: order._id,
+          amount: creditAmount,
+          checkoutId: args.checkoutId,
+        });
+      }
     }
   },
 });
@@ -400,6 +412,16 @@ export const markOrderPaidInternal = internalMutation({
         },
       ],
     });
+
+    // Credit store wallet balance (held in escrow until delivery)
+    if (order.storeId) {
+      const creditAmount = order.subtotal ?? (order.totalAmount - (order.shippingFee ?? 0));
+      await (ctx as any).runMutation((internal as any).wallets.creditStoreWalletOnOrderInternal, {
+        storeId: order.storeId,
+        orderId: args.orderId,
+        amount: creditAmount,
+      });
+    }
   },
 });
 
@@ -573,6 +595,16 @@ export const updateOrderShippingStatus = mutation({
           },
         ],
       });
+
+      if (args.status === "delivered" && order.paymentStatus === "paid") {
+        const releaseAmount = order.subtotal ?? (order.totalAmount - (order.shippingFee ?? 0));
+        await (ctx as any).runMutation((internal as any).wallets.releaseOrderFundsInternal, {
+          storeId: args.storeId,
+          orderId: args.orderId,
+          amount: releaseAmount,
+        });
+      }
+
       return { success: true };
     }
 
@@ -588,6 +620,16 @@ export const updateOrderShippingStatus = mutation({
       storeLabel: store.name,
     });
     await ctx.db.patch(args.orderId, patch);
+
+    if (args.status === "delivered" && order.paymentStatus === "paid") {
+      const storeItems = order.items.filter((item) => item.storeId === args.storeId);
+      const storeItemSum = storeItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
+      await (ctx as any).runMutation((internal as any).wallets.releaseOrderFundsInternal, {
+        storeId: args.storeId,
+        orderId: args.orderId,
+        amount: storeItemSum,
+      });
+    }
 
     return { success: true };
   },

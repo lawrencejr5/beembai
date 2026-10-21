@@ -278,6 +278,16 @@ export const updateStore = mutation({
       faceVerificationImage: args.faceVerificationImage,
     });
 
+    // If store is approved and banking details are present, refresh Paystack recipient code
+    if (store.status === "approved" && args.accountNumber && args.bankCode) {
+      await ctx.scheduler.runAfter(0, (api as any).wallets.createOrUpdatePaystackRecipientAction, {
+        storeId: args.storeId,
+        accountName: args.accountName || args.name,
+        accountNumber: args.accountNumber,
+        bankCode: args.bankCode,
+      });
+    }
+
     return args.storeId;
   },
 });

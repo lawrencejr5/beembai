@@ -115,6 +115,7 @@ export default defineSchema({
     accountName: v.optional(v.string()),
     accountNumber: v.optional(v.string()),
     routingNumber: v.optional(v.string()),
+    recipientCode: v.optional(v.string()), // Paystack transfer recipient code
     verificationStatus: v.optional(v.union(v.literal("unverified"), v.literal("under_review"), v.literal("verified"))),
     businessRegistrationFile: v.optional(v.string()),
     taxId: v.optional(v.string()),
@@ -243,6 +244,8 @@ export default defineSchema({
     storeId: v.optional(v.id("stores")),
     subtotal: v.optional(v.number()),
     totalCheckoutAmount: v.optional(v.number()),
+    isWalletCredited: v.optional(v.boolean()),
+    isFundsReleased: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -269,4 +272,43 @@ export default defineSchema({
     bufferPercent: v.number(),
     updatedAt: v.number(),
   }),
+
+  storeWallets: defineTable({
+    storeId: v.id("stores"),
+    balance: v.number(),             // Total ledger balance in NGN (escrow + available)
+    availableBalance: v.number(),    // Cleared balance in NGN ready for immediate withdrawal
+    recipientCode: v.optional(v.string()), // Paystack transfer recipient code (RCP_xxxx)
+    currency: v.string(),            // "NGN"
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_storeId", ["storeId"]),
+
+  walletTransactions: defineTable({
+    walletId: v.id("storeWallets"),
+    storeId: v.id("stores"),
+    amount: v.number(),              // In NGN
+    type: v.union(
+      v.literal("order_credit"),     // Credit on customer order placement (escrow)
+      v.literal("withdrawal"),       // Debit on payout to merchant bank account
+      v.literal("refund"),           // Debit if order was cancelled/refunded
+      v.literal("adjustment")        // Admin correction
+    ),
+    status: v.union(
+      v.literal("pending"),          // Held in escrow (undelivered) or payout processing
+      v.literal("completed"),        // Funds cleared (delivered) or payout successful
+      v.literal("failed"),           // Transfer rejected / failed (funds restored)
+      v.literal("reversed")          // Refunded
+    ),
+    orderId: v.optional(v.id("orders")),
+    description: v.string(),
+    paystackTransferCode: v.optional(v.string()), // e.g. "TRF_xxx"
+    paystackReference: v.optional(v.string()),
+    fee: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_walletId", ["walletId"])
+    .index("by_storeId", ["storeId"])
+    .index("by_orderId", ["orderId"])
+    .index("by_storeId_and_type", ["storeId", "type"]),
 });
+
