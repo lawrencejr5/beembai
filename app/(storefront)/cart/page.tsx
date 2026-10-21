@@ -109,7 +109,8 @@ export default function CartPage() {
   } | null>(null);
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
-  const shippingFee = selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10;
+  const shippingFee =
+    selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10;
   const finalTotal = Math.max(
     0,
     selectedSubtotalPrice + shippingFee - discountAmount,
@@ -216,7 +217,9 @@ export default function CartPage() {
                   onChange={(e) => setSelectedAll(e.target.checked)}
                   className={styles.selectAllCheckbox}
                 />
-                <span className={styles.selectAllText}>Select All ({cart.length} items)</span>
+                <span className={styles.selectAllText}>
+                  Select All ({cart.length} items)
+                </span>
               </label>
               {selectedCart.length > 0 && (
                 <span className={styles.selectedCountText}>
@@ -239,7 +242,9 @@ export default function CartPage() {
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleSelectItem(item.product.id, item.selectedColor)}
+                        onChange={() =>
+                          toggleSelectItem(item.product.id, item.selectedColor)
+                        }
                         className={styles.itemCheckbox}
                       />
                       <span className={styles.checkboxText}>Select Item</span>
@@ -315,7 +320,9 @@ export default function CartPage() {
                                 item.selectedColor,
                               )
                             }
-                            disabled={item.quantity >= (item.product.stock ?? 15)}
+                            disabled={
+                              item.quantity >= (item.product.stock ?? 15)
+                            }
                             className={styles.qtyBtn}
                             aria-label="Increase quantity"
                           >
@@ -331,7 +338,10 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              removeFromCart(item.product.id, item.selectedColor)
+                              removeFromCart(
+                                item.product.id,
+                                item.selectedColor,
+                              )
                             }
                             className={styles.removeBtn}
                             aria-label={`Remove ${item.product.title}`}
@@ -362,7 +372,7 @@ export default function CartPage() {
                   Estimated Shipping
                 </span>
                 {shippingFee === 0 ? (
-                  <span className={styles.freeShippingTag}>FREE</span>
+                  <span className={styles.freeShippingTag}>I don't know</span>
                 ) : (
                   <span>₦{formatPrice(shippingFee)}</span>
                 )}
@@ -430,7 +440,11 @@ export default function CartPage() {
               <Link
                 href="/checkout"
                 className={styles.checkoutBtn}
-                style={{ display: "block", textAlign: "center", textDecoration: "none" }}
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  textDecoration: "none",
+                }}
               >
                 Proceed to Checkout (₦{formatPrice(finalTotal)})
               </Link>
@@ -453,29 +467,52 @@ export default function CartPage() {
       )}
 
       {showGuestPrompt && (
-        <div className={styles.modalOverlay} onClick={() => setShowGuestPrompt(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowGuestPrompt(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>Checkout Preference</h3>
-              <button className={styles.closeBtn} onClick={() => setShowGuestPrompt(false)}>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setShowGuestPrompt(false)}
+              >
                 &times;
               </button>
             </div>
             <div className={styles.modalBody}>
               <div>
-                <h4 className={styles.benefitsTitle}>Why sign in to your account?</h4>
+                <h4 className={styles.benefitsTitle}>
+                  Why sign in to your account?
+                </h4>
                 <ul className={styles.benefitsList}>
                   <li className={styles.benefitItem}>
                     <span className={styles.benefitIcon}>✓</span>
-                    <span><strong>Seamless Order Tracking:</strong> Track the delivery status of your order directly from your profile timeline anytime.</span>
+                    <span>
+                      <strong>Seamless Order Tracking:</strong> Track the
+                      delivery status of your order directly from your profile
+                      timeline anytime.
+                    </span>
                   </li>
                   <li className={styles.benefitItem}>
                     <span className={styles.benefitIcon}>✓</span>
-                    <span><strong>Saved Checkout Details:</strong> Securely save multiple shipping addresses and payment methods for a faster 1-click checkout.</span>
+                    <span>
+                      <strong>Saved Checkout Details:</strong> Securely save
+                      multiple shipping addresses and payment methods for a
+                      faster 1-click checkout.
+                    </span>
                   </li>
                   <li className={styles.benefitItem}>
                     <span className={styles.benefitIcon}>✓</span>
-                    <span><strong>Order History & Receipts:</strong> Keep a permanent, downloadable record of your purchases, payment receipts, and order statuses.</span>
+                    <span>
+                      <strong>Order History & Receipts:</strong> Keep a
+                      permanent, downloadable record of your purchases, payment
+                      receipts, and order statuses.
+                    </span>
                   </li>
                 </ul>
               </div>

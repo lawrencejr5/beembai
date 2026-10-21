@@ -19,12 +19,16 @@ export const getDashboardStats = query({
   handler: async (ctx) => {
     await requireAdmin(ctx);
 
-    const [users, stores, products, orders] = await Promise.all([
+    const [users, stores, allProducts, orders] = await Promise.all([
       ctx.db.query("users").collect(),
       ctx.db.query("stores").collect(),
       ctx.db.query("products").collect(),
       ctx.db.query("orders").collect(),
     ]);
+
+    const products = allProducts.filter(
+      (p) => p.categorySlug !== "foreign-import" && p.tag !== "import"
+    );
 
     const totalRevenue = orders
       .filter((o) => o.paymentStatus === "paid")
@@ -86,7 +90,16 @@ export const getRecentActivity = query({
     const [recentOrders, recentStores, recentProducts] = await Promise.all([
       ctx.db.query("orders").order("desc").take(5),
       ctx.db.query("stores").order("desc").take(5),
-      ctx.db.query("products").order("desc").take(5),
+      ctx.db
+        .query("products")
+        .order("desc")
+        .filter((q) =>
+          q.and(
+            q.neq(q.field("categorySlug"), "foreign-import"),
+            q.neq(q.field("tag"), "import")
+          )
+        )
+        .take(5),
     ]);
 
     return { recentOrders, recentStores, recentProducts };
@@ -216,7 +229,20 @@ export const getAllProducts = query({
     let query = ctx.db.query("products").order("desc");
 
     if (args.status && args.status !== "all") {
-      query = query.filter((q) => q.eq(q.field("status"), args.status)) as any;
+      query = query.filter((q) =>
+        q.and(
+          q.eq(q.field("status"), args.status),
+          q.neq(q.field("categorySlug"), "foreign-import"),
+          q.neq(q.field("tag"), "import")
+        )
+      ) as any;
+    } else {
+      query = query.filter((q) =>
+        q.and(
+          q.neq(q.field("categorySlug"), "foreign-import"),
+          q.neq(q.field("tag"), "import")
+        )
+      ) as any;
     }
 
     const results = await query.paginate(args.paginationOpts);

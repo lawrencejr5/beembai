@@ -237,24 +237,27 @@ export default function ProductPage({ params }: ProductPageProps) {
   // Loading state
   const isLoading = !mockProduct && dbProduct === undefined;
 
+  const isForeignImport =
+    product?.categorySlug === "foreign-import" || product?.tag === "import";
+
   const category = useMemo(
-    () => (product ? getCategoryBySlug(product.categorySlug) : undefined),
-    [product],
+    () => (!isForeignImport && product ? getCategoryBySlug(product.categorySlug) : undefined),
+    [product, isForeignImport],
   );
 
   const relatedProducts = useMemo(() => {
-    if (!product) return [];
+    if (!product || isForeignImport) return [];
     return getProductsByCategory(product.categorySlug)
       .filter((p) => p.id !== product.id)
       .slice(0, 4);
-  }, [product]);
+  }, [product, isForeignImport]);
 
-  // Check store to determine if the currently logged-in user is the owner
+  // Check store to determine if the currently logged-in user is the owner (strictly disabled for foreign imports)
   const store = useQuery(
     api.store.getStoreById,
-    product?.storeId ? { storeId: product.storeId } : "skip"
+    !isForeignImport && product?.storeId ? { storeId: product.storeId } : "skip"
   );
-  const isOwner = !!store;
+  const isOwner = !isForeignImport && !!store;
 
   // Query reviews for product
   const productReviews = useQuery(
@@ -488,7 +491,14 @@ export default function ProductPage({ params }: ProductPageProps) {
           Home
         </Link>
         <span className={styles.breadcrumbSeparator}>/</span>
-        {category && (
+        {isForeignImport ? (
+          <>
+            <Link href="/buy-from-abroad" className={styles.breadcrumbLink}>
+              Buy From Abroad
+            </Link>
+            <span className={styles.breadcrumbSeparator}>/</span>
+          </>
+        ) : category ? (
           <>
             <Link
               href={`/category/${category.slug}`}
@@ -498,7 +508,7 @@ export default function ProductPage({ params }: ProductPageProps) {
             </Link>
             <span className={styles.breadcrumbSeparator}>/</span>
           </>
-        )}
+        ) : null}
         <span className={styles.breadcrumbCurrent}>{product.title}</span>
       </nav>
 
@@ -507,7 +517,11 @@ export default function ProductPage({ params }: ProductPageProps) {
         {/* Left Column: Image Frame */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", width: "100%" }}>
           <div className={styles.imageGalleryContainer}>
-            {product.tag && <span className={styles.cardTag}>{product.tag}</span>}
+            {product.tag && (
+              <span className={styles.cardTag}>
+                {product.tag === "import" ? "Foreign Import" : product.tag}
+              </span>
+            )}
             {product.originalPrice && (
               <span className={styles.cardDiscountTag}>
                 -{discountPercent}% OFF
@@ -548,12 +562,18 @@ export default function ProductPage({ params }: ProductPageProps) {
             {product.brand && (
               <span className={styles.brandBadge}>{product.brand}</span>
             )}
-            <Link
-              href={`/category/${product.categorySlug}`}
-              className={styles.categoryLink}
-            >
-              {product.categoryName}
-          </Link>
+            {isForeignImport ? (
+              <Link href="/buy-from-abroad" className={styles.categoryLink}>
+                🌐 Foreign Import (Global Store)
+              </Link>
+            ) : (
+              <Link
+                href={`/category/${product.categorySlug}`}
+                className={styles.categoryLink}
+              >
+                {product.categoryName}
+              </Link>
+            )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
@@ -866,7 +886,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               <span className={styles.trustIcon}>
                 <TruckIcon />
               </span>
-              <span>Express Delivery</span>
+              <span>{isForeignImport ? "International Shipping" : "Express Delivery"}</span>
             </div>
             <div className={styles.trustBadgeItem}>
               <span className={styles.trustIcon}>
@@ -878,7 +898,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               <span className={styles.trustIcon}>
                 <RotateCcwIcon />
               </span>
-              <span>30-Day Easy Returns</span>
+              <span>{isForeignImport ? "Customs & Clearing Handled" : "30-Day Easy Returns"}</span>
             </div>
           </div>
         </div>
@@ -1076,7 +1096,7 @@ export default function ProductPage({ params }: ProductPageProps) {
       </section>
 
       {/* Related Products Showcase */}
-      {relatedProducts.length > 0 && (
+      {!isForeignImport && relatedProducts.length > 0 && (
         <section className={styles.relatedSection}>
           <h2 className={styles.relatedTitle}>
             More from {product.categoryName}

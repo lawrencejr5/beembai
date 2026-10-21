@@ -516,16 +516,52 @@
 .exchangeRateNote {
   background-color: var(--color-cream);
   padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
   color: var(--color-olive-gray);
   font-weight: 600;
   border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.35rem;
   text-align: center;
 }
 
 :global([data-theme="dark"]) .exchangeRateNote {
   background-color: rgba(23, 22, 0, 0.3);
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  padding: 0.15rem 0.55rem;
+  border-radius: 99px;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.bufferSubtext {
+  font-size: 0.72rem;
+  color: var(--color-olive-gray);
+  opacity: 0.85;
+  font-weight: 500;
 }
 
 .totalRow {

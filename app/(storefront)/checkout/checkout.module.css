@@ -163,6 +163,45 @@
   box-shadow: 0 0 0 2px rgba(59, 107, 72, 0.15);
 }
 
+.selectField {
+  background-color: var(--background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  padding-right: 2.25rem;
+  font-size: 0.9rem;
+  color: var(--foreground);
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23485c2c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  cursor: pointer;
+}
+
+.selectField:focus {
+  outline: none;
+  border-color: var(--color-palm);
+  box-shadow: 0 0 0 2px rgba(59, 107, 72, 0.15);
+}
+
+.selectField:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.formHint {
+  font-size: 0.75rem;
+  color: var(--color-olive-gray, #666);
+  margin-top: 2px;
+}
+
 /* Shipping Methods options */
 .shippingOptions {
   display: flex;
@@ -174,16 +213,57 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
   cursor: pointer;
   background-color: var(--background);
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .shippingRadioLabel:hover {
   border-color: var(--color-palm);
+}
+
+.shippingRadioLabelActive {
+  border-color: var(--color-palm) !important;
+  background-color: rgba(35, 78, 64, 0.04) !important;
+  box-shadow: 0 0 0 1px var(--color-palm);
+}
+
+:global([data-theme="dark"]) .shippingRadioLabelActive {
+  background-color: rgba(35, 78, 64, 0.15) !important;
+}
+
+.shippingBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.shippingBadgeEco {
+  background-color: rgba(35, 78, 64, 0.12);
+  color: var(--color-palm);
+}
+
+.shippingBadgeExpress {
+  background-color: rgba(220, 100, 30, 0.12);
+  color: #c95610;
+}
+
+.stationSelectorCard {
+  margin-top: 0.85rem;
+  padding: 1rem 1.15rem;
+  background-color: var(--color-sand);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  animation: fadeIn 0.2s ease-in-out;
 }
 
 .radioInput {

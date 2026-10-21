@@ -1,9 +1,10 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { applyShipmentUpdate, getShipmentView } from "./shipments";
 
 const BEEMBAI_STORE_SLUG = "beembai-official";
 
@@ -14,6 +15,19 @@ async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   const user = await ctx.db.get(userId);
   if (!user?.isAdmin) throw new Error("Forbidden: admin access required");
   return userId;
+}
+
+// Items in an order that belong to the Beembai Official store.
+// Import-order items without a storeId are treated as Beembai's (legacy data).
+function getBeembaiItems<T extends { storeId?: any }>(
+  order: { isImportOrder?: boolean; items: T[] },
+  beembaiStoreId: any
+): T[] {
+  return order.items.filter(
+    (item) =>
+      (beembaiStoreId && item.storeId === beembaiStoreId) ||
+      (order.isImportOrder === true && !item.storeId)
+  );
 }
 
 // ── Internal: Get or create the Beembai Official Store ────
@@ -69,6 +83,16 @@ export const getBeembaiStore = query({
   },
 });
 
+export const getBeembaiStoreInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("stores")
+      .withIndex("by_slug", (q) => q.eq("slug", BEEMBAI_STORE_SLUG))
+      .unique();
+  },
+});
+
 // ── Mutation: Update Beembai Official Store settings ──────
 export const updateBeembaiStore = mutation({
   args: {
@@ -79,10 +103,20 @@ export const updateBeembaiStore = mutation({
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     physicalAddress: v.optional(v.string()),
+    addressLine2: v.optional(v.string()),
     city: v.optional(v.string()),
+    lga: v.optional(v.string()),
     stateName: v.optional(v.string()),
     country: v.optional(v.string()),
     bannerMessage: v.optional(v.string()),
+    // US Fulfillment Warehouse (Foreign Imports)
+    usWarehouseAddress: v.optional(v.string()),
+    usWarehouseCity: v.optional(v.string()),
+    usWarehouseCounty: v.optional(v.string()),
+    usWarehouseState: v.optional(v.string()),
+    usWarehouseZip: v.optional(v.string()),
+    usWarehousePhone: v.optional(v.string()),
+    usWarehouseContactName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -134,25 +168,36 @@ export const getBeembaiStoreOrders = query({
       .unique();
     const beembaiStoreId = store?._id;
 
-    // Collect all orders to filter correctly by item storeId (Convex filter query doesn't scan nested arrays)
-    const allOrders = await ctx.db.query("orders").collect();
+    // Fetch directly via index: orders belonging to Beembai Store (storeId: beembaiStoreId) or unassigned orders (storeId: undefined)
+    const directStoreOrders = beembaiStoreId
+      ? await ctx.db
+          .query("orders")
+          .withIndex("by_storeId", (q) => q.eq("storeId", beembaiStoreId))
+          .collect()
+      : [];
 
-    const filteredOrders = allOrders
+    const unassignedOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_storeId", (q) => q.eq("storeId", undefined))
+      .collect();
+
+    const allBeembaiCandidateOrders = [...directStoreOrders, ...unassignedOrders];
+
+    const filteredOrders = allBeembaiCandidateOrders
       .filter((order) => {
         // Exclude placed but unpaid orders
         if (order.status === "placed" && order.paymentStatus !== "paid") return false;
         
-        return (
-          order.isImportOrder === true ||
-          (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId))
-        );
+        return getBeembaiItems(order, beembaiStoreId).length > 0;
       })
       .sort((a, b) => b.createdAt - a.createdAt);
 
-    // Apply status and payment filters in JS
+    // Apply status and payment filters in JS (status = Beembai's own shipment status)
+    const beembaiStatusOf = (o: (typeof filteredOrders)[number]) =>
+      getShipmentView(o, beembaiStoreId).status;
     let finalOrders = filteredOrders;
     if (args.status && args.status !== "all") {
-      finalOrders = finalOrders.filter((o) => o.status === args.status);
+      finalOrders = finalOrders.filter((o) => beembaiStatusOf(o) === args.status);
     }
     if (args.paymentStatus && args.paymentStatus !== "all") {
       finalOrders = finalOrders.filter((o) => o.paymentStatus === args.paymentStatus);
@@ -176,8 +221,15 @@ export const getBeembaiStoreOrders = query({
     const pageWithBuyer = await Promise.all(
       page.map(async (order) => {
         const buyer = order.userId ? await ctx.db.get(order.userId) : null;
+        const beembaiItems = getBeembaiItems(order, beembaiStoreId);
+        const view = getShipmentView(order, beembaiStoreId);
         return {
           ...order,
+          status: view.status as typeof order.status,
+          statusHistory: view.statusHistory,
+          waybillNumber: view.waybillNumber,
+          items: beembaiItems,
+          beembaiSubtotal: beembaiItems.reduce((s, i) => s + i.price * i.quantity, 0),
           buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
           buyerEmail: buyer?.email ?? order.email ?? "Guest",
         };
@@ -206,17 +258,14 @@ export const getBeembaiOrderById = query({
       .unique();
     const beembaiStoreId = store?._id;
 
-    const isBeembaiOrder =
-      order.isImportOrder === true ||
-      (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId));
-
-    if (!isBeembaiOrder) return null;
+    const beembaiItems = getBeembaiItems(order, beembaiStoreId);
+    if (beembaiItems.length === 0) return null;
 
     const buyer = order.userId ? await ctx.db.get(order.userId) : null;
 
-    // Attach sourceUrl from products table for each item
+    // Attach sourceUrl from products table for each Beembai item
     const itemsWithSource = await Promise.all(
-      order.items.map(async (item) => {
+      beembaiItems.map(async (item) => {
         const product = await ctx.db.get(item.productId);
         return {
           ...item,
@@ -226,11 +275,38 @@ export const getBeembaiOrderById = query({
       })
     );
 
+    const isSingleStore = !order.items.some(
+      (i) => i.storeId && beembaiStoreId && i.storeId !== beembaiStoreId
+    );
+
+    if (isSingleStore) {
+      return {
+        ...order,
+        status: order.status,
+        statusHistory: order.statusHistory,
+        waybillNumber: order.waybillNumber,
+        giglStatus: order.giglStatus,
+        buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
+        buyerEmail: buyer?.email ?? order.email ?? "Guest",
+        items: itemsWithSource,
+        beembaiSubtotal: beembaiItems.reduce((s, i) => s + i.price * i.quantity, 0),
+        beembaiStoreId: beembaiStoreId ?? null,
+      };
+    }
+
+    const view = getShipmentView(order, beembaiStoreId);
+
     return {
       ...order,
+      status: (view.status !== "placed" ? view.status : order.status) as typeof order.status,
+      statusHistory: view.statusHistory && view.statusHistory.length > 0 ? view.statusHistory : order.statusHistory,
+      waybillNumber: view.waybillNumber ?? order.waybillNumber,
+      giglStatus: view.giglStatus ?? order.giglStatus,
       buyerName: buyer?.name ?? order.address.fullName ?? "Guest",
       buyerEmail: buyer?.email ?? order.email ?? "Guest",
       items: itemsWithSource,
+      beembaiSubtotal: beembaiItems.reduce((s, i) => s + i.price * i.quantity, 0),
+      beembaiStoreId: beembaiStoreId ?? null,
     };
   },
 });
@@ -259,11 +335,9 @@ export const updateBeembaiOrderStatus = mutation({
       .unique();
     const beembaiStoreId = store?._id;
 
-    const isBeembaiOrder =
-      order.isImportOrder === true ||
-      (beembaiStoreId && order.items.some((item) => item.storeId === beembaiStoreId));
-
-    if (!isBeembaiOrder) throw new Error("Unauthorized access to this order");
+    if (getBeembaiItems(order, beembaiStoreId).length === 0) {
+      throw new Error("Unauthorized access to this order");
+    }
 
     const defaultMessages: Record<string, string> = {
       placed: "Order placed and awaiting processing.",
@@ -273,22 +347,38 @@ export const updateBeembaiOrderStatus = mutation({
       cancelled: "Order has been cancelled.",
     };
 
-    await ctx.db.patch(args.orderId, {
+    const isSingleStore = !order.items.some(
+      (i) => i.storeId && beembaiStoreId && i.storeId !== beembaiStoreId
+    );
+    const now = Date.now();
+    const statusMsg = args.message ?? defaultMessages[args.status];
+
+    if (isSingleStore) {
+      await ctx.db.patch(args.orderId, {
+        status: args.status,
+        statusHistory: [
+          ...order.statusHistory,
+          {
+            status: args.status,
+            timestamp: now,
+            message: statusMsg,
+          },
+        ],
+      });
+      return { success: true };
+    }
+
+    const patch = applyShipmentUpdate(order, beembaiStoreId, {
       status: args.status,
-      statusHistory: [
-        ...order.statusHistory,
-        {
-          status: args.status,
-          timestamp: Date.now(),
-          message: args.message ?? defaultMessages[args.status],
-        },
-      ],
+      message: statusMsg,
+      storeLabel: store?.name ?? "Beembai",
     });
+    await ctx.db.patch(args.orderId, patch);
     return { success: true };
   },
 });
 
-// ── Query: All products belonging to Beembai (including imports) ──
+// ── Query: All products belonging to Beembai Official Store (excluding foreign imports) ──
 export const getBeembaiStoreProducts = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -311,6 +401,12 @@ export const getBeembaiStoreProducts = query({
     return await ctx.db
       .query("products")
       .withIndex("by_storeId", (q) => q.eq("storeId", store._id))
+      .filter((q) =>
+        q.and(
+          q.neq(q.field("categorySlug"), "foreign-import"),
+          q.neq(q.field("tag"), "import")
+        )
+      )
       .order("desc")
       .paginate(args.paginationOpts);
   },
@@ -331,6 +427,7 @@ export const adminCreateProduct = mutation({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),
@@ -373,6 +470,7 @@ export const adminCreateProduct = mutation({
       material: args.material,
       warranty: args.warranty,
       weight: args.weight,
+      weightClass: args.weightClass,
       ram: args.ram,
       storage: args.storage,
       batteryCapacity: args.batteryCapacity,
@@ -409,6 +507,7 @@ export const adminUpdateProduct = mutation({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),
@@ -453,6 +552,7 @@ export const adminUpdateProduct = mutation({
     if (args.material !== undefined) patch.material = args.material;
     if (args.warranty !== undefined) patch.warranty = args.warranty;
     if (args.weight !== undefined) patch.weight = args.weight;
+    if (args.weightClass !== undefined) patch.weightClass = args.weightClass;
     if (args.ram !== undefined) patch.ram = args.ram;
     if (args.storage !== undefined) patch.storage = args.storage;
     if (args.batteryCapacity !== undefined) patch.batteryCapacity = args.batteryCapacity;
@@ -490,40 +590,38 @@ export const adminDeleteProduct = mutation({
   },
 });
 
-// ── Internal Mutation: Backfill existing foreign-import products ──
-export const backfillForeignProductStoreIds = internalMutation({
+// ── Internal Mutation: Unassign any foreign-import products from Beembai store ──
+export const unassignForeignProductStoreIds = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const storeId: string = await ctx.runMutation(
-      internal.beembaiStore.getOrCreateBeembaiStoreInternal,
-      {}
-    );
-
     const products = await ctx.db
       .query("products")
-      .withIndex("by_categorySlug", (q) =>
-        q.eq("categorySlug", "foreign-import")
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("categorySlug"), "foreign-import"),
+          q.eq(q.field("tag"), "import")
+        )
       )
       .collect();
 
-    let patched = 0;
+    let unassigned = 0;
     for (const product of products) {
-      if (!product.storeId) {
-        await ctx.db.patch(product._id, { storeId: storeId as any });
-        patched++;
+      if (product.storeId) {
+        await ctx.db.patch(product._id, { storeId: undefined });
+        unassigned++;
       }
     }
-    return { patched };
+    return { unassigned };
   },
 });
 
-// ── Public Mutation: Trigger backfill (admin only) ────────
-export const runBackfillForeignProducts = mutation({
+// ── Public Mutation: Clean up foreign product store assignments (admin only) ────────
+export const runUnassignForeignProducts = mutation({
   args: {},
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    const result: { patched: number } = await ctx.runMutation(
-      internal.beembaiStore.backfillForeignProductStoreIds,
+    const result: { unassigned: number } = await ctx.runMutation(
+      internal.beembaiStore.unassignForeignProductStoreIds,
       {}
     );
     return result;
@@ -554,8 +652,10 @@ export const getBeembaiStoreAnalytics = query({
       .withIndex("by_storeId", (q) => q.eq("storeId", store._id))
       .collect();
 
-    // Only count local products (excluding foreign imports)
-    const localProducts = products.filter((p) => p.categorySlug !== "foreign-import");
+    // Only count local products (strictly excluding foreign imports)
+    const localProducts = products.filter(
+      (p) => p.categorySlug !== "foreign-import" && p.tag !== "import"
+    );
 
     const allOrders = await ctx.db.query("orders").collect();
     const beembaiOrders = allOrders.filter((o) => {

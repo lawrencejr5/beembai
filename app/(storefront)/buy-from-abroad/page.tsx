@@ -5,10 +5,9 @@ import Image from "next/image";
 import Navbar from "@/app/components/Navbar";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/data/data";
-import { useMutation, useAction } from "convex/react";
+import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import styles from "./page.module.css";
-
 // Supported Stores Data
 const SUPPORTED_STORES = [
   {
@@ -79,23 +78,18 @@ const SUPPORTED_STORES = [
   },
 ];
 
-// Exchange rate constants (currency → NGN)
-const EXCHANGE_RATES: Record<string, number> = {
-  USD: 1600,
-  GBP: 2020,
-  EUR: 1750,
-  CAD: 1180,
-  AUD: 1040,
+// Fallback exchange rate constants (currency → NGN) if live feed is temporarily unavailable
+const FALLBACK_EXCHANGE_RATES: Record<string, number> = {
+  USD: 1373,
+  GBP: 1834,
+  EUR: 1541,
+  CAD: 976,
+  AUD: 961,
 };
-const DEFAULT_EXCHANGE_RATE = 1600;
+const DEFAULT_FALLBACK_RATE = 1373;
 
 const CUSTOMS_TAX_RATE = 0.1; // 10% customs/clearing tax
-const FLAT_SHIPPING_USD = 15; // $15 flat shipping fee
 const SERVICE_FEE_RATE = 0.05; // 5% service fee
-
-function getExchangeRate(currency: string): number {
-  return EXCHANGE_RATES[currency?.toUpperCase()] ?? DEFAULT_EXCHANGE_RATE;
-}
 
 // Simple link validator
 const isValidUrl = (urlString: string) => {
@@ -218,15 +212,27 @@ interface ScrapedProduct {
   variants: string[];
   rating: number | null;
   reviewCount: number | null;
+  originCountry: string; // ISO-2, e.g. "US", "GB", "CN"
+  weightKg: number;
 }
 
 export default function BuyFromAbroad() {
   const { addToCart } = useCart();
+  const liveRatesData = useQuery(api.exchangeRates.getExchangeRates);
+  const refreshRates = useAction(api.exchangeRates.refreshLiveRates);
   const saveForeignProductToDb = useMutation(api.products.createForeignProduct);
   const scrapeProductUrl = useAction(api.foreignScrape.scrapeProductUrl);
-
   const [urlInput, setUrlInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-refresh exchange rates in the background if stale or empty
+  useEffect(() => {
+    if (liveRatesData?.isStale) {
+      refreshRates({}).catch((err) =>
+        console.warn("Background FX refresh error:", err),
+      );
+    }
+  }, [liveRatesData?.isStale, refreshRates]);
 
   // Scraping loading state
   const [isScraping, setIsScraping] = useState(false);
@@ -285,6 +291,8 @@ export default function BuyFromAbroad() {
         variants: result.variants,
         rating: result.rating,
         reviewCount: result.reviewCount,
+        originCountry: result.originCountry,
+        weightKg: result.weightKg,
       });
     } catch (err: unknown) {
       const msg =
@@ -295,18 +303,24 @@ export default function BuyFromAbroad() {
     }
   };
 
-  // Pricing calculations (currency-aware)
+  // Pricing calculations (currency-aware with live market rates + buffer)
+  const getExchangeRate = (currency: string): number => {
+    const code = currency?.toUpperCase();
+    if (liveRatesData?.rates && typeof liveRatesData.rates[code] === "number") {
+      return liveRatesData.rates[code];
+    }
+    return FALLBACK_EXCHANGE_RATES[code] ?? DEFAULT_FALLBACK_RATE;
+  };
+
   const exchangeRate = scrapedProduct
     ? getExchangeRate(scrapedProduct.currency)
-    : DEFAULT_EXCHANGE_RATE;
+    : (liveRatesData?.rates?.USD ?? DEFAULT_FALLBACK_RATE);
   const productPriceNaira = scrapedProduct
     ? Math.round(scrapedProduct.price * exchangeRate)
     : 0;
   const customsTaxNaira = Math.round(productPriceNaira * CUSTOMS_TAX_RATE);
-  const shippingNaira = Math.round(FLAT_SHIPPING_USD * DEFAULT_EXCHANGE_RATE);
   const serviceFeeNaira = Math.round(productPriceNaira * SERVICE_FEE_RATE);
-  const totalNaira =
-    productPriceNaira + customsTaxNaira + shippingNaira + serviceFeeNaira;
+  const totalNaira = productPriceNaira + customsTaxNaira + serviceFeeNaira;
 
   // Handle local data updates if user overrides
   const handleUpdateField = (
@@ -338,6 +352,8 @@ export default function BuyFromAbroad() {
         inStock: scrapedProduct.inStock,
         sourceUrl: scrapedProduct.url,
         variants: scrapedProduct.variants,
+        weightKg: scrapedProduct.weightKg,
+        originCountry: scrapedProduct.originCountry,
       });
 
       // Add to cart context (Convex or Guest)
@@ -353,11 +369,13 @@ export default function BuyFromAbroad() {
           description: scrapedProduct.description,
           brand: scrapedProduct.brand,
           stock: 999,
+          weight: scrapedProduct.weightKg,
+          originCountry: scrapedProduct.originCountry,
         },
         1,
       );
 
-      setToastMessage(`"${scrapedProduct.title}" added to cart!`);
+      setToastMessage(`"Added item to cart!`);
       setUrlInput("");
       setScrapedProduct(null);
     } catch (err) {
@@ -572,6 +590,22 @@ export default function BuyFromAbroad() {
                           className={styles.formInput}
                         />
                       </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Weight (kg)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          value={scrapedProduct.weightKg}
+                          onChange={(e) =>
+                            handleUpdateField(
+                              "weightKg",
+                              Math.max(0.1, parseFloat(e.target.value) || 0.1),
+                            )
+                          }
+                          className={styles.formInput}
+                        />
+                      </div>
                     </div>
 
                     <div className={styles.formGrid}>
@@ -645,12 +679,12 @@ export default function BuyFromAbroad() {
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
                       International Shipping:
-                      <span title="Flat fee for air shipping logistics to Nigeria">
+                      <span title="International shipping via GIG Logistics is calculated at checkout based on weight and your delivery address">
                         <InfoIcon />
                       </span>
                     </span>
                     <span className={styles.priceValue}>
-                      ${FLAT_SHIPPING_USD}.00 → ₦{formatPrice(shippingNaira)}
+                      Calculated at checkout
                     </span>
                   </div>
 
@@ -667,8 +701,18 @@ export default function BuyFromAbroad() {
                   </div>
 
                   <div className={styles.exchangeRateNote}>
-                    Exchange Rate: 1 {scrapedProduct.currency} = ₦
-                    {exchangeRate.toLocaleString()}
+                    <span className={styles.liveBadge}>
+                      <span className={styles.liveDot} />
+                      Live Market Rate
+                    </span>
+                    <span>
+                      1 {scrapedProduct.currency} = ₦
+                      {exchangeRate.toLocaleString()}
+                    </span>
+                    <span className={styles.bufferSubtext}>
+                      (Real-time FX + {liveRatesData?.bufferPercent ?? 3}% bank
+                      card buffer)
+                    </span>
                   </div>
 
                   <div className={styles.totalRow}>

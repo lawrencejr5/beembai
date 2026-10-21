@@ -9,6 +9,11 @@ import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/data/data";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import {
+  NIGERIA_STATES_LIST,
+  getLgasByState,
+  getCitiesByState,
+} from "@/app/data/nigeriaLocations";
 
 const ShieldCheckIcon = () => (
   <svg
@@ -82,10 +87,48 @@ export default function CheckoutPage() {
     streetAddress: "",
     apartment: "",
     city: "",
+    lga: "",
     stateName: "",
     postalCode: "",
     country: "Nigeria",
   });
+  const [isCustomCity, setIsCustomCity] = useState(false);
+  const [customCity, setCustomCity] = useState("");
+  const [saveAddressToAccount, setSaveAddressToAccount] = useState(true);
+
+  // Cascading options for state, LGA, and city selection
+  const availableLgas = guestAddress.stateName
+    ? getLgasByState(guestAddress.stateName)
+    : [];
+  const availableCities = guestAddress.stateName
+    ? getCitiesByState(guestAddress.stateName)
+    : [];
+
+  const handleStateChange = (newState: string) => {
+    setGuestAddress((prev) => ({
+      ...prev,
+      stateName: newState,
+      lga: "",
+      city: "",
+    }));
+    setIsCustomCity(false);
+    setCustomCity("");
+  };
+
+  const handleCitySelectChange = (val: string) => {
+    if (val === "__custom__") {
+      setIsCustomCity(true);
+      setGuestAddress((prev) => ({ ...prev, city: customCity }));
+    } else {
+      setIsCustomCity(false);
+      setGuestAddress((prev) => ({ ...prev, city: val }));
+    }
+  };
+
+  const handleCustomCityChange = (val: string) => {
+    setCustomCity(val);
+    setGuestAddress((prev) => ({ ...prev, city: val }));
+  };
 
   // Fetch saved shipping addresses and tokenized card details from Convex
   const addresses = useQuery(api.addresses.getUserAddresses);
@@ -93,19 +136,63 @@ export default function CheckoutPage() {
   const dbProducts = useQuery(api.products.getProducts);
 
   // Selected address/card options
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(
+    null,
+  );
   const [isChangingAddress, setIsChangingAddress] = useState(false);
   const [isChangingPayment, setIsChangingPayment] = useState(false);
 
-  const createOrder = useMutation(api.orders.createUnpaidOrder);
-  const chargeCard = useAction(api.paystackBilling.chargeSavedCardForOrder);
-  const verifyInlinePayment = useAction(api.paystackActions.verifyInlinePaymentForOrder);
+  const addAddress = useMutation(api.addresses.addAddress);
+  const createCheckout = useMutation(api.orders.createCheckoutOrders);
+  const chargeCardForCheckout = useAction(
+    api.paystackBilling.chargeSavedCardForCheckout,
+  );
+  const verifyInlinePaymentForCheckout = useAction(
+    api.paystackActions.verifyInlinePaymentForCheckout,
+  );
+  const calculateGiglFee = useAction(api.gigl.calculateShippingFee);
+  const calculateInboundFee = useAction(api.gigl.calculateInboundShippingFee);
+  const getServiceCentres = useAction(api.gigl.getServiceCentres);
 
-  const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
+  const [shippingMethod, setShippingMethod] = useState<
+    "pickup" | "doorstep" | "express"
+  >("pickup");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  // Available GIGL physical service centres in destination state
+  const [serviceCentres, setServiceCentres] = useState<
+    Array<{
+      serviceCentreId: number;
+      name: string;
+      code: string;
+      address: string;
+    }>
+  >([]);
+  const [selectedStationId, setSelectedStationId] = useState<number | null>(
+    null,
+  );
+  const [loadingCentres, setLoadingCentres] = useState(false);
+  const chosenStation = serviceCentres.find(
+    (c) => c.serviceCentreId === selectedStationId,
+  );
+
+  // GIG Logistics Live Shipping Calculation State
+  const [giglQuotes, setGiglQuotes] = useState({
+    pickupFee: 1500,
+    doorstepFee: 3500,
+    expressFee: 5500,
+    standardFee: 3500,
+    totalWeight: 0.5,
+    estimatedDaysPickup: "1 - 2 business days",
+    estimatedDaysDoorstep: "2 - 4 business days",
+    estimatedDaysExpress: "1 - 2 business days",
+    isCalculating: false,
+  });
 
   // Initialize selected address/payment
   useEffect(() => {
@@ -117,44 +204,319 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (paymentMethods && !selectedPaymentId) {
-      const def = paymentMethods.find((p: any) => p.isDefault) || paymentMethods[0];
+      const def =
+        paymentMethods.find((p: any) => p.isDefault) || paymentMethods[0];
       if (def) setSelectedPaymentId(def._id);
     }
   }, [paymentMethods, selectedPaymentId]);
 
-  const activeAddress = addresses?.find((a: any) => a._id === selectedAddressId);
-  const activePayment = paymentMethods?.find((p: any) => p._id === selectedPaymentId);
+  const activeAddress = addresses?.find(
+    (a: any) => a._id === selectedAddressId,
+  );
+  const activePayment = paymentMethods?.find(
+    (p: any) => p._id === selectedPaymentId,
+  );
 
-  const shippingFee = shippingMethod === "express" ? 15 : (selectedSubtotalPrice > 100 || selectedSubtotalPrice === 0 ? 0 : 10);
+  // Recalculate GIG Logistics fee dynamically whenever the destination changes
+  const destinationState =
+    isGuest || useManualAddress || !activeAddress
+      ? guestAddress.stateName
+      : activeAddress?.stateName;
+
+  const destinationCity =
+    isGuest || useManualAddress || !activeAddress
+      ? guestAddress.city
+      : activeAddress?.city;
+
+  // Fetch GIGL physical service centres whenever the destination state changes
+  useEffect(() => {
+    const stateToFetch = destinationState || destinationCity;
+    if (!stateToFetch) return;
+
+    let active = true;
+    setLoadingCentres(true);
+
+    getServiceCentres({ stateOrCity: stateToFetch })
+      .then((centres) => {
+        if (active && centres) {
+          setServiceCentres(centres);
+          if (centres.length > 0) {
+            setSelectedStationId(centres[0].serviceCentreId);
+          }
+        }
+      })
+      .catch((err) => console.error("Error fetching service centres:", err))
+      .finally(() => {
+        if (active) setLoadingCentres(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [destinationState, destinationCity, getServiceCentres]);
+
+  // Split cart: local items vs imported (buy-from-abroad) items
+  const findDbProduct = (item: any) =>
+    dbProducts?.find((p: any) => p.title === item.product.title);
+  const isForeignItem = (item: any) =>
+    item.product.categorySlug === "foreign-import" ||
+    findDbProduct(item)?.categorySlug === "foreign-import";
+  const domesticCart = selectedCart.filter((i: any) => !isForeignItem(i));
+  const foreignCart = selectedCart.filter((i: any) => isForeignItem(i));
+  const foreignOnly = selectedCart.length > 0 && domesticCart.length === 0;
+
+  const [foreignShipping, setForeignShipping] = useState({
+    fee: 0,
+    totalWeight: 0,
+    estimatedDelivery: "",
+    isFallback: false,
+    isCalculating: false,
+  });
+
+  useEffect(() => {
+    if (!destinationState && !destinationCity) return;
+    if (domesticCart.length === 0) {
+      setGiglQuotes((prev) => ({ ...prev, isCalculating: false }));
+      return;
+    }
+
+    let isMounted = true;
+    setGiglQuotes((prev) => ({ ...prev, isCalculating: true }));
+
+    const timer = setTimeout(async () => {
+      try {
+        const itemsPayload = domesticCart.map((i: any) => ({
+          title: i.product.title,
+          price: i.product.price,
+          quantity: i.quantity,
+          weight:
+            typeof i.product.weight === "number"
+              ? i.product.weight
+              : parseFloat(
+                  String(i.product.weight || "").replace(/[^0-9.]/g, ""),
+                ) || 0.5,
+        }));
+
+        const res = await calculateGiglFee({
+          receiverState: destinationState || "Lagos",
+          receiverCity: destinationCity || undefined,
+          items: itemsPayload,
+        });
+
+        if (isMounted && res) {
+          setGiglQuotes({
+            pickupFee: res.pickupFee ?? 1500,
+            doorstepFee: res.doorstepFee ?? res.standardFee ?? 3500,
+            expressFee: res.expressFee ?? 5500,
+            standardFee: res.doorstepFee ?? res.standardFee ?? 3500,
+            totalWeight: res.totalWeight ?? 0.5,
+            estimatedDaysPickup:
+              res.estimatedDaysPickup ?? "1 - 2 business days",
+            estimatedDaysDoorstep:
+              res.estimatedDaysDoorstep ?? "2 - 4 business days",
+            estimatedDaysExpress:
+              res.estimatedDaysExpress ?? "1 - 2 business days",
+            isCalculating: false,
+          });
+        }
+      } catch (err) {
+        console.error("GIGL delivery fee calculation error:", err);
+        if (isMounted) {
+          setGiglQuotes((prev) => ({ ...prev, isCalculating: false }));
+        }
+      }
+    }, 450);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [destinationState, destinationCity, selectedCart, calculateGiglFee, dbProducts]);
+
+  useEffect(() => {
+    if (foreignOnly && shippingMethod !== "doorstep") {
+      setShippingMethod("doorstep");
+    }
+  }, [foreignOnly, shippingMethod]);
+
+  // GIGL inbound (abroad → Nigeria) shipping for imported items, grouped by origin country
+  const foreignKey = foreignCart
+    .map((i: any) => `${i.product.title}x${i.quantity}`)
+    .join("|");
+  useEffect(() => {
+    if (foreignCart.length === 0 || (!destinationState && !destinationCity)) {
+      setForeignShipping({
+        fee: 0,
+        totalWeight: 0,
+        estimatedDelivery: "",
+        isFallback: false,
+        isCalculating: false,
+      });
+      return;
+    }
+    if (!dbProducts) return;
+
+    let isMounted = true;
+    setForeignShipping((prev) => ({ ...prev, isCalculating: true }));
+
+    const timer = setTimeout(async () => {
+      try {
+        const groups: Record<string, { weight: number; value: number }> = {};
+        for (const item of foreignCart) {
+          const dbProd: any = findDbProduct(item);
+          const origin = String(dbProd?.originCountry || "US").toUpperCase();
+          const unitWeight = parseFloat(String(dbProd?.weight ?? "")) || 1;
+          const g = (groups[origin] ??= { weight: 0, value: 0 });
+          g.weight += unitWeight * item.quantity;
+          g.value += item.product.price * item.quantity;
+        }
+
+        const results = await Promise.all(
+          Object.entries(groups).map(([origin, g]) =>
+            calculateInboundFee({
+              originCountry: origin,
+              receiverState: destinationState || "Lagos",
+              receiverAddress:
+                [
+                  activeAddress?.streetAddress,
+                  destinationCity,
+                  destinationState,
+                  "Nigeria",
+                ]
+                  .filter(Boolean)
+                  .join(", ") || undefined,
+              declaredValueNgn: g.value,
+              weightKg: g.weight,
+              quantity: 1,
+            }),
+          ),
+        );
+
+        const totalForeignWeight = Object.values(groups).reduce(
+          (sum, g) => sum + g.weight,
+          0,
+        );
+
+        if (!isMounted) return;
+        setForeignShipping({
+          fee: results.reduce((sum, r) => sum + r.shippingFeeNgn, 0),
+          totalWeight: Number(totalForeignWeight.toFixed(2)),
+          estimatedDelivery: results[0]?.estimatedDelivery ?? "",
+          isFallback: results.some((r) => r.isFallback),
+          isCalculating: false,
+        });
+      } catch (err) {
+        console.error("GIGL inbound fee calculation error:", err);
+        if (isMounted) {
+          setForeignShipping((prev) => ({ ...prev, isCalculating: false }));
+        }
+      }
+    }, 450);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foreignKey, destinationState, destinationCity, dbProducts, calculateInboundFee]);
+
+  const domesticShippingFee =
+    domesticCart.length === 0
+      ? 0
+      : shippingMethod === "pickup"
+        ? giglQuotes.pickupFee
+        : shippingMethod === "express"
+          ? giglQuotes.expressFee
+          : giglQuotes.doorstepFee;
+  const shippingFee = domesticShippingFee + foreignShipping.fee;
   const finalTotal = selectedSubtotalPrice + shippingFee;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const isUsingSavedCard = !isGuest && activePayment && !payDirectly;
-    const activeAddrObj = isGuest || useManualAddress || !activeAddress ? {
-      fullName: guestAddress.fullName,
-      phone: guestAddress.phone,
-      streetAddress: guestAddress.streetAddress,
-      apartment: guestAddress.apartment,
-      city: guestAddress.city,
-      stateName: guestAddress.stateName,
-      postalCode: guestAddress.postalCode,
-      country: guestAddress.country,
-    } : {
-      fullName: activeAddress.fullName,
-      phone: activeAddress.phone,
-      streetAddress: activeAddress.streetAddress,
-      apartment: activeAddress.apartment,
-      city: activeAddress.city,
-      stateName: activeAddress.stateName,
-      postalCode: activeAddress.postalCode,
-      country: activeAddress.country,
-    };
+    const activeAddrObj =
+      isGuest || useManualAddress || !activeAddress
+        ? {
+            fullName: guestAddress.fullName,
+            phone: guestAddress.phone,
+            streetAddress:
+              shippingMethod === "pickup" && chosenStation
+                ? chosenStation.address
+                : guestAddress.streetAddress || "GIGL Station Pickup",
+            apartment: guestAddress.apartment,
+            city:
+              guestAddress.city ||
+              (chosenStation ? chosenStation.name : "City"),
+            lga: guestAddress.lga,
+            stateName: guestAddress.stateName,
+            postalCode: guestAddress.postalCode || "100001",
+            country: guestAddress.country || "Nigeria",
+            pickupStationName:
+              shippingMethod === "pickup" ? chosenStation?.name : undefined,
+            pickupStationAddress:
+              shippingMethod === "pickup" ? chosenStation?.address : undefined,
+            pickupStationId:
+              shippingMethod === "pickup"
+                ? chosenStation?.serviceCentreId
+                : undefined,
+          }
+        : {
+            fullName: activeAddress.fullName,
+            phone: activeAddress.phone,
+            streetAddress:
+              shippingMethod === "pickup" && chosenStation
+                ? chosenStation.address
+                : activeAddress.streetAddress,
+            apartment: activeAddress.apartment,
+            city: activeAddress.city,
+            lga: activeAddress.lga,
+            stateName: activeAddress.stateName,
+            postalCode: activeAddress.postalCode,
+            country: activeAddress.country,
+            pickupStationName:
+              shippingMethod === "pickup" ? chosenStation?.name : undefined,
+            pickupStationAddress:
+              shippingMethod === "pickup" ? chosenStation?.address : undefined,
+            pickupStationId:
+              shippingMethod === "pickup"
+                ? chosenStation?.serviceCentreId
+                : undefined,
+          };
 
     if (selectedCart.length === 0) return;
-    if (!activeAddrObj.fullName || !activeAddrObj.phone || !activeAddrObj.streetAddress || !activeAddrObj.city || !activeAddrObj.stateName || !activeAddrObj.postalCode || !activeAddrObj.country) {
-      setPaymentError("Please fill in all shipping address fields.");
+    if (
+      !activeAddrObj.fullName ||
+      !activeAddrObj.phone ||
+      !activeAddrObj.stateName
+    ) {
+      setPaymentError(
+        "Please fill in all required shipping contact and state details.",
+      );
+      return;
+    }
+    if (shippingMethod === "pickup") {
+      if (serviceCentres.length > 0 && !selectedStationId) {
+        setPaymentError("Please select a GIGL pickup station for collection.");
+        return;
+      }
+    } else {
+      if (
+        !activeAddrObj.streetAddress ||
+        activeAddrObj.streetAddress === "GIGL Station Pickup"
+      ) {
+        setPaymentError(
+          "Please provide your street address for home delivery.",
+        );
+        return;
+      }
+      if (!activeAddrObj.city) {
+        setPaymentError("Please provide your city/town for home delivery.");
+        return;
+      }
+    }
+    if ((isGuest || useManualAddress || !activeAddress) && !activeAddrObj.lga) {
+      setPaymentError("Please select your Local Government Area (LGA).");
       return;
     }
     if (isGuest && !guestAddress.email) {
@@ -172,9 +534,13 @@ export default function CheckoutPage() {
     try {
       // 1. Prepare items snapshot using database product IDs
       const orderItems = selectedCart.map((item: any) => {
-        const dbProd = dbProducts?.find((p: any) => p.title === item.product.title);
+        const dbProd = dbProducts?.find(
+          (p: any) => p.title === item.product.title,
+        );
         if (!dbProd) {
-          throw new Error(`Product "${item.product.title}" not found in database catalog.`);
+          throw new Error(
+            `Product "${item.product.title}" not found in database catalog.`,
+          );
         }
         return {
           productId: dbProd._id,
@@ -186,9 +552,9 @@ export default function CheckoutPage() {
         };
       });
 
-      // 2. Create the unpaid order record in Convex
-      const orderId = await createOrder({
-        email: isGuest ? guestAddress.email : (user?.email || undefined),
+      // 2. Create the unpaid order records in Convex (1 order per store, linked by checkoutId)
+      const checkoutResult = await createCheckout({
+        email: isGuest ? guestAddress.email : user?.email || undefined,
         items: orderItems,
         address: activeAddrObj,
         shippingMethod,
@@ -196,10 +562,35 @@ export default function CheckoutPage() {
         totalAmount: finalTotal,
       });
 
+      const { checkoutId, orderIds } = checkoutResult;
+
+      // Optional: Save new address to user profile if authenticated and requested
+      if (
+        !isGuest &&
+        (useManualAddress || !activeAddress) &&
+        saveAddressToAccount
+      ) {
+        try {
+          await addAddress({
+            fullName: activeAddrObj.fullName,
+            phone: activeAddrObj.phone,
+            streetAddress: activeAddrObj.streetAddress,
+            apartment: activeAddrObj.apartment,
+            city: activeAddrObj.city,
+            lga: activeAddrObj.lga,
+            stateName: activeAddrObj.stateName,
+            postalCode: activeAddrObj.postalCode || "100001",
+            country: activeAddrObj.country || "Nigeria",
+          });
+        } catch (e) {
+          console.error("Failed to save address to user account:", e);
+        }
+      }
+
       if (isUsingSavedCard) {
         // 3. Request Paystack billing server-side via saved card authorization
-        const result = await chargeCard({
-          orderId,
+        const result = await chargeCardForCheckout({
+          checkoutId,
           authorizationCode: activePayment.authorizationCode,
           email: user?.email || activePayment.email || "shopper@beembai.com",
           amount: finalTotal,
@@ -221,60 +612,74 @@ export default function CheckoutPage() {
       } else {
         // 3. Direct/Guest payment: open Paystack inline popup
         const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
-        const customerEmail = isGuest ? guestAddress.email : (user?.email || "shopper@beembai.com");
+        const customerEmail = isGuest
+          ? guestAddress.email
+          : user?.email || "shopper@beembai.com";
 
-        import("@paystack/inline-js").then(({ default: PaystackPop }) => {
-          const popup = new PaystackPop();
-          popup.newTransaction({
-            key: publicKey || "",
-            email: customerEmail,
-            amount: Math.round(finalTotal * 100), // in kobo
-            currency: "NGN",
-            onSuccess: async (transaction: { reference: string }) => {
-              try {
-                // Verify on Convex
-                const result = await verifyInlinePayment({
-                  orderId,
-                  reference: transaction.reference,
-                });
+        import("@paystack/inline-js")
+          .then(({ default: PaystackPop }) => {
+            const popup = new PaystackPop();
+            popup.newTransaction({
+              key: publicKey || "",
+              email: customerEmail,
+              amount: Math.round(finalTotal * 100), // in kobo
+              currency: "NGN",
+              onSuccess: async (transaction: { reference: string }) => {
+                try {
+                  // Verify on Convex
+                  const result = await verifyInlinePaymentForCheckout({
+                    checkoutId,
+                    reference: transaction.reference,
+                  });
 
-                if (!result.success) {
-                  setPaymentError(result.message);
-                  setIsProcessing(false);
-                  return;
-                }
-
-                // 4. Success! Clear cart items and show confirmation screen
-                clearSelectedCart();
-                setIsProcessing(false);
-                setShowSuccess(true);
-                setTimeout(() => {
-                  if (isGuest) {
-                    router.push(`/orders?track=true&orderId=${orderId}&email=${customerEmail}`);
-                  } else {
-                    router.push("/orders");
+                  if (!result.success) {
+                    setPaymentError(result.message);
+                    setIsProcessing(false);
+                    return;
                   }
-                }, 3500);
-              } catch (err: unknown) {
-                console.error("Inline payment verification failed:", err);
-                const msg = err instanceof Error ? err.message : "Payment verification failed.";
-                setPaymentError(msg);
+
+                  // 4. Success! Clear cart items and show confirmation screen
+                  clearSelectedCart();
+                  setIsProcessing(false);
+                  setShowSuccess(true);
+                  setTimeout(() => {
+                    if (isGuest) {
+                      router.push(
+                        `/orders?track=true&checkoutId=${checkoutId}&orderId=${orderIds[0]}&email=${customerEmail}`,
+                      );
+                    } else {
+                      router.push("/orders");
+                    }
+                  }, 3500);
+                } catch (err: unknown) {
+                  console.error("Inline payment verification failed:", err);
+                  const msg =
+                    err instanceof Error
+                      ? err.message
+                      : "Payment verification failed.";
+                  setPaymentError(msg);
+                  setIsProcessing(false);
+                }
+              },
+              onCancel: () => {
                 setIsProcessing(false);
-              }
-            },
-            onCancel: () => {
-              setIsProcessing(false);
-            },
+              },
+            });
+          })
+          .catch((err) => {
+            console.error("Could not load Paystack Inline JS:", err);
+            setPaymentError(
+              "Could not load payment popup. Please check your network and try again.",
+            );
+            setIsProcessing(false);
           });
-        }).catch((err) => {
-          console.error("Could not load Paystack Inline JS:", err);
-          setPaymentError("Could not load payment popup. Please check your network and try again.");
-          setIsProcessing(false);
-        });
       }
     } catch (err: unknown) {
       console.error("Checkout process failed:", err);
-      const msg = err instanceof Error ? err.message : "Checkout order processing failed.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Checkout order processing failed.";
       setPaymentError(msg);
       setIsProcessing(false);
     }
@@ -283,15 +688,39 @@ export default function CheckoutPage() {
   // If loading session
   if (user === undefined) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "var(--background)", color: "var(--foreground)" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          backgroundColor: "var(--background)",
+          color: "var(--foreground)",
+        }}
+      >
         <p style={{ fontWeight: 700 }}>Authenticating session...</p>
       </div>
     );
   }
 
-  const isCheckoutDisabled = selectedCart.length === 0 || 
-    (isGuest && (!guestAddress.fullName || !guestAddress.email || !guestAddress.phone || !guestAddress.streetAddress || !guestAddress.city || !guestAddress.stateName || !guestAddress.postalCode)) ||
-    (!isGuest && useManualAddress && (!guestAddress.fullName || !guestAddress.phone || !guestAddress.streetAddress || !guestAddress.city || !guestAddress.stateName || !guestAddress.postalCode)) ||
+  const isCheckoutDisabled =
+    selectedCart.length === 0 ||
+    (isGuest &&
+      (!guestAddress.fullName ||
+        !guestAddress.email ||
+        !guestAddress.phone ||
+        !guestAddress.streetAddress ||
+        !guestAddress.city ||
+        !guestAddress.stateName ||
+        !guestAddress.postalCode)) ||
+    (!isGuest &&
+      useManualAddress &&
+      (!guestAddress.fullName ||
+        !guestAddress.phone ||
+        !guestAddress.streetAddress ||
+        !guestAddress.city ||
+        !guestAddress.stateName ||
+        !guestAddress.postalCode)) ||
     (!isGuest && !useManualAddress && !activeAddress) ||
     (!isGuest && !payDirectly && !activePayment);
 
@@ -300,7 +729,10 @@ export default function CheckoutPage() {
       {/* Header Row */}
       <header className={styles.headerRow}>
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-          <button onClick={() => router.push("/cart")} className={styles.backButton}>
+          <button
+            onClick={() => router.push("/cart")}
+            className={styles.backButton}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -310,7 +742,11 @@ export default function CheckoutPage() {
               stroke="currentColor"
               strokeWidth="2.5"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
             <span>Back</span>
           </button>
@@ -328,21 +764,51 @@ export default function CheckoutPage() {
       {paymentError && (
         <div className={styles.paymentErrorBanner}>
           <span>⚠ {paymentError}</span>
-          <button onClick={() => setPaymentError(null)} className={styles.errorClose}>✕</button>
+          <button
+            onClick={() => setPaymentError(null)}
+            className={styles.errorClose}
+          >
+            ✕
+          </button>
         </div>
       )}
 
       {cart.length === 0 && !showSuccess ? (
-        <div style={{ textAlign: "center", padding: "4rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "1.5rem" }}>
-          <h2 style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--color-papyrus)" }}>Your checkout cart is empty</h2>
-          <p style={{ maxWidth: "480px", opacity: 0.8 }}>There are no items in your cart. Redirecting you back to homepage to continue shopping...</p>
-          <Link href="/" className={styles.payBtn} style={{ maxWidth: "240px" }}>Go to Homepage</Link>
+        <div
+          style={{
+            textAlign: "center",
+            padding: "4rem 1rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "1.5rem",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: "1.8rem",
+              fontWeight: 900,
+              color: "var(--color-papyrus)",
+            }}
+          >
+            Your checkout cart is empty
+          </h2>
+          <p style={{ maxWidth: "480px", opacity: 0.8 }}>
+            There are no items in your cart. Redirecting you back to homepage to
+            continue shopping...
+          </p>
+          <Link
+            href="/"
+            className={styles.payBtn}
+            style={{ maxWidth: "240px" }}
+          >
+            Go to Homepage
+          </Link>
         </div>
       ) : (
         <div className={styles.checkoutGrid}>
           {/* Left Column: Saved checkout configurations */}
           <div className={styles.formSection}>
-            
             {/* Step 1: Shipping Address Details */}
             <div className={styles.stepCard}>
               <div className={styles.stepCardHeader}>
@@ -368,8 +834,10 @@ export default function CheckoutPage() {
               </div>
 
               {addresses === undefined ? (
-                <div className={styles.loaderPlaceholder}>Loading saved addresses...</div>
-              ) : (isGuest || useManualAddress || addresses.length === 0) ? (
+                <div className={styles.loaderPlaceholder}>
+                  Loading saved addresses...
+                </div>
+              ) : isGuest || useManualAddress || addresses.length === 0 ? (
                 <div className={styles.formGrid}>
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Full Name</label>
@@ -377,7 +845,12 @@ export default function CheckoutPage() {
                       type="text"
                       className={styles.inputField}
                       value={guestAddress.fullName}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, fullName: e.target.value })}
+                      onChange={(e) =>
+                        setGuestAddress({
+                          ...guestAddress,
+                          fullName: e.target.value,
+                        })
+                      }
                       required
                       placeholder="John Doe"
                     />
@@ -389,7 +862,12 @@ export default function CheckoutPage() {
                         type="email"
                         className={styles.inputField}
                         value={guestAddress.email}
-                        onChange={(e) => setGuestAddress({ ...guestAddress, email: e.target.value })}
+                        onChange={(e) =>
+                          setGuestAddress({
+                            ...guestAddress,
+                            email: e.target.value,
+                          })
+                        }
                         required
                         placeholder="john@example.com"
                       />
@@ -401,78 +879,227 @@ export default function CheckoutPage() {
                       type="tel"
                       className={styles.inputField}
                       value={guestAddress.phone}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, phone: e.target.value })}
+                      onChange={(e) =>
+                        setGuestAddress({
+                          ...guestAddress,
+                          phone: e.target.value,
+                        })
+                      }
                       required
                       placeholder="+234..."
                     />
                   </div>
-                  <div className={styles.formGroupFull}>
-                    <label className={styles.formLabel}>Street Address</label>
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      value={guestAddress.streetAddress}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, streetAddress: e.target.value })}
-                      required
-                      placeholder="123 Main Street"
-                    />
-                  </div>
+                  {/* State / Region */}
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Apartment, Suite, etc. (optional)</label>
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      value={guestAddress.apartment}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, apartment: e.target.value })}
-                      placeholder="Apt 4B"
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>City</label>
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      value={guestAddress.city}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, city: e.target.value })}
-                      required
-                      placeholder="Lagos"
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>State / Region</label>
-                    <input
-                      type="text"
-                      className={styles.inputField}
+                    <label className={styles.formLabel}>State / Region *</label>
+                    <select
+                      className={styles.selectField}
                       value={guestAddress.stateName}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, stateName: e.target.value })}
+                      onChange={(e) => handleStateChange(e.target.value)}
                       required
-                      placeholder="Lagos State"
-                    />
+                    >
+                      <option value="">Select State</option>
+                      {NIGERIA_STATES_LIST.map((st) => (
+                        <option key={st} value={st}>
+                          {st === "Federal Capital Territory"
+                            ? "Abuja (Federal Capital Territory)"
+                            : st}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
+                  {/* Local Government Area (LGA) */}
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Postal / ZIP Code</label>
+                    <label className={styles.formLabel}>
+                      Local Government Area (LGA) *
+                    </label>
+                    <select
+                      className={styles.selectField}
+                      value={guestAddress.lga}
+                      onChange={(e) =>
+                        setGuestAddress({
+                          ...guestAddress,
+                          lga: e.target.value,
+                        })
+                      }
+                      disabled={!guestAddress.stateName}
+                      required
+                    >
+                      <option value="">
+                        {guestAddress.stateName
+                          ? "Select LGA"
+                          : "Select State First"}
+                      </option>
+                      {availableLgas.map((lga) => (
+                        <option key={lga} value={lga}>
+                          {lga}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* City / Hub */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>
+                      City / Delivery Hub *
+                    </label>
+                    <select
+                      className={styles.selectField}
+                      value={isCustomCity ? "__custom__" : guestAddress.city}
+                      onChange={(e) => handleCitySelectChange(e.target.value)}
+                      disabled={!guestAddress.stateName}
+                      required
+                    >
+                      <option value="">
+                        {guestAddress.stateName
+                          ? "Select City / Hub"
+                          : "Select State First"}
+                      </option>
+                      {availableCities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                      {guestAddress.stateName && (
+                        <option value="__custom__">
+                          Other / Specific Area...
+                        </option>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Postal / ZIP Code */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>
+                      Postal / ZIP Code
+                    </label>
                     <input
                       type="text"
                       className={styles.inputField}
                       value={guestAddress.postalCode}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, postalCode: e.target.value })}
-                      required
-                      placeholder="100001"
+                      onChange={(e) =>
+                        setGuestAddress({
+                          ...guestAddress,
+                          postalCode: e.target.value,
+                        })
+                      }
+                      placeholder="100001 (optional)"
                     />
                   </div>
-                  <div className={styles.formGroup}>
+
+                  {/* Specific City / Area if "Other" is chosen */}
+                  {isCustomCity && (
+                    <div className={styles.formGroupFull}>
+                      <label className={styles.formLabel}>
+                        Specific City / Area Name *
+                      </label>
+                      <input
+                        type="text"
+                        className={styles.inputField}
+                        value={customCity}
+                        onChange={(e) => handleCustomCityChange(e.target.value)}
+                        required
+                        placeholder="e.g. Sangotedo, Magodo, Satellite Town"
+                      />
+                      <span className={styles.formHint}>
+                        Enter your specific town, district, or landmark area for
+                        door-step dispatch.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Street Address */}
+                  <div className={styles.formGroupFull}>
+                    <label className={styles.formLabel}>Street Address *</label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.streetAddress}
+                      onChange={(e) =>
+                        setGuestAddress({
+                          ...guestAddress,
+                          streetAddress: e.target.value,
+                        })
+                      }
+                      required
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+
+                  {/* Apartment, Suite */}
+                  <div className={styles.formGroupFull}>
+                    <label className={styles.formLabel}>
+                      Apartment, Suite, etc. (optional)
+                    </label>
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      value={guestAddress.apartment}
+                      onChange={(e) =>
+                        setGuestAddress({
+                          ...guestAddress,
+                          apartment: e.target.value,
+                        })
+                      }
+                      placeholder="Penthouse A / Suite 402"
+                    />
+                  </div>
+
+                  {/* Country */}
+                  <div className={styles.formGroupFull}>
                     <label className={styles.formLabel}>Country</label>
                     <input
                       type="text"
                       className={styles.inputField}
-                      value={guestAddress.country}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, country: e.target.value })}
-                      required
-                      placeholder="Nigeria"
+                      value="Nigeria"
+                      readOnly
+                      style={{ opacity: 0.85, cursor: "not-allowed" }}
                     />
+                    <span className={styles.formHint}>
+                      Nationwide domestic delivery handled via GIG Logistics
+                      network.
+                    </span>
                   </div>
+
+                  {/* Save address checkbox for authenticated users */}
+                  {!isGuest && (
+                    <div
+                      className={styles.formGroupFull}
+                      style={{ marginTop: "0.25rem" }}
+                    >
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          cursor: "pointer",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={saveAddressToAccount}
+                          onChange={(e) =>
+                            setSaveAddressToAccount(e.target.checked)
+                          }
+                          style={{
+                            accentColor: "var(--color-palm)",
+                            width: 16,
+                            height: 16,
+                          }}
+                        />
+                        Save this address to my saved addresses
+                      </label>
+                    </div>
+                  )}
+
                   {!isGuest && addresses.length > 0 && (
-                    <div className={styles.formGroupFull} style={{ marginTop: "1rem" }}>
+                    <div
+                      className={styles.formGroupFull}
+                      style={{ marginTop: "0.75rem" }}
+                    >
                       <button
                         type="button"
                         onClick={() => setUseManualAddress(false)}
@@ -502,14 +1129,22 @@ export default function CheckoutPage() {
                         className={styles.selectionRadio}
                       />
                       <div className={styles.selectionInfo}>
-                        <span className={styles.selectionName}>{addr.fullName} ({addr.phone})</span>
+                        <span className={styles.selectionName}>
+                          {addr.fullName} ({addr.phone})
+                        </span>
                         <span className={styles.selectionText}>
-                          {addr.streetAddress}{addr.apartment ? `, ${addr.apartment}` : ""}, {addr.city}, {addr.stateName}
+                          {addr.streetAddress}
+                          {addr.apartment ? `, ${addr.apartment}` : ""},{" "}
+                          {addr.city}
+                          {addr.lga ? `, ${addr.lga} LGA` : ""},{" "}
+                          {addr.stateName}
                         </span>
                       </div>
                     </label>
                   ))}
-                  <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                  <div
+                    style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -535,13 +1170,25 @@ export default function CheckoutPage() {
                   <p className={styles.previewName}>{activeAddress.fullName}</p>
                   <p className={styles.previewText}>
                     {activeAddress.streetAddress}
-                    {activeAddress.apartment ? `, ${activeAddress.apartment}` : ""}
+                    {activeAddress.apartment
+                      ? `, ${activeAddress.apartment}`
+                      : ""}
                   </p>
                   <p className={styles.previewText}>
-                    {activeAddress.city}, {activeAddress.stateName} {activeAddress.postalCode}
+                    {activeAddress.city}
+                    {activeAddress.lga
+                      ? `, ${activeAddress.lga} LGA`
+                      : ""}, {activeAddress.stateName}{" "}
+                    {activeAddress.postalCode
+                      ? `(${activeAddress.postalCode})`
+                      : ""}
                   </p>
-                  <p className={styles.previewText}>{activeAddress.country}</p>
-                  <p className={styles.previewPhone}>📞 {activeAddress.phone}</p>
+                  <p className={styles.previewText}>
+                    {activeAddress.country || "Nigeria"}
+                  </p>
+                  <p className={styles.previewPhone}>
+                    📞 {activeAddress.phone}
+                  </p>
                   <div style={{ marginTop: "1rem" }}>
                     <button
                       type="button"
@@ -558,32 +1205,277 @@ export default function CheckoutPage() {
 
             {/* Step 2: Shipping Method */}
             <div className={styles.stepCard}>
-              <h2 className={styles.cardTitle}>
-                <span className={styles.titleNum}>2</span>
-                <span>Shipping Method</span>
-              </h2>
-              <div className={styles.shippingOptions}>
-                <label className={styles.shippingRadioLabel}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "0.5rem",
+                }}
+              >
+                <h2 className={styles.cardTitle} style={{ margin: 0 }}>
+                  <span className={styles.titleNum}>2</span>
+                  <span>Shipping Method</span>
+                </h2>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "0.78rem",
+                    color: "var(--color-palm)",
+                    fontWeight: 600,
+                    background: "rgba(35, 78, 64, 0.08)",
+                    padding: "3px 10px",
+                    borderRadius: "100px",
+                  }}
+                >
+                  <span>🚚 Powered by GIG Logistics</span>
+                  {giglQuotes.isCalculating || foreignShipping.isCalculating ? (
+                    <span style={{ opacity: 0.6, fontSize: "0.72rem" }}>
+                      (calculating...)
+                    </span>
+                  ) : (
+                    <span style={{ opacity: 0.85, fontSize: "0.72rem" }}>
+                      • Parcel:{" "}
+                      {Number(
+                        (
+                          (domesticCart.length > 0 ? giglQuotes.totalWeight : 0) +
+                          (foreignCart.length > 0 ? foreignShipping.totalWeight : 0)
+                        ).toFixed(2),
+                      )}
+                      kg
+                    </span>
+                  )}
+                </div>
+              </div>
+              {foreignCart.length > 0 && (
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: "1.5px solid var(--color-palm)",
+                    background: "rgba(35, 78, 64, 0.06)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    fontSize: "0.88rem",
+                  }}
+                >
+                  <div>
+                    <strong>✈️ International delivery (imported items)</strong>
+                    <p style={{ margin: "2px 0 0", opacity: 0.75, fontSize: "0.78rem" }}>
+                      {foreignCart.length} imported item
+                      {foreignCart.length > 1 ? "s" : ""} (
+                      {foreignShipping.totalWeight}kg) shipped door-to-door via
+                      GIG Logistics
+                      {foreignShipping.estimatedDelivery
+                        ? ` · ${foreignShipping.estimatedDelivery}`
+                        : ""}
+                      {foreignShipping.isFallback ? " · estimated" : ""}
+                    </p>
+                  </div>
+                  <strong>
+                    {foreignShipping.isCalculating
+                      ? "Calculating..."
+                      : `₦${formatPrice(foreignShipping.fee)}`}
+                  </strong>
+                </div>
+              )}
+              {!foreignOnly && (
+              <div
+                className={styles.shippingOptions}
+                style={{ marginTop: "1rem" }}
+              >
+                {/* 1. GIGL Station Pickup */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <label
+                    className={`${styles.shippingRadioLabel} ${shippingMethod === "pickup" ? styles.shippingRadioLabelActive : ""}`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <input
+                        type="radio"
+                        name="shipping"
+                        checked={shippingMethod === "pickup"}
+                        onChange={() => setShippingMethod("pickup")}
+                        className={styles.radioInput}
+                        disabled={isProcessing}
+                      />
+                      <div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "4px",
+                          }}
+                        >
+                          <span className={styles.radioLabelText}>
+                            🏢 GIGL Pickup Station
+                          </span>
+                        </div>
+                        <p className={styles.radioLabelDesc}>
+                          Collect at your nearest GIGL Service Centre in{" "}
+                          {destinationState || "your state"} •{" "}
+                          {giglQuotes.estimatedDaysPickup}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={styles.shippingPrice}>
+                      ₦{formatPrice(giglQuotes.pickupFee)}
+                    </span>
+                  </label>
+
+                  {/* Station Selector Sub-card when Pickup is selected */}
+                  {shippingMethod === "pickup" && (
+                    <div className={styles.stationSelectorCard}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        <label
+                          style={{
+                            fontSize: "0.82rem",
+                            fontWeight: 700,
+                            color: "var(--foreground)",
+                          }}
+                        >
+                          Choose GIGL Experience Centre:
+                        </label>
+                        {loadingCentres && (
+                          <span
+                            style={{
+                              fontSize: "0.74rem",
+                              color: "var(--color-olive-gray)",
+                            }}
+                          >
+                            Refreshing stations...
+                          </span>
+                        )}
+                      </div>
+
+                      {serviceCentres.length > 0 ? (
+                        <>
+                          <select
+                            className={styles.selectField}
+                            value={selectedStationId ?? ""}
+                            onChange={(e) =>
+                              setSelectedStationId(Number(e.target.value))
+                            }
+                            disabled={isProcessing}
+                            style={{
+                              width: "100%",
+                              padding: "0.65rem 0.85rem",
+                              borderRadius: "8px",
+                              fontSize: "0.85rem",
+                            }}
+                          >
+                            {serviceCentres.map((centre) => (
+                              <option
+                                key={centre.serviceCentreId}
+                                value={centre.serviceCentreId}
+                              >
+                                {centre.name} — {centre.address}
+                              </option>
+                            ))}
+                          </select>
+
+                          {chosenStation && (
+                            <div
+                              style={{
+                                marginTop: "0.65rem",
+                                padding: "0.6rem 0.85rem",
+                                borderRadius: "8px",
+                                background: "rgba(35, 78, 64, 0.06)",
+                                borderLeft: "3px solid var(--color-palm)",
+                                fontSize: "0.78rem",
+                              }}
+                            >
+                              <strong
+                                style={{
+                                  color: "var(--color-palm)",
+                                  display: "block",
+                                }}
+                              >
+                                🏢 {chosenStation.name}
+                              </strong>
+                              <span
+                                style={{
+                                  color: "var(--foreground)",
+                                  opacity: 0.85,
+                                }}
+                              >
+                                {chosenStation.address}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      ) : loadingCentres ? (
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            color: "var(--color-olive-gray)",
+                            padding: "0.5rem 0",
+                          }}
+                        >
+                          Finding nearest GIG Logistics stations in{" "}
+                          {destinationState || "your state"}...
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            color: "var(--color-olive-gray)",
+                            padding: "0.5rem 0",
+                          }}
+                        >
+                          Select your destination state above to view available
+                          GIGL experience centres.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Standard Home Delivery */}
+                <label
+                  className={`${styles.shippingRadioLabel} ${shippingMethod === "doorstep" ? styles.shippingRadioLabelActive : ""}`}
+                >
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <input
                       type="radio"
                       name="shipping"
-                      checked={shippingMethod === "standard"}
-                      onChange={() => setShippingMethod("standard")}
+                      checked={shippingMethod === "doorstep"}
+                      onChange={() => setShippingMethod("doorstep")}
                       className={styles.radioInput}
                       disabled={isProcessing}
                     />
                     <div>
-                      <span className={styles.radioLabelText}>Standard Shipping</span>
-                      <p className={styles.radioLabelDesc}>Delivered within 3–5 business days</p>
+                      <span className={styles.radioLabelText}>
+                        🏠 Standard Home Delivery
+                      </span>
+                      <p className={styles.radioLabelDesc}>
+                        Doorstep delivery to your street address in{" "}
+                        {giglQuotes.estimatedDaysDoorstep}
+                      </p>
                     </div>
                   </div>
                   <span className={styles.shippingPrice}>
-                    {selectedSubtotalPrice > 100 ? "FREE" : "₦15,000"}
+                    ₦{formatPrice(giglQuotes.doorstepFee)}
                   </span>
                 </label>
 
-                <label className={styles.shippingRadioLabel}>
+                {/* 3. Priority Express Delivery */}
+                <label
+                  className={`${styles.shippingRadioLabel} ${shippingMethod === "express" ? styles.shippingRadioLabelActive : ""}`}
+                >
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <input
                       type="radio"
@@ -594,13 +1486,35 @@ export default function CheckoutPage() {
                       disabled={isProcessing}
                     />
                     <div>
-                      <span className={styles.radioLabelText}>Express Courier</span>
-                      <p className={styles.radioLabelDesc}>Delivered within 1–2 business days</p>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: "4px",
+                        }}
+                      >
+                        <span className={styles.radioLabelText}>
+                          ⚡ Priority Express Delivery
+                        </span>
+                        <span
+                          className={`${styles.shippingBadge} ${styles.shippingBadgeExpress}`}
+                        >
+                          Fastest
+                        </span>
+                      </div>
+                      <p className={styles.radioLabelDesc}>
+                        Expedited priority dispatch in{" "}
+                        {giglQuotes.estimatedDaysExpress}
+                      </p>
                     </div>
                   </div>
-                  <span className={styles.shippingPrice}>₦22,500</span>
+                  <span className={styles.shippingPrice}>
+                    ₦{formatPrice(giglQuotes.expressFee)}
+                  </span>
                 </label>
               </div>
+              )}
             </div>
 
             {/* Step 3: Payment Details */}
@@ -628,14 +1542,42 @@ export default function CheckoutPage() {
               </div>
 
               {paymentMethods === undefined ? (
-                <div className={styles.loaderPlaceholder}>Loading saved cards...</div>
-              ) : (isGuest || payDirectly || paymentMethods.length === 0) ? (
-                <div className={styles.detailsPreviewCard} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  <p style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem", margin: 0, color: "var(--foreground)" }}>
+                <div className={styles.loaderPlaceholder}>
+                  Loading saved cards...
+                </div>
+              ) : isGuest || payDirectly || paymentMethods.length === 0 ? (
+                <div
+                  className={styles.detailsPreviewCard}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      margin: 0,
+                      color: "var(--foreground)",
+                    }}
+                  >
                     💳 Secure Checkout via Paystack
                   </p>
-                  <p style={{ fontSize: "0.88rem", opacity: 0.8, margin: 0, lineHeight: 1.5 }}>
-                    You will be prompted to make a secure payment using Paystack popup on clicking &ldquo;Authorize &amp; Pay&rdquo;. Paystack supports Cards, USSD, Bank Transfers, and EFTs securely.
+                  <p
+                    style={{
+                      fontSize: "0.88rem",
+                      opacity: 0.8,
+                      margin: 0,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    You will be prompted to make a secure payment using Paystack
+                    popup on clicking &ldquo;Authorize &amp; Pay&rdquo;.
+                    Paystack supports Cards, USSD, Bank Transfers, and EFTs
+                    securely.
                   </p>
                   {!isGuest && paymentMethods.length > 0 && (
                     <button
@@ -675,7 +1617,9 @@ export default function CheckoutPage() {
                       </div>
                     </label>
                   ))}
-                  <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                  <div
+                    style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -698,7 +1642,14 @@ export default function CheckoutPage() {
                 </div>
               ) : activePayment ? (
                 <div className={styles.detailsPreviewCard}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginBottom: "8px",
+                    }}
+                  >
                     <span className={styles.cardIconBadge}>
                       {activePayment.cardType.toUpperCase()}
                     </span>
@@ -707,7 +1658,10 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                   <p className={styles.previewText}>{activePayment.bank}</p>
-                  <p className={styles.previewText} style={{ opacity: 0.8, marginBottom: "1rem" }}>
+                  <p
+                    className={styles.previewText}
+                    style={{ opacity: 0.8, marginBottom: "1rem" }}
+                  >
                     Expires {activePayment.expMonth}/{activePayment.expYear}
                   </p>
                   <div>
@@ -723,7 +1677,6 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
             </div>
-
           </div>
 
           {/* Right Column: Order Summary */}
@@ -743,7 +1696,9 @@ export default function CheckoutPage() {
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleSelectItem(item.product.id, item.selectedColor)}
+                        onChange={() =>
+                          toggleSelectItem(item.product.id, item.selectedColor)
+                        }
                         className={styles.itemCheckbox}
                         disabled={isProcessing}
                       />
@@ -758,9 +1713,12 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div className={styles.itemRowInfo}>
-                      <span className={styles.itemRowTitle}>{item.product.title}</span>
+                      <span className={styles.itemRowTitle}>
+                        {item.product.title}
+                      </span>
                       <span className={styles.itemRowMeta}>
-                        Qty: {item.quantity} {item.selectedColor ? `| ${item.selectedColor}` : ""}
+                        Qty: {item.quantity}{" "}
+                        {item.selectedColor ? `| ${item.selectedColor}` : ""}
                       </span>
                     </div>
                     <span className={styles.itemRowPrice}>
@@ -786,7 +1744,9 @@ export default function CheckoutPage() {
               </div>
               <div className={styles.totalRow}>
                 <span className={styles.totalLabel}>Total</span>
-                <span className={styles.totalValue}>₦{formatPrice(finalTotal)}</span>
+                <span className={styles.totalValue}>
+                  ₦{formatPrice(finalTotal)}
+                </span>
               </div>
             </div>
 
@@ -821,10 +1781,13 @@ export default function CheckoutPage() {
             </div>
             <h3 className={styles.successTitle}>Order Placed!</h3>
             <p className={styles.successText}>
-              Thank you for your purchase. We are processing your order and a receipt has been sent to your email.
+              Thank you for your purchase. We are processing your order and a
+              receipt has been sent to your email.
             </p>
-            <span style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}>
-              Redirecting you to homepage...
+            <span
+              style={{ fontSize: "0.8rem", color: "var(--color-olive-gray)" }}
+            >
+              Redirecting you to checkout...
             </span>
           </div>
         </div>

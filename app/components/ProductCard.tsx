@@ -202,6 +202,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               onClick={handleAddToCart}
               disabled={isAdding}
               className={styles.addToCartBtn}
+              data-no-nav-loader
               aria-label={`Add ${product.title} to cart`}
             >
               {isAdding ? <SpinnerIcon /> : <CartIcon />}
@@ -210,6 +211,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             /* Dynamic Inline Counter Pill (- 1 +) when item IS in cart */
             <div
               className={styles.cardCounterPill}
+              data-no-nav-loader
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -220,6 +222,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 onClick={handleDecrease}
                 disabled={updatingAction !== null}
                 className={styles.cardQtyBtn}
+                data-no-nav-loader
                 aria-label={`Decrease ${product.title} quantity`}
               >
                 {updatingAction === "decrease" ? <SpinnerIcon /> : "-"}
@@ -230,6 +233,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 onClick={handleIncrease}
                 disabled={updatingAction !== null || totalQtyInCart >= maxStock}
                 className={styles.cardQtyBtn}
+                data-no-nav-loader
                 aria-label={`Increase ${product.title} quantity`}
               >
                 {updatingAction === "increase" ? <SpinnerIcon /> : "+"}

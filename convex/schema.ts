@@ -51,6 +51,7 @@ export default defineSchema({
     material: v.optional(v.string()),
     warranty: v.optional(v.string()),
     weight: v.optional(v.string()),
+    weightClass: v.optional(v.string()),
     ram: v.optional(v.string()),
     storage: v.optional(v.string()),
     batteryCapacity: v.optional(v.string()),
@@ -71,6 +72,7 @@ export default defineSchema({
     inStock: v.optional(v.boolean()),
     sourceUrl: v.optional(v.string()),
     variants: v.optional(v.array(v.string())),
+    originCountry: v.optional(v.string()),
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"])
@@ -98,6 +100,14 @@ export default defineSchema({
     lga: v.optional(v.string()),
     stateName: v.optional(v.string()),
     country: v.optional(v.string()),
+    // US Fulfillment Warehouse (Foreign Imports)
+    usWarehouseAddress: v.optional(v.string()),
+    usWarehouseCity: v.optional(v.string()),
+    usWarehouseCounty: v.optional(v.string()),
+    usWarehouseState: v.optional(v.string()),
+    usWarehouseZip: v.optional(v.string()),
+    usWarehousePhone: v.optional(v.string()),
+    usWarehouseContactName: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     bankName: v.optional(v.string()),
@@ -142,6 +152,7 @@ export default defineSchema({
     streetAddress: v.string(),
     apartment: v.optional(v.string()),
     city: v.string(),
+    lga: v.optional(v.string()),
     stateName: v.string(),
     postalCode: v.string(),
     country: v.string(),
@@ -169,9 +180,13 @@ export default defineSchema({
       streetAddress: v.string(),
       apartment: v.optional(v.string()),
       city: v.string(),
+      lga: v.optional(v.string()),
       stateName: v.string(),
       postalCode: v.string(),
       country: v.string(),
+      pickupStationName: v.optional(v.string()),
+      pickupStationAddress: v.optional(v.string()),
+      pickupStationId: v.optional(v.number()),
     }),
     shippingMethod: v.string(),
     shippingFee: v.number(),
@@ -193,10 +208,49 @@ export default defineSchema({
     ),
     paystackReference: v.optional(v.string()),
     isImportOrder: v.optional(v.boolean()),
+    waybillNumber: v.optional(v.string()),
+    giglStatus: v.optional(v.string()),
+    giglShipmentDetails: v.optional(v.any()),
+    vendorWaybills: v.optional(
+      v.array(
+        v.object({
+          storeId: v.id("stores"),
+          waybillNumber: v.string(),
+          status: v.string(),
+        })
+      )
+    ),
+    shipments: v.optional(
+      v.array(
+        v.object({
+          storeId: v.optional(v.id("stores")),
+          status: v.string(),
+          statusHistory: v.array(
+            v.object({
+              status: v.string(),
+              timestamp: v.number(),
+              message: v.string(),
+              source: v.optional(v.string()),
+            })
+          ),
+          waybillNumber: v.optional(v.string()),
+          giglStatus: v.optional(v.string()),
+          dispatchedAt: v.optional(v.number()),
+        })
+      )
+    ),
+    checkoutId: v.optional(v.string()),
+    storeId: v.optional(v.id("stores")),
+    subtotal: v.optional(v.number()),
+    totalCheckoutAmount: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_waybillNumber", ["waybillNumber"])
+    .index("by_storeId", ["storeId"])
+    .index("by_checkoutId", ["checkoutId"])
+    .index("by_storeId_and_status", ["storeId", "status"]),
 
   reviews: defineTable({
     userId: v.id("users"),
@@ -208,4 +262,11 @@ export default defineSchema({
     .index("by_productId", ["productId"])
     .index("by_storeId", ["storeId"])
     .index("by_userId_and_productId", ["userId", "productId"]),
+
+  exchangeRates: defineTable({
+    rates: v.record(v.string(), v.number()),
+    baseCurrency: v.string(),
+    bufferPercent: v.number(),
+    updatedAt: v.number(),
+  }),
 });

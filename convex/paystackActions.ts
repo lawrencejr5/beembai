@@ -86,6 +86,79 @@ export const verifyAndSaveCard = action({
  *   6. We verify the transaction was successful and the amount matches.
  *   7. We mark the order as paid using internal mutations.
  */
+
+/**
+ * Verify inline Paystack payment for a multi-store checkout (all child orders).
+ */
+export const verifyInlinePaymentForCheckout = action({
+  args: {
+    checkoutId: v.string(),
+    reference: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
+    // 1. Fetch all orders for this checkoutId
+    const orders = await ctx.runQuery((internal as any).orders.getOrdersByCheckoutIdInternal, {
+      checkoutId: args.checkoutId,
+    });
+    if (!orders || orders.length === 0) {
+      throw new Error(`No orders found for checkout: ${args.checkoutId}`);
+    }
+
+    const allPaid = orders.every((o: any) => o.paymentStatus === "paid");
+    if (allPaid) {
+      return { success: true, message: "Checkout is already paid" };
+    }
+
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error("PAYSTACK_SECRET_KEY is not configured");
+    }
+
+    // 2. Verify transaction with Paystack
+    const response = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(args.reference)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Paystack verification failed: ${text}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.status || data.data.status !== "success") {
+      await ctx.runMutation((internal as any).orders.markCheckoutFailedInternal, {
+        checkoutId: args.checkoutId,
+      });
+      return { success: false, message: "Transaction verification unsuccessful" };
+    }
+
+    // 3. Verify total checkout amount in kobo
+    const expectedAmount =
+      orders[0].totalCheckoutAmount ??
+      orders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
+    const expectedAmountKobo = Math.round(expectedAmount * 100);
+
+    if (Math.abs(data.data.amount - expectedAmountKobo) > 5) {
+      throw new Error("Payment amount mismatch with checkout total amount");
+    }
+
+    // 4. Mark all orders as paid
+    await ctx.runMutation((internal as any).orders.markCheckoutPaidInternal, {
+      checkoutId: args.checkoutId,
+      paystackReference: args.reference,
+    });
+
+    return { success: true, message: "Payment verified successfully" };
+  },
+});
+
 export const verifyInlinePaymentForOrder = action({
   args: {
     orderId: v.id("orders"),
@@ -98,6 +171,61 @@ export const verifyInlinePaymentForOrder = action({
     });
     if (!order) {
       throw new Error("Order not found");
+    }
+
+    // If order has a checkoutId, verify all orders belonging to this checkout
+    if (order.checkoutId) {
+      const orders = await ctx.runQuery((internal as any).orders.getOrdersByCheckoutIdInternal, {
+        checkoutId: order.checkoutId,
+      });
+      if (orders && orders.length > 0) {
+        const allPaid = orders.every((o: any) => o.paymentStatus === "paid");
+        if (allPaid) {
+          return { success: true, message: "Order is already paid" };
+        }
+
+        const secretKey = process.env.PAYSTACK_SECRET_KEY;
+        if (!secretKey) throw new Error("PAYSTACK_SECRET_KEY is not configured");
+
+        const response = await fetch(
+          `https://api.paystack.co/transaction/verify/${encodeURIComponent(args.reference)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${secretKey}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`Paystack verification failed: ${text}`);
+        }
+
+        const data = await response.json();
+        if (!data.status || data.data.status !== "success") {
+          await ctx.runMutation((internal as any).orders.markCheckoutFailedInternal, {
+            checkoutId: order.checkoutId,
+          });
+          return { success: false, message: "Transaction verification unsuccessful" };
+        }
+
+        const expectedAmount =
+          orders[0].totalCheckoutAmount ??
+          orders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
+        const expectedAmountKobo = Math.round(expectedAmount * 100);
+
+        if (Math.abs(data.data.amount - expectedAmountKobo) > 5) {
+          throw new Error("Payment amount mismatch with checkout amount");
+        }
+
+        await ctx.runMutation((internal as any).orders.markCheckoutPaidInternal, {
+          checkoutId: order.checkoutId,
+          paystackReference: args.reference,
+        });
+
+        return { success: true, message: "Payment verified successfully" };
+      }
     }
 
     if (order.paymentStatus === "paid") {

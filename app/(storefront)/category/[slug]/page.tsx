@@ -104,13 +104,13 @@ const FilterIcon = () => (
 );
 
 interface CategoryPageProps {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
   const { addToCart } = useCart();
-  // Unwrap params if promise
-  const resolvedParams = params instanceof Promise ? use(params) : params;
+  // Unwrap params using React.use for Next.js 15 async params
+  const resolvedParams = use(params);
   const slug = resolvedParams?.slug;
 
   // 1. Fetch category from database

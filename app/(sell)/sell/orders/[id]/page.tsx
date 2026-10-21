@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import styles from "../../seller.module.css";
@@ -29,6 +29,16 @@ const formatDate = (timestamp: number) => {
 
 type OrderStatus = "processing" | "shipped" | "delivered" | "cancelled";
 
+// GIGL scan code descriptions
+const GIGL_SCAN_LABELS: Record<string, { label: string; icon: string }> = {
+  MCRT: { label: "Shipment Created", icon: "📋" },
+  MPIK: { label: "Package Picked Up", icon: "📦" },
+  APT: { label: "Arrived at Hub", icon: "🏭" },
+  WC: { label: "With Courier", icon: "🚚" },
+  SHD: { label: "Delivered", icon: "✅" },
+  OFD: { label: "Out for Delivery", icon: "🛵" },
+};
+
 export default function SellerOrderDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -37,12 +47,25 @@ export default function SellerOrderDetailPage() {
   // Query order details
   const order = useQuery(api.orders.getSellerOrderById, { orderId });
   const updateStatusMut = useMutation(api.orders.updateOrderShippingStatus);
+  const createShipment = useAction(api.gigl.createShipmentForOrder);
+  const trackShipment = useAction(api.gigl.trackShipment);
 
   // States
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>("processing");
   const [customMessage, setCustomMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
+
+  // GIGL Dispatch state
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
+
+  // GIGL Live tracking state
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const [showTracking, setShowTracking] = useState(false);
+  const [copiedWaybill, setCopiedWaybill] = useState(false);
 
   // Auto-advance status from placed to processing when viewed by merchant
   useEffect(() => {
@@ -103,7 +126,57 @@ export default function SellerOrderDetailPage() {
     }
   };
 
+  const handleDispatchWithGIGL = async () => {
+    setIsDispatching(true);
+    setDispatchError(null);
+    setDispatchSuccess(null);
+
+    try {
+      const result = await createShipment({
+        orderId,
+        storeId: order.storeId as Id<"stores"> | undefined,
+      });
+
+      if (result.success) {
+        setDispatchSuccess(`✅ Waybill generated: ${result.waybill}. GIGL courier will be notified for pickup.`);
+      } else {
+        setDispatchError("Dispatch failed. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("GIGL dispatch error:", err);
+      setDispatchError(err.message || "Failed to create GIGL shipment. Please check your store address settings.");
+    } finally {
+      setIsDispatching(false);
+    }
+  };
+
+  const handleTrackWaybill = async () => {
+    if (!order.waybillNumber) return;
+    setIsTracking(true);
+    setShowTracking(true);
+
+    try {
+      const result = await trackShipment({ waybillNumber: order.waybillNumber });
+      setTrackingData(result);
+    } catch (err: any) {
+      console.error("GIGL tracking error:", err);
+      setTrackingData({ success: false, message: err.message || "Failed to fetch tracking data.", scans: [] });
+    } finally {
+      setIsTracking(false);
+    }
+  };
+
+  const handleCopyWaybill = () => {
+    if (!order.waybillNumber) return;
+    navigator.clipboard.writeText(order.waybillNumber).then(() => {
+      setCopiedWaybill(true);
+      setTimeout(() => setCopiedWaybill(false), 2000);
+    });
+  };
+
   const statusOptions: OrderStatus[] = ["processing", "shipped", "delivered", "cancelled"];
+  const canDispatch = order.paymentStatus === "paid" && !order.waybillNumber && order.status !== "cancelled";
+  const hasWaybill = !!order.waybillNumber;
 
   return (
     <div className={styles.sellerContent}>
@@ -130,6 +203,148 @@ export default function SellerOrderDetailPage() {
         >
           Update Fulfillment Status
         </button>
+      </div>
+
+      {/* ── GIG Logistics Dispatch Card ── */}
+      <div className={styles.sellerCard} style={{ marginBottom: 20, borderColor: hasWaybill ? "var(--seller-success-border, #4ade80)" : canDispatch ? "#d4a72c" : undefined }}>
+        <div className={styles.sellerCardHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>🚚</span>
+            <h3 className={styles.sellerCardTitle} style={{ margin: 0 }}>
+              GIG Logistics Fulfillment
+            </h3>
+          </div>
+          {hasWaybill && (
+            <span style={{ fontSize: 12, fontWeight: 700, background: "#dcfce7", color: "#166534", padding: "3px 10px", borderRadius: 100 }}>
+              DISPATCHED
+            </span>
+          )}
+        </div>
+
+        <div className={styles.sellerCardBody}>
+          {hasWaybill ? (
+            // Waybill Display — already dispatched
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: "#166534" }}>Waybill No.</span>
+                  <code style={{ fontWeight: 900, fontSize: 16, color: "#15803d", letterSpacing: 1 }}>{order.waybillNumber}</code>
+                  <button
+                    onClick={handleCopyWaybill}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a", fontSize: 13, fontWeight: 700, padding: "0 6px" }}
+                    title="Copy waybill number"
+                  >
+                    {copiedWaybill ? "✅ Copied!" : "📋 Copy"}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={handleTrackWaybill}
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  disabled={isTracking}
+                  style={{ fontSize: 13 }}
+                >
+                  {isTracking ? "Fetching..." : "🔍 Refresh Live Status"}
+                </button>
+                <a
+                  href={`https://www.giglogistics.com/shipment-tracking?waybill=${order.waybillNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${styles.btn} ${styles.btnGhost}`}
+                  style={{ fontSize: 13 }}
+                >
+                  Open GIGL Tracker ↗
+                </a>
+              </div>
+
+              {/* Live tracking scans panel */}
+              {showTracking && (
+                <div style={{ marginTop: 20, borderTop: "1px solid var(--seller-content-bg)", paddingTop: 16 }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "var(--seller-text-primary)" }}>
+                    📡 Live Courier Scan History
+                  </h4>
+                  {isTracking ? (
+                    <div className={styles.skeleton} style={{ height: 80 }} />
+                  ) : trackingData?.scans?.length > 0 ? (
+                    <div className={styles.timeline}>
+                      {[...trackingData.scans].reverse().map((scan: any, idx: number) => {
+                        const meta = GIGL_SCAN_LABELS[scan.status] || { label: scan.status, icon: "📌" };
+                        return (
+                          <div key={idx} className={`${styles.timelineItem} ${idx === 0 ? styles.active : ""}`}>
+                            <div className={styles.timelineIndicator} />
+                            <div className={styles.timelineHeader}>
+                              <span className={styles.timelineStatus}>
+                                {meta.icon} {meta.label}
+                              </span>
+                              {scan.time && (
+                                <span className={styles.timelineTime}>
+                                  {new Date(scan.time).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              )}
+                            </div>
+                            <p className={styles.timelineMessage}>
+                              {scan.comment || scan.incident || "—"}
+                              {scan.location && <span style={{ color: "var(--seller-text-secondary)", fontSize: 12 }}> · {scan.location}</span>}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, color: "var(--seller-text-secondary)" }}>
+                      {trackingData?.message || "No scan records found yet. GIGL courier pickup may not have happened yet."}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : canDispatch ? (
+            // Dispatch Button — ready to dispatch
+            <div>
+              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 16 }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <p style={{ fontSize: 13, color: "var(--seller-text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                    Order is paid and ready for dispatch. Click <strong>Dispatch with GIGL</strong> to create a GIG Logistics waybill and schedule a pickup from your store.
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--seller-text-secondary)", marginTop: 8, opacity: 0.7 }}>
+                    📍 Pickup: {order.address ? `${order.address.city}, ${order.address.stateName}` : "Customer address on file"} &nbsp;|&nbsp;
+                    🚀 Method: {order.shippingMethod === "express" ? "Priority Express" : "Standard Delivery"}
+                  </p>
+                </div>
+                <button
+                  onClick={handleDispatchWithGIGL}
+                  disabled={isDispatching}
+                  className={`${styles.btn} ${styles.btnSuccess || styles.btnPrimary}`}
+                  style={{ minWidth: 180, background: "#16a34a", color: "white", border: "none", whiteSpace: "nowrap" }}
+                >
+                  {isDispatching ? "Creating shipment..." : "🚚 Dispatch with GIGL"}
+                </button>
+              </div>
+
+              {dispatchError && (
+                <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#dc2626" }}>
+                  ⚠️ {dispatchError}
+                </div>
+              )}
+              {dispatchSuccess && (
+                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#166534" }}>
+                  {dispatchSuccess}
+                </div>
+              )}
+            </div>
+          ) : (
+            // Not yet eligible
+            <p style={{ fontSize: 13, color: "var(--seller-text-secondary)", margin: 0 }}>
+              {order.paymentStatus !== "paid"
+                ? "⏳ Waiting for buyer payment confirmation before dispatch can be created."
+                : order.status === "cancelled"
+                ? "❌ This order has been cancelled and cannot be dispatched."
+                : "Shipment has already been handled for this order."}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Fulfillment Status Modal / Panel */}
@@ -233,17 +448,9 @@ export default function SellerOrderDetailPage() {
 
             {/* Financial Summary */}
             <div style={{ padding: "16px 24px", borderTop: "1px solid var(--seller-content-bg)", display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--seller-text-secondary)" }}>
-                <span>Subtotal (Your store items)</span>
-                <span>{formatCurrency(order.sellerSubtotal)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--seller-text-secondary)" }}>
-                <span>Buyer Paid Shipping ({order.shippingMethod})</span>
-                <span>{formatCurrency(order.shippingFee)}</span>
-              </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 800, color: "var(--seller-text-primary)" }}>
-                <span>Total Payment Value</span>
-                <span>{formatCurrency(order.totalAmount)}</span>
+                <span>Your Items Total</span>
+                <span>{formatCurrency(order.sellerSubtotal)}</span>
               </div>
             </div>
           </div>
@@ -331,6 +538,12 @@ export default function SellerOrderDetailPage() {
                 <span className={styles.infoRowLabel}>Fulfillment Method</span>
                 <span className={styles.infoRowValue}>{order.shippingMethod}</span>
               </div>
+              {hasWaybill && (
+                <div className={styles.infoRow}>
+                  <span className={styles.infoRowLabel}>GIGL Waybill</span>
+                  <code style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>{order.waybillNumber}</code>
+                </div>
+              )}
             </div>
           </div>
         </div>

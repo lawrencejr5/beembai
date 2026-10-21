@@ -1,13 +1,13 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 
-// Supported currencies and their approximate NGN exchange rates
+// Realistic fallback market rates (includes +3% card settlement buffer)
 const EXCHANGE_RATES: Record<string, number> = {
-  USD: 1600,
-  GBP: 2020,
-  EUR: 1750,
-  CAD: 1180,
-  AUD: 1040,
+  USD: 1373,
+  GBP: 1834,
+  EUR: 1541,
+  CAD: 976,
+  AUD: 961,
 };
 
 export { EXCHANGE_RATES };
@@ -37,6 +37,37 @@ function detectBrandFromUrl(url: string): string {
     if (hostname.includes("invicta")) return "Invicta";
   } catch { /* no-op */ }
   return "International Store";
+}
+
+/** Infer the shipping origin country (ISO-2) from the store URL */
+function detectOriginFromUrl(url: string): string {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.endsWith(".co.uk") || host.endsWith(".uk")) return "GB";
+    if (/aliexpress|temu|shein|alibaba|1688|taobao/.test(host)) return "CN";
+    if (host.endsWith(".ca")) return "CA";
+    if (host.endsWith(".com.au")) return "AU";
+    if (/\.(de|fr|it|es|nl)$/.test(host)) return "EU";
+  } catch { /* no-op */ }
+  return "US";
+}
+
+/** Category-based default weights (kg) when the page doesn't list one */
+const DEFAULT_WEIGHT_RULES: [RegExp, number][] = [
+  [/laptop|macbook|notebook/i, 2.5],
+  [/tv|television|monitor/i, 6],
+  [/phone|iphone|galaxy|pixel|tablet|ipad/i, 0.7],
+  [/headphone|earbud|airpod|speaker|watch/i, 0.5],
+  [/shoe|sneaker|boot|trainer|jordan|slide/i, 1.2],
+  [/jacket|hoodie|coat|jeans|sweater/i, 0.9],
+  [/shirt|tee|t-shirt|dress|top|short|skirt/i, 0.4],
+  [/bag|backpack|handbag|purse/i, 0.9],
+];
+
+function estimateWeightKg(title: string, extractedKg: number | null): number {
+  if (extractedKg && extractedKg > 0) return Math.round(extractedKg * 100) / 100;
+  for (const [re, kg] of DEFAULT_WEIGHT_RULES) if (re.test(title)) return kg;
+  return 1;
 }
 
 /**
@@ -70,6 +101,7 @@ export const scrapeProductUrl = action({
         },
         rating: { type: "number", description: "Star rating out of 5, if available" },
         reviewCount: { type: "number", description: "Total number of customer reviews, if available" },
+        weightKg: { type: "number", description: "Item shipping weight converted to kilograms, if listed on the page" },
       },
       required: ["title", "price"],
     };
@@ -80,7 +112,7 @@ export const scrapeProductUrl = action({
       extract: {
         schema: extractSchema,
         prompt:
-          "Extract the product title, numeric price (no symbols), currency (3-letter code like USD/GBP/EUR or the symbol), the main product image absolute URL, a short description, the brand name, whether it is in stock (true/false), available variants like sizes or colors as string array, star rating, and review count. For price output only the number.",
+          "Extract the product title, numeric price (no symbols), currency (3-letter code like USD/GBP/EUR or the symbol), the main product image absolute URL, a short description, the brand name, whether it is in stock (true/false), available variants like sizes or colors as string array, star rating, review count, and the item's shipping or package weight converted to numeric kilograms (weightKg). For price and weight output only numbers.",
       },
     };
 
@@ -178,6 +210,16 @@ export const scrapeProductUrl = action({
     const rating = typeof extract.rating === "number" ? extract.rating : null;
     const reviewCount = typeof extract.reviewCount === "number" ? extract.reviewCount : null;
 
+    let extractedWeightKg: number | null = null;
+    if (typeof extract.weightKg === "number" && extract.weightKg > 0) {
+      extractedWeightKg = extract.weightKg;
+    } else if (typeof extract.weightKg === "string") {
+      const parsed = parseFloat((extract.weightKg as string).replace(/[^0-9.]/g, ""));
+      if (!isNaN(parsed) && parsed > 0) {
+        extractedWeightKg = parsed;
+      }
+    }
+
     return {
       title,
       price,
@@ -189,6 +231,8 @@ export const scrapeProductUrl = action({
       variants,
       rating,
       reviewCount,
+      originCountry: detectOriginFromUrl(args.url),
+      weightKg: estimateWeightKg(title, extractedWeightKg),
       sourceUrl: args.url,
     };
   },
