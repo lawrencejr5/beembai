@@ -23,9 +23,11 @@ export interface Store {
   email?: string;
   phone?: string;
   bankName?: string;
+  bankCode?: string;
   accountName?: string;
   accountNumber?: string;
   routingNumber?: string;
+  recipientCode?: string;
 }
 
 export interface SellerStoreContextType {

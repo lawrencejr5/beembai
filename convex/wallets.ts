@@ -312,6 +312,12 @@ export const lockFundsForWithdrawalInternal = internalMutation({
   handler: async (ctx, args) => {
     // Ensure wallet exists before locking funds
     const wallet = await ensureStoreWallet(ctx, args.storeId);
+    const store = await ctx.db.get(args.storeId);
+    const recipientCode = wallet.recipientCode || store?.recipientCode;
+
+    if (!recipientCode) {
+      throw new Error("Cannot initiate withdrawal: Paystack recipient code does not exist for this store. Please configure bank details in Settings first.");
+    }
 
     if (args.amount > wallet.availableBalance) {
       throw new Error(`Insufficient available balance. You requested ₦${args.amount.toLocaleString()}, but only ₦${wallet.availableBalance.toLocaleString()} is available.`);
@@ -364,6 +370,7 @@ export const completeWithdrawalInternal = internalMutation({
 
 /**
  * Revert a failed withdrawal attempt (restore funds back into availableBalance & balance).
+ * Guarded with an idempotency check to ensure funds can NEVER be refunded more than once.
  */
 export const revertWithdrawalInternal = internalMutation({
   args: {
@@ -373,6 +380,13 @@ export const revertWithdrawalInternal = internalMutation({
     reason: v.string(),
   },
   handler: async (ctx, args) => {
+    const tx = await ctx.db.get(args.transactionId);
+    // Idempotency check: If transaction is already marked failed, do NOT refund again!
+    if (!tx || tx.status === "failed") {
+      console.warn(`[StoreWallet]: Transaction ${args.transactionId} is already marked failed. Skipping duplicate refund.`);
+      return;
+    }
+
     const wallet = await ensureStoreWallet(ctx, args.storeId);
 
     await ctx.db.patch(wallet._id, {
@@ -385,6 +399,46 @@ export const revertWithdrawalInternal = internalMutation({
       status: "failed",
       description: `Withdrawal failed: ${args.reason}`,
     });
+  },
+});
+
+/**
+ * Correction mutation to deduct an accidental duplicate refund if one occurred.
+ */
+export const correctAccidentalDoubleRefund = mutation({
+  args: {
+    storeId: v.id("stores"),
+    amount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await verifyStoreAccess(ctx, args.storeId);
+    const wallet = await ensureStoreWallet(ctx, args.storeId);
+
+    const now = Date.now();
+    const newBal = Math.max(0, wallet.balance - args.amount);
+    const newAvail = Math.max(0, wallet.availableBalance - args.amount);
+
+    await ctx.db.patch(wallet._id, {
+      balance: newBal,
+      availableBalance: newAvail,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("walletTransactions", {
+      walletId: wallet._id,
+      storeId: args.storeId,
+      amount: args.amount,
+      type: "adjustment",
+      status: "completed",
+      description: "Balance correction: deducted accidental duplicate reversal",
+      createdAt: now,
+    });
+
+    return {
+      success: true,
+      newBalance: newBal,
+      newAvailableBalance: newAvail,
+    };
   },
 });
 
@@ -483,25 +537,21 @@ export const initiateWithdrawal = action({
     if (!store) throw new Error("Store not found or unauthorized");
 
     if (!store.accountNumber || !store.bankCode) {
-      throw new Error("No payout bank account configured for this store. Please update your banking details in Settings.");
+      return {
+        success: false,
+        message: "No payout bank account configured for this store. Please update your banking details in Settings.",
+      };
     }
 
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    // Strictly verify that a Paystack recipient code exists before allowing withdrawal
+    const wallet = await ctx.runQuery(api.wallets.getStoreWallet, { storeId: args.storeId });
+    const recipientCode = store.recipientCode || wallet?.recipientCode;
 
-    // Ensure recipient code exists; if missing, try generating it now
-    let recipientCode = store.recipientCode;
     if (!recipientCode) {
-      const res = await ctx.runAction(api.wallets.createOrUpdatePaystackRecipientAction, {
-        storeId: args.storeId,
-        accountName: store.accountName || store.name,
-        accountNumber: store.accountNumber,
-        bankCode: store.bankCode,
-      });
-      if (res.success && res.recipientCode) {
-        recipientCode = res.recipientCode;
-      } else {
-        throw new Error("Could not verify receiving bank recipient code on Paystack. " + res.message);
-      }
+      return {
+        success: false,
+        message: "Withdrawal not allowed: Paystack transfer recipient code does not exist for this store. Please set up and verify your bank account details in Settings first.",
+      };
     }
 
     // 1. Atomically lock and deduct the funds
@@ -511,6 +561,8 @@ export const initiateWithdrawal = action({
       amount: args.amount,
       description,
     });
+
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
 
     // 2. Mock mode if no secret key configured
     if (!secretKey) {
@@ -578,7 +630,10 @@ export const initiateWithdrawal = action({
           reason: errorMsg,
         });
 
-        throw new Error(`Transfer failed: ${errorMsg}`);
+        return {
+          success: false,
+          message: `Transfer failed: ${errorMsg}`,
+        };
       }
 
       const transferData = data.data;
@@ -609,7 +664,10 @@ export const initiateWithdrawal = action({
         console.error("[Withdrawal Rollback Error]:", rollbackErr);
       }
 
-      throw new Error(err.message || "Failed to process withdrawal transfer");
+      return {
+        success: false,
+        message: err.message || "Failed to process withdrawal transfer",
+      };
     }
   },
 });

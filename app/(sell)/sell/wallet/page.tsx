@@ -71,6 +71,7 @@ export default function SellerWalletPage() {
   const availableBalance = wallet?.availableBalance ?? 0;
   const totalBalance = wallet?.balance ?? 0;
   const escrowBalance = Math.max(0, totalBalance - availableBalance);
+  const hasValidRecipient = Boolean(wallet?.hasRecipient || wallet?.recipientCode || currentStore?.recipientCode);
 
   // Filtered Transactions
   const filteredTransactions = useMemo(() => {
@@ -110,6 +111,11 @@ export default function SellerWalletPage() {
     e.preventDefault();
     if (!targetStoreId) return;
 
+    if (!hasValidRecipient) {
+      setWithdrawError("Cannot withdraw: No Paystack recipient code found for this store. Please configure and verify your bank details in Settings first.");
+      return;
+    }
+
     const amountNum = parseFloat(withdrawAmount);
     if (isNaN(amountNum) || amountNum < 1000) {
       setWithdrawError("Minimum withdrawal amount is ₦1,000.");
@@ -118,11 +124,6 @@ export default function SellerWalletPage() {
 
     if (amountNum > availableBalance) {
       setWithdrawError(`Amount exceeds your available balance of ${formatCurrency(availableBalance)}.`);
-      return;
-    }
-
-    if (!wallet?.hasRecipient && !wallet?.recipientCode) {
-      setWithdrawError("Please set up and verify your bank account details in Settings before withdrawing.");
       return;
     }
 
@@ -190,8 +191,14 @@ export default function SellerWalletPage() {
               setWithdrawSuccess("");
               setIsWithdrawOpen(true);
             }}
-            disabled={availableBalance < 1000}
-            title={availableBalance < 1000 ? "Minimum available balance of ₦1,000 required to withdraw" : "Withdraw funds to bank"}
+            disabled={availableBalance < 1000 || !hasValidRecipient}
+            title={
+              !hasValidRecipient
+                ? "Please set up and verify your bank account in Settings to generate a Paystack recipient code before withdrawing"
+                : availableBalance < 1000
+                ? "Minimum available balance of ₦1,000 required to withdraw"
+                : "Withdraw funds to bank"
+            }
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -477,6 +484,16 @@ export default function SellerWalletPage() {
 
             <form onSubmit={handleWithdrawSubmit}>
               <div className={styles.modalBody}>
+                {!hasValidRecipient && (
+                  <div className={`${styles.alertBox} ${styles.alertError}`} style={{ marginBottom: 16 }}>
+                    <strong>Paystack Recipient Missing:</strong> No transfer recipient code has been generated for this store. Please{" "}
+                    <Link href="/sell/settings" style={{ textDecoration: "underline", fontWeight: 700 }}>
+                      update and verify your bank account details in Settings
+                    </Link>{" "}
+                    first before withdrawing.
+                  </div>
+                )}
+
                 {withdrawError && (
                   <div className={`${styles.alertBox} ${styles.alertError}`}>
                     {withdrawError}
@@ -573,7 +590,7 @@ export default function SellerWalletPage() {
                 <button
                   type="submit"
                   className={styles.confirmWithdrawBtn}
-                  disabled={isSubmitting || !withdrawAmount || parseFloat(withdrawAmount) < 1000}
+                  disabled={isSubmitting || !hasValidRecipient || !withdrawAmount || parseFloat(withdrawAmount) < 1000}
                 >
                   {isSubmitting ? "Processing Transfer..." : "Confirm & Withdraw"}
                 </button>
