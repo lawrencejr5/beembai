@@ -254,4 +254,11 @@ export default defineSchema({
     .index("by_productId", ["productId"])
     .index("by_storeId", ["storeId"])
     .index("by_userId_and_productId", ["userId", "productId"]),
+
+  exchangeRates: defineTable({
+    rates: v.record(v.string(), v.number()),
+    baseCurrency: v.string(),
+    bufferPercent: v.number(),
+    updatedAt: v.number(),
+  }),
 });

@@ -1,13 +1,13 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 
-// Supported currencies and their approximate NGN exchange rates
+// Realistic fallback market rates (includes +3% card settlement buffer)
 const EXCHANGE_RATES: Record<string, number> = {
-  USD: 1600,
-  GBP: 2020,
-  EUR: 1750,
-  CAD: 1180,
-  AUD: 1040,
+  USD: 1373,
+  GBP: 1834,
+  EUR: 1541,
+  CAD: 976,
+  AUD: 961,
 };
 
 export { EXCHANGE_RATES };

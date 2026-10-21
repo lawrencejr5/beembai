@@ -5,7 +5,7 @@ import Image from "next/image";
 import Navbar from "@/app/components/Navbar";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/data/data";
-import { useMutation, useAction } from "convex/react";
+import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import styles from "./page.module.css";
 // Supported Stores Data
@@ -78,22 +78,18 @@ const SUPPORTED_STORES = [
   },
 ];
 
-// Exchange rate constants (currency → NGN)
-const EXCHANGE_RATES: Record<string, number> = {
-  USD: 1600,
-  GBP: 2020,
-  EUR: 1750,
-  CAD: 1180,
-  AUD: 1040,
+// Fallback exchange rate constants (currency → NGN) if live feed is temporarily unavailable
+const FALLBACK_EXCHANGE_RATES: Record<string, number> = {
+  USD: 1373,
+  GBP: 1834,
+  EUR: 1541,
+  CAD: 976,
+  AUD: 961,
 };
-const DEFAULT_EXCHANGE_RATE = 1600;
+const DEFAULT_FALLBACK_RATE = 1373;
 
 const CUSTOMS_TAX_RATE = 0.1; // 10% customs/clearing tax
 const SERVICE_FEE_RATE = 0.05; // 5% service fee
-
-function getExchangeRate(currency: string): number {
-  return EXCHANGE_RATES[currency?.toUpperCase()] ?? DEFAULT_EXCHANGE_RATE;
-}
 
 // Simple link validator
 const isValidUrl = (urlString: string) => {
@@ -222,10 +218,19 @@ interface ScrapedProduct {
 
 export default function BuyFromAbroad() {
   const { addToCart } = useCart();
+  const liveRatesData = useQuery(api.exchangeRates.getExchangeRates);
+  const refreshRates = useAction(api.exchangeRates.refreshLiveRates);
   const saveForeignProductToDb = useMutation(api.products.createForeignProduct);
   const scrapeProductUrl = useAction(api.foreignScrape.scrapeProductUrl);
   const [urlInput, setUrlInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-refresh exchange rates in the background if stale or empty
+  useEffect(() => {
+    if (liveRatesData?.isStale) {
+      refreshRates({}).catch((err) => console.warn("Background FX refresh error:", err));
+    }
+  }, [liveRatesData?.isStale, refreshRates]);
 
   // Scraping loading state
   const [isScraping, setIsScraping] = useState(false);
@@ -296,10 +301,18 @@ export default function BuyFromAbroad() {
     }
   };
 
-  // Pricing calculations (currency-aware)
+  // Pricing calculations (currency-aware with live market rates + buffer)
+  const getExchangeRate = (currency: string): number => {
+    const code = currency?.toUpperCase();
+    if (liveRatesData?.rates && typeof liveRatesData.rates[code] === "number") {
+      return liveRatesData.rates[code];
+    }
+    return FALLBACK_EXCHANGE_RATES[code] ?? DEFAULT_FALLBACK_RATE;
+  };
+
   const exchangeRate = scrapedProduct
     ? getExchangeRate(scrapedProduct.currency)
-    : DEFAULT_EXCHANGE_RATE;
+    : (liveRatesData?.rates?.USD ?? DEFAULT_FALLBACK_RATE);
   const productPriceNaira = scrapedProduct
     ? Math.round(scrapedProduct.price * exchangeRate)
     : 0;
@@ -685,8 +698,16 @@ export default function BuyFromAbroad() {
                   </div>
 
                   <div className={styles.exchangeRateNote}>
-                    Exchange Rate: 1 {scrapedProduct.currency} = ₦
-                    {exchangeRate.toLocaleString()}
+                    <span className={styles.liveBadge}>
+                      <span className={styles.liveDot} />
+                      Live Market Rate
+                    </span>
+                    <span>
+                      1 {scrapedProduct.currency} = ₦{exchangeRate.toLocaleString()}
+                    </span>
+                    <span className={styles.bufferSubtext}>
+                      (Real-time FX + {liveRatesData?.bufferPercent ?? 3}% bank card buffer)
+                    </span>
                   </div>
 
                   <div className={styles.totalRow}>
