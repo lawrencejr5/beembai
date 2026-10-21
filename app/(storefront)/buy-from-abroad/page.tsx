@@ -2,12 +2,26 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/data/data";
-import { useMutation, useAction } from "convex/react";
+import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import styles from "./page.module.css";
+import { GIGL_STATIONS } from "@/convex/giglStations";
+
+// Unique Nigerian states available for delivery quotes
+const DELIVERY_STATES: string[] = Array.from(
+  new Set(Object.values(GIGL_STATIONS).map((s) => s.stateName)),
+).sort();
+
+interface ShippingQuote {
+  shippingFeeNgn: number;
+  carrier: string;
+  estimatedDelivery: string;
+  isFallback: boolean;
+}
 
 // Supported Stores Data
 const SUPPORTED_STORES = [
@@ -90,7 +104,6 @@ const EXCHANGE_RATES: Record<string, number> = {
 const DEFAULT_EXCHANGE_RATE = 1600;
 
 const CUSTOMS_TAX_RATE = 0.1; // 10% customs/clearing tax
-const FLAT_SHIPPING_USD = 15; // $15 flat shipping fee
 const SERVICE_FEE_RATE = 0.05; // 5% service fee
 
 function getExchangeRate(currency: string): number {
@@ -206,6 +219,29 @@ const CheckIcon = () => (
   </svg>
 );
 
+const LocationIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+    />
+  </svg>
+);
+
 interface ScrapedProduct {
   title: string;
   price: number; // numeric price in the original currency
@@ -218,12 +254,49 @@ interface ScrapedProduct {
   variants: string[];
   rating: number | null;
   reviewCount: number | null;
+  originCountry: string; // ISO-2, e.g. "US", "GB", "CN"
+  weightKg: number;
 }
 
 export default function BuyFromAbroad() {
   const { addToCart } = useCart();
   const saveForeignProductToDb = useMutation(api.products.createForeignProduct);
   const scrapeProductUrl = useAction(api.foreignScrape.scrapeProductUrl);
+  const getInboundQuote = useAction(api.gigl.calculateInboundShippingFee);
+
+  // User saved shipping addresses
+  const addresses = useQuery(api.addresses.getUserAddresses);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [customState, setCustomState] = useState("LAGOS");
+
+  // Auto-select user's default saved address or the first address
+  useEffect(() => {
+    if (addresses && addresses.length > 0 && !selectedAddressId) {
+      const def = addresses.find((a: any) => a.isDefault) || addresses[0];
+      if (def) setSelectedAddressId(def._id);
+    }
+  }, [addresses, selectedAddressId]);
+
+  const activeAddress =
+    selectedAddressId && selectedAddressId !== "__custom__"
+      ? addresses?.find((a: any) => a._id === selectedAddressId)
+      : null;
+
+  const receiverState = activeAddress ? activeAddress.stateName : customState;
+  const receiverAddress = activeAddress
+    ? [
+        activeAddress.streetAddress,
+        activeAddress.apartment,
+        activeAddress.city,
+        activeAddress.stateName,
+        activeAddress.country,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : undefined;
+
+  const [quote, setQuote] = useState<ShippingQuote | null>(null);
+  const [isQuoting, setIsQuoting] = useState(false);
 
   const [urlInput, setUrlInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -285,6 +358,8 @@ export default function BuyFromAbroad() {
         variants: result.variants,
         rating: result.rating,
         reviewCount: result.reviewCount,
+        originCountry: result.originCountry,
+        weightKg: result.weightKg,
       });
     } catch (err: unknown) {
       const msg =
@@ -303,10 +378,51 @@ export default function BuyFromAbroad() {
     ? Math.round(scrapedProduct.price * exchangeRate)
     : 0;
   const customsTaxNaira = Math.round(productPriceNaira * CUSTOMS_TAX_RATE);
-  const shippingNaira = Math.round(FLAT_SHIPPING_USD * DEFAULT_EXCHANGE_RATE);
+  const shippingNaira = quote?.shippingFeeNgn ?? 0;
   const serviceFeeNaira = Math.round(productPriceNaira * SERVICE_FEE_RATE);
   const totalNaira =
     productPriceNaira + customsTaxNaira + shippingNaira + serviceFeeNaira;
+
+  // Live GIGL inbound shipping quote (debounced) whenever price/weight/origin/destination change
+  const quoteKey = scrapedProduct
+    ? `${productPriceNaira}|${scrapedProduct.weightKg}|${scrapedProduct.originCountry}|${receiverState}|${receiverAddress || ""}`
+    : null;
+  useEffect(() => {
+    if (!scrapedProduct || productPriceNaira <= 0) {
+      setQuote(null);
+      return;
+    }
+    let cancelled = false;
+    setIsQuoting(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await getInboundQuote({
+          originCountry: scrapedProduct.originCountry,
+          receiverState,
+          receiverAddress,
+          declaredValueNgn: productPriceNaira,
+          weightKg: scrapedProduct.weightKg,
+        });
+        if (!cancelled) {
+          setQuote({
+            shippingFeeNgn: res.shippingFeeNgn,
+            carrier: res.carrier,
+            estimatedDelivery: res.estimatedDelivery,
+            isFallback: res.isFallback,
+          });
+        }
+      } catch {
+        if (!cancelled) setQuote(null);
+      } finally {
+        if (!cancelled) setIsQuoting(false);
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteKey]);
 
   // Handle local data updates if user overrides
   const handleUpdateField = (
@@ -338,6 +454,7 @@ export default function BuyFromAbroad() {
         inStock: scrapedProduct.inStock,
         sourceUrl: scrapedProduct.url,
         variants: scrapedProduct.variants,
+        weightKg: scrapedProduct.weightKg,
       });
 
       // Add to cart context (Convex or Guest)
@@ -572,6 +689,22 @@ export default function BuyFromAbroad() {
                           className={styles.formInput}
                         />
                       </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Weight (kg)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          value={scrapedProduct.weightKg}
+                          onChange={(e) =>
+                            handleUpdateField(
+                              "weightKg",
+                              Math.max(0.1, parseFloat(e.target.value) || 0.1),
+                            )
+                          }
+                          className={styles.formInput}
+                        />
+                      </div>
                     </div>
 
                     <div className={styles.formGrid}>
@@ -615,6 +748,150 @@ export default function BuyFromAbroad() {
                   <h3 className={styles.pricingTitle}>Naira Price Breakdown</h3>
                 </div>
 
+                <div className={styles.formGroup} style={{ marginBottom: 12 }}>
+                  <label
+                    className={styles.formLabel}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <LocationIcon />
+                      {addresses && addresses.length > 0
+                        ? "Delivery Address"
+                        : "Deliver to (State)"}
+                    </span>
+                    <Link
+                      href="/addresses"
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "var(--color-palm)",
+                        textTransform: "none",
+                        fontWeight: 700,
+                        textDecoration: "underline",
+                      }}
+                    >
+                      {addresses && addresses.length > 0
+                        ? "Manage addresses"
+                        : "+ Add saved address"}
+                    </Link>
+                  </label>
+
+                  {addresses && addresses.length > 0 ? (
+                    <>
+                      <select
+                        value={selectedAddressId || ""}
+                        onChange={(e) => setSelectedAddressId(e.target.value)}
+                        className={styles.formSelect}
+                      >
+                        {addresses.map((addr: any) => (
+                          <option key={addr._id} value={addr._id}>
+                            {addr.fullName} — {addr.streetAddress}, {addr.city},{" "}
+                            {addr.stateName} {addr.isDefault ? "(Default)" : ""}
+                          </option>
+                        ))}
+                        <option value="__custom__">
+                          + Quote another state / location
+                        </option>
+                      </select>
+
+                      {activeAddress && (
+                        <div
+                          style={{
+                            marginTop: 8,
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            fontSize: "0.82rem",
+                            backgroundColor: "var(--color-cream)",
+                            border: "1px solid var(--color-border)",
+                            color: "var(--color-olive-gray)",
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              color: "var(--color-papyrus)",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {activeAddress.fullName}{" "}
+                            {activeAddress.phone && `· ${activeAddress.phone}`}
+                            {activeAddress.isDefault && (
+                              <span
+                                style={{
+                                  marginLeft: 6,
+                                  fontSize: "0.7rem",
+                                  backgroundColor: "var(--color-palm)",
+                                  color: "#ffffff",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            {[
+                              activeAddress.streetAddress,
+                              activeAddress.apartment,
+                              activeAddress.city,
+                              activeAddress.stateName,
+                              activeAddress.country,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAddressId === "__custom__" && (
+                        <div style={{ marginTop: 8 }}>
+                          <label
+                            className={styles.formLabel}
+                            style={{ fontSize: "0.75rem", marginBottom: 4 }}
+                          >
+                            Select Destination State
+                          </label>
+                          <select
+                            value={customState}
+                            onChange={(e) => setCustomState(e.target.value)}
+                            className={styles.formSelect}
+                          >
+                            {DELIVERY_STATES.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <select
+                      value={customState}
+                      onChange={(e) => setCustomState(e.target.value)}
+                      className={styles.formSelect}
+                    >
+                      {DELIVERY_STATES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
                 <div className={styles.pricingRows}>
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
@@ -645,12 +922,20 @@ export default function BuyFromAbroad() {
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
                       International Shipping:
-                      <span title="Flat fee for air shipping logistics to Nigeria">
+                      <span title="Live GIG Logistics rate from the store's country to your state, based on weight">
                         <InfoIcon />
                       </span>
                     </span>
                     <span className={styles.priceValue}>
-                      ${FLAT_SHIPPING_USD}.00 → ₦{formatPrice(shippingNaira)}
+                      {isQuoting || !quote
+                        ? "Calculating..."
+                        : `₦${formatPrice(shippingNaira)}`}
+                      {quote && !isQuoting && (
+                        <small style={{ display: "block", opacity: 0.7 }}>
+                          {quote.carrier} · {quote.estimatedDelivery}
+                          {quote.isFallback ? " · estimated" : ""}
+                        </small>
+                      )}
                     </span>
                   </div>
 
@@ -684,7 +969,11 @@ export default function BuyFromAbroad() {
                 <button
                   onClick={handleAddToCart}
                   disabled={
-                    isAdding || totalNaira <= 0 || !scrapedProduct.inStock
+                    isAdding ||
+                    isQuoting ||
+                    !quote ||
+                    totalNaira <= 0 ||
+                    !scrapedProduct.inStock
                   }
                   className={styles.addToCartBtn}
                 >

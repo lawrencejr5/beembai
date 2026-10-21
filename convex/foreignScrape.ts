@@ -39,6 +39,37 @@ function detectBrandFromUrl(url: string): string {
   return "International Store";
 }
 
+/** Infer the shipping origin country (ISO-2) from the store URL */
+function detectOriginFromUrl(url: string): string {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.endsWith(".co.uk") || host.endsWith(".uk")) return "GB";
+    if (/aliexpress|temu|shein|alibaba|1688|taobao/.test(host)) return "CN";
+    if (host.endsWith(".ca")) return "CA";
+    if (host.endsWith(".com.au")) return "AU";
+    if (/\.(de|fr|it|es|nl)$/.test(host)) return "EU";
+  } catch { /* no-op */ }
+  return "US";
+}
+
+/** Category-based default weights (kg) when the page doesn't list one */
+const DEFAULT_WEIGHT_RULES: [RegExp, number][] = [
+  [/laptop|macbook|notebook/i, 2.5],
+  [/tv|television|monitor/i, 6],
+  [/phone|iphone|galaxy|pixel|tablet|ipad/i, 0.7],
+  [/headphone|earbud|airpod|speaker|watch/i, 0.5],
+  [/shoe|sneaker|boot|trainer|jordan|slide/i, 1.2],
+  [/jacket|hoodie|coat|jeans|sweater/i, 0.9],
+  [/shirt|tee|t-shirt|dress|top|short|skirt/i, 0.4],
+  [/bag|backpack|handbag|purse/i, 0.9],
+];
+
+function estimateWeightKg(title: string, extractedKg: number | null): number {
+  if (extractedKg && extractedKg > 0) return Math.round(extractedKg * 100) / 100;
+  for (const [re, kg] of DEFAULT_WEIGHT_RULES) if (re.test(title)) return kg;
+  return 1;
+}
+
 /**
  * Scrape a product URL using Firecrawl's /v1/scrape endpoint with
  * structured JSON extraction. Returns a normalized product object.
@@ -70,6 +101,7 @@ export const scrapeProductUrl = action({
         },
         rating: { type: "number", description: "Star rating out of 5, if available" },
         reviewCount: { type: "number", description: "Total number of customer reviews, if available" },
+        weightKg: { type: "number", description: "Item shipping weight converted to kilograms, if listed on the page" },
       },
       required: ["title", "price"],
     };
@@ -189,6 +221,11 @@ export const scrapeProductUrl = action({
       variants,
       rating,
       reviewCount,
+      originCountry: detectOriginFromUrl(args.url),
+      weightKg: estimateWeightKg(
+        title,
+        typeof extract.weightKg === "number" ? extract.weightKg : null,
+      ),
       sourceUrl: args.url,
     };
   },

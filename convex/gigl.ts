@@ -238,6 +238,143 @@ export const calculateShippingFee = action({
   },
 });
 
+// ── Inbound International (abroad → Nigeria) ───────────────
+
+// GIGL country IDs supported by /intlShipment/inbound/price
+const INBOUND_COUNTRIES: Record<
+  "GB" | "US" | "CN",
+  { countryId: number; centreEnv: string; defaultCentreId?: number }
+> = {
+  GB: { countryId: 62, centreEnv: "GIGL_INTL_CENTRE_UK", defaultCentreId: 370 },
+  US: { countryId: 207, centreEnv: "GIGL_INTL_CENTRE_US" },
+  CN: { countryId: 43, centreEnv: "GIGL_INTL_CENTRE_CN" },
+};
+
+// Fallback rate card (NGN) used when GIGL is unavailable / unconfigured.
+const INBOUND_FALLBACK_RATES: Record<
+  string,
+  { base: number; perExtraKg: number; days: string }
+> = {
+  GB: { base: 20000, perExtraKg: 9000, days: "5 - 8 business days" },
+  US: { base: 22000, perExtraKg: 10000, days: "5 - 8 business days" },
+  CN: { base: 16000, perExtraKg: 7000, days: "7 - 14 business days" },
+  OTHER: { base: 24000, perExtraKg: 11000, days: "7 - 12 business days" },
+};
+
+/**
+ * Quote GIG Logistics inbound international shipping to Nigeria.
+ * Supported origins: UK, USA, China. Other origins use the fallback rate card.
+ */
+export const calculateInboundShippingFee = action({
+  args: {
+    originCountry: v.string(), // ISO-2 e.g. "US", "GB", "CN"
+    receiverState: v.string(),
+    receiverAddress: v.optional(v.string()),
+    declaredValueNgn: v.number(),
+    weightKg: v.number(),
+    lengthCm: v.optional(v.number()),
+    widthCm: v.optional(v.number()),
+    heightCm: v.optional(v.number()),
+    quantity: v.optional(v.number()),
+  },
+  handler: async (_ctx, args) => {
+    const origin = args.originCountry.toUpperCase();
+    const weightKg = Math.max(0.1, Number(args.weightKg.toFixed(2)));
+    const quantity = Math.max(1, Math.round(args.quantity ?? 1));
+    const receiverStation = resolveGIGLStation(args.receiverState);
+
+    const fallback = (reason: string) => {
+      const rate = INBOUND_FALLBACK_RATES[origin] ?? INBOUND_FALLBACK_RATES.OTHER;
+      const totalKg = weightKg * quantity;
+      const shippingFeeNgn =
+        rate.base + Math.max(0, Math.ceil(totalKg - 1)) * rate.perExtraKg;
+      return {
+        success: false as const,
+        isFallback: true,
+        error: reason,
+        shippingFeeNgn,
+        vatNgn: 0,
+        insuranceNgn: 0,
+        carrier: "GIG Logistics",
+        estimatedDelivery: rate.days,
+        weightKg: totalKg,
+        receiverStation: receiverStation.stationName,
+      };
+    };
+
+    const config = INBOUND_COUNTRIES[origin as keyof typeof INBOUND_COUNTRIES];
+    if (!config) {
+      return fallback(`Origin ${origin} is not supported by GIGL inbound.`);
+    }
+
+    const envCentre = process.env[config.centreEnv];
+    const centreId = envCentre ? Number(envCentre) : config.defaultCentreId;
+    if (!centreId || Number.isNaN(centreId)) {
+      return fallback(`${config.centreEnv} is not configured.`);
+    }
+
+    const hasDims = args.lengthCm && args.widthCm && args.heightCm;
+    const payload = {
+      SenderDetails: {
+        DepartureCountryId: config.countryId,
+        DepartureServiceCentreId: centreId,
+      },
+      ReceiverDetails: {
+        ReceiverAddress:
+          args.receiverAddress || `${receiverStation.stationName}, Nigeria`,
+        ReceiverState: receiverStation.stateName,
+        ReceiverCountry: "Nigeria",
+      },
+      DeclaredValue: Math.max(1, Math.round(args.declaredValueNgn)),
+      ShipmentItems: [
+        {
+          InternationalShipmentItemType: 0, // non-document
+          Quantity: quantity,
+          Weight: weightKg,
+          Length: hasDims ? args.lengthCm : 30,
+          Width: hasDims ? args.widthCm : 25,
+          Height: hasDims ? args.heightCm : 10,
+        },
+      ],
+    };
+
+    try {
+      const response = await giglFetch("/intlShipment/inbound/price", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const quote = Array.isArray(response?.data)
+        ? response.data[0]
+        : Array.isArray(response?.data?.data)
+          ? response.data.data[0]
+          : null;
+
+      const total = Number(quote?.grandTotal ?? quote?.amount);
+      if (!quote || !Number.isFinite(total) || total <= 0) {
+        throw new Error(response?.message || "GIGL returned no inbound quote.");
+      }
+
+      return {
+        success: true as const,
+        isFallback: false,
+        shippingFeeNgn: Math.round(total), // grandTotal already includes VAT/insurance
+        vatNgn: Math.round(Number(quote.vat) || 0),
+        insuranceNgn: Math.round(Number(quote.insurance) || 0),
+        carrier: String(quote.logisticsCompanyMap || "GIG Logistics"),
+        estimatedDelivery: quote.estimatedDeliveryDateAndTime
+          ? String(quote.estimatedDeliveryDateAndTime)
+          : INBOUND_FALLBACK_RATES[origin].days,
+        weightKg: weightKg * quantity,
+        receiverStation: receiverStation.stationName,
+      };
+    } catch (err: any) {
+      console.error("GIGL inbound price fallback triggered:", err.message);
+      return fallback(err.message);
+    }
+  },
+});
+
 /**
  * Fetches physical GIGL service centres / pickup stations for a given state or city.
  */
