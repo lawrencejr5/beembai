@@ -267,8 +267,11 @@ export default function AdminProductsPage() {
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
-    if (!term) return products ?? [];
-    return (products ?? []).filter(
+    const base = (products ?? []).filter(
+      (p) => p.categorySlug !== "foreign-import" && p.tag !== "import",
+    );
+    if (!term) return base;
+    return base.filter(
       (p) =>
         p.title.toLowerCase().includes(term) ||
         p.storeName.toLowerCase().includes(term) ||
