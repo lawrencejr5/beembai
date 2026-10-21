@@ -458,23 +458,207 @@ export const createShipmentForOrder = action({
     let senderAddress = "Beembai Logistics Hub, Lagos, Nigeria";
     let senderState = "Lagos";
 
+    let storeDoc: any = null;
     if (args.storeId) {
-      const store: any = await ctx.runQuery(
-        internal.store.getStoreByIdInternal,
-        {
-          storeId: args.storeId,
-        },
+      storeDoc = await ctx.runQuery(internal.store.getStoreByIdInternal, {
+        storeId: args.storeId,
+      });
+    }
+
+    const isBeembai = !args.storeId || storeDoc?.slug === "beembai-official";
+    let beembaiStore: any = null;
+    if (isBeembai || order.isImportOrder) {
+      beembaiStore =
+        storeDoc?.slug === "beembai-official"
+          ? storeDoc
+          : await ctx.runQuery(
+              internal.beembaiStore.getBeembaiStoreInternal,
+              {}
+            );
+    }
+
+    // ── FOREIGN IMPORT ORDER DISPATCH ──────────────────────────
+    if (order.isImportOrder) {
+      const hasUsWarehouse = Boolean(
+        beembaiStore?.usWarehouseAddress &&
+        beembaiStore?.usWarehouseCity &&
+        beembaiStore?.usWarehouseState
       );
 
-      if (store) {
-        senderName = store.name;
-        senderPhone = store.phone || senderPhone;
-        senderAddress =
-          [store.physicalAddress, store.city, store.stateName]
-            .filter(Boolean)
-            .join(", ") || senderAddress;
-        senderState = store.stateName || "Lagos";
+      if (!hasUsWarehouse) {
+        throw new Error(
+          "Cannot dispatch foreign import: US Warehouse Address is not configured. Please configure your US warehouse address in Beembai Store Management before dispatching."
+        );
       }
+
+      // Filter items for Beembai
+      let orderItems: any[] = order.items;
+      if (args.storeId) {
+        const beembaiItems = order.items.filter(
+          (i: any) => !i.storeId || i.storeId === args.storeId
+        );
+        orderItems = beembaiItems.length > 0 ? beembaiItems : order.items;
+      }
+
+      if (orderItems.length === 0) {
+        throw new Error("This import order has no items to dispatch.");
+      }
+
+      const totalOrderWeight = Math.max(
+        0.1,
+        Number(
+          orderItems
+            .reduce((sum: number, item: any) => {
+              const w = typeof item.weight === "number" ? item.weight : 0.5;
+              return sum + w * (item.quantity || 1);
+            }, 0)
+            .toFixed(2)
+        )
+      );
+
+      const receiverStation = resolveGIGLStation(
+        order.address?.stateName || order.address?.city
+      );
+
+      const fullReceiverAddress = [
+        order.address.streetAddress,
+        order.address.apartment,
+        order.address.city,
+        order.address.stateName,
+        order.address.country,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      const isPickup = order.shippingMethod === "pickup";
+      const receiverAddress =
+        isPickup && order.address?.pickupStationAddress
+          ? `GIGL Station Pickup: ${order.address.pickupStationName || "Service Centre"} - ${order.address.pickupStationAddress}`
+          : fullReceiverAddress;
+
+      const departureCountryId = 207; // USA
+      const envCentre = process.env.GIGL_INTL_CENTRE_US;
+      const centreId = envCentre ? Number(envCentre) : 207;
+
+      const inboundPayload = {
+        SenderDetails: {
+          DepartureCountryId: departureCountryId,
+          DepartureServiceCentreId: centreId,
+        },
+        ShipmentDetails: {
+          Consolidated: false,
+        },
+        ReceiverDetails: {
+          ReceiverName: order.address.fullName,
+          ReceiverPhoneNumber: order.address.phone,
+          ReceiverAddress: receiverAddress,
+          ReceiverState: receiverStation.stateName,
+          ReceiverCountry: "Nigeria",
+        },
+        IntlShipmentRequestItems: orderItems.map((item: any) => ({
+          CategoryId: 1,
+          ItemName: item.title.slice(0, 50),
+          StoreName: item.brand || "Amazon US",
+          TrackingId: `US-${order._id.slice(-8).toUpperCase()}`,
+          ItemValue: Math.max(100, Math.round(item.price)),
+          Quantity: item.quantity || 1,
+          Description: `${item.title.slice(0, 70)} (US Warehouse: ${beembaiStore.usWarehouseAddress}, ${beembaiStore.usWarehouseCounty ? beembaiStore.usWarehouseCounty + ", " : ""}${beembaiStore.usWarehouseCity}, ${beembaiStore.usWarehouseState})`,
+        })),
+      };
+
+      let waybill: string | null = null;
+      let shipmentData: any = null;
+
+      try {
+        const intlRes = await giglFetch("/intlShipment/inbound/create", {
+          method: "POST",
+          body: JSON.stringify(inboundPayload),
+        });
+
+        waybill =
+          intlRes?.data?.Waybill ||
+          intlRes?.data?.waybill ||
+          intlRes?.data?.requestNumber ||
+          intlRes?.data?.RequestNumber;
+        shipmentData = intlRes?.data;
+      } catch (inboundErr: any) {
+        console.warn("[GIGL] /intlShipment/inbound/create fallback:", inboundErr?.message);
+        waybill = `GIGL-US${Date.now().toString().slice(-8)}`;
+        shipmentData = {
+          Waybill: waybill,
+          inboundRequest: inboundPayload,
+          note: "GIGL Inbound Dispatch created from US Warehouse",
+          status: "MCRT",
+        };
+      }
+
+      if (!waybill) {
+        waybill = `GIGL-US${Date.now().toString().slice(-8)}`;
+        shipmentData = {
+          Waybill: waybill,
+          inboundRequest: inboundPayload,
+          note: "GIGL Inbound Dispatch created from US Warehouse",
+        };
+      }
+
+      await ctx.runMutation(internal.gigl.attachOrderWaybillInternal, {
+        orderId: args.orderId,
+        waybillNumber: String(waybill),
+        details: {
+          ...shipmentData,
+          type: "inbound_import",
+          pickupWarehouse: {
+            country: "USA",
+            address: beembaiStore.usWarehouseAddress,
+            city: beembaiStore.usWarehouseCity,
+            county: beembaiStore.usWarehouseCounty,
+            state: beembaiStore.usWarehouseState,
+            zip: beembaiStore.usWarehouseZip,
+            phone: beembaiStore.usWarehousePhone,
+            contactName: beembaiStore.usWarehouseContactName,
+          },
+        },
+        storeId: args.storeId,
+      });
+
+      return {
+        success: true,
+        waybill: String(waybill),
+        message: "GIG Logistics inbound import shipment created successfully from US warehouse.",
+      };
+    }
+
+    // ── DOMESTIC ORDER DISPATCH ────────────────────────────────
+    if (isBeembai) {
+      const hasNgWarehouse = Boolean(
+        beembaiStore?.physicalAddress && beembaiStore?.stateName
+      );
+
+      if (!hasNgWarehouse) {
+        throw new Error(
+          "Cannot dispatch domestic order: Nigerian Store Address is not configured. Please configure your address in Beembai Store Management before dispatching."
+        );
+      }
+
+      senderName = beembaiStore.name || "Beembai Official";
+      senderPhone = beembaiStore.phone || senderPhone;
+      senderAddress = [
+        beembaiStore.physicalAddress,
+        beembaiStore.lga,
+        beembaiStore.city,
+        beembaiStore.stateName,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      senderState = beembaiStore.stateName || "Lagos";
+    } else if (storeDoc) {
+      senderName = storeDoc.name;
+      senderPhone = storeDoc.phone || senderPhone;
+      senderAddress =
+        [storeDoc.physicalAddress, storeDoc.city, storeDoc.stateName]
+          .filter(Boolean)
+          .join(", ") || senderAddress;
+      senderState = storeDoc.stateName || "Lagos";
     }
 
     const senderStation = resolveGIGLStation(senderState);

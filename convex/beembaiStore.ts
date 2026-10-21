@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
@@ -83,6 +83,16 @@ export const getBeembaiStore = query({
   },
 });
 
+export const getBeembaiStoreInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("stores")
+      .withIndex("by_slug", (q) => q.eq("slug", BEEMBAI_STORE_SLUG))
+      .unique();
+  },
+});
+
 // ── Mutation: Update Beembai Official Store settings ──────
 export const updateBeembaiStore = mutation({
   args: {
@@ -93,10 +103,20 @@ export const updateBeembaiStore = mutation({
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     physicalAddress: v.optional(v.string()),
+    addressLine2: v.optional(v.string()),
     city: v.optional(v.string()),
+    lga: v.optional(v.string()),
     stateName: v.optional(v.string()),
     country: v.optional(v.string()),
     bannerMessage: v.optional(v.string()),
+    // US Fulfillment Warehouse (Foreign Imports)
+    usWarehouseAddress: v.optional(v.string()),
+    usWarehouseCity: v.optional(v.string()),
+    usWarehouseCounty: v.optional(v.string()),
+    usWarehouseState: v.optional(v.string()),
+    usWarehouseZip: v.optional(v.string()),
+    usWarehousePhone: v.optional(v.string()),
+    usWarehouseContactName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);

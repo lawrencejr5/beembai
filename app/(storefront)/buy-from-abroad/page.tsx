@@ -228,7 +228,9 @@ export default function BuyFromAbroad() {
   // Auto-refresh exchange rates in the background if stale or empty
   useEffect(() => {
     if (liveRatesData?.isStale) {
-      refreshRates({}).catch((err) => console.warn("Background FX refresh error:", err));
+      refreshRates({}).catch((err) =>
+        console.warn("Background FX refresh error:", err),
+      );
     }
   }, [liveRatesData?.isStale, refreshRates]);
 
@@ -318,8 +320,7 @@ export default function BuyFromAbroad() {
     : 0;
   const customsTaxNaira = Math.round(productPriceNaira * CUSTOMS_TAX_RATE);
   const serviceFeeNaira = Math.round(productPriceNaira * SERVICE_FEE_RATE);
-  const totalNaira =
-    productPriceNaira + customsTaxNaira + serviceFeeNaira;
+  const totalNaira = productPriceNaira + customsTaxNaira + serviceFeeNaira;
 
   // Handle local data updates if user overrides
   const handleUpdateField = (
@@ -374,7 +375,7 @@ export default function BuyFromAbroad() {
         1,
       );
 
-      setToastMessage(`"${scrapedProduct.title}" added to cart!`);
+      setToastMessage(`"Added item to cart!`);
       setUrlInput("");
       setScrapedProduct(null);
     } catch (err) {
@@ -682,7 +683,9 @@ export default function BuyFromAbroad() {
                         <InfoIcon />
                       </span>
                     </span>
-                    <span className={styles.priceValue}>Calculated at checkout</span>
+                    <span className={styles.priceValue}>
+                      Calculated at checkout
+                    </span>
                   </div>
 
                   <div className={styles.pricingRow}>
@@ -703,10 +706,12 @@ export default function BuyFromAbroad() {
                       Live Market Rate
                     </span>
                     <span>
-                      1 {scrapedProduct.currency} = ₦{exchangeRate.toLocaleString()}
+                      1 {scrapedProduct.currency} = ₦
+                      {exchangeRate.toLocaleString()}
                     </span>
                     <span className={styles.bufferSubtext}>
-                      (Real-time FX + {liveRatesData?.bufferPercent ?? 3}% bank card buffer)
+                      (Real-time FX + {liveRatesData?.bufferPercent ?? 3}% bank
+                      card buffer)
                     </span>
                   </div>
 
@@ -723,9 +728,7 @@ export default function BuyFromAbroad() {
                 <button
                   onClick={handleAddToCart}
                   disabled={
-                    isAdding ||
-                    totalNaira <= 0 ||
-                    !scrapedProduct.inStock
+                    isAdding || totalNaira <= 0 || !scrapedProduct.inStock
                   }
                   className={styles.addToCartBtn}
                 >

@@ -37,6 +37,7 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
   const unwrappedParams = React.use(params);
   const orderId = unwrappedParams.id as Id<"orders">;
   const order = useQuery(api.beembaiStore.getBeembaiOrderById, { orderId });
+  const store = useQuery(api.beembaiStore.getBeembaiStore);
   const updateStatus = useMutation(api.beembaiStore.updateBeembaiOrderStatus);
   const createShipment = useAction(api.gigl.createShipmentForOrder);
   const trackShipment = useAction(api.gigl.trackShipment);
@@ -70,7 +71,9 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
     }
   }, [order, orderId, updateStatus]);
 
-  if (order === undefined) return <div className={styles.adminContent} style={{ color: "#6b6540" }}>Loading…</div>;
+  if (order === undefined || store === undefined) {
+    return <div className={styles.adminContent} style={{ color: "#6b6540" }}>Loading…</div>;
+  }
   if (!order) return <div className={styles.adminContent}><p>Order not found.</p></div>;
 
   const handleStatusUpdate = async () => {
@@ -92,7 +95,6 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
     setDispatchError(null);
     setDispatchSuccess(null);
     try {
-      // Pass the Beembai store id so only Beembai's items are shipped
       const result = await createShipment({
         orderId,
         storeId: (order.beembaiStoreId ?? undefined) as Id<"stores"> | undefined,
@@ -134,8 +136,18 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
   };
 
   const statusOptions: OrderStatus[] = ["placed", "processing", "shipped", "delivered", "cancelled"];
+  const isImport = Boolean(order.isImportOrder);
+  const hasUsWarehouse = Boolean(
+    store?.usWarehouseAddress &&
+    store?.usWarehouseCity &&
+    store?.usWarehouseState
+  );
+  const hasNgWarehouse = Boolean(
+    store?.physicalAddress && store?.stateName
+  );
+  const isWarehouseReady = isImport ? hasUsWarehouse : hasNgWarehouse;
   const hasWaybill = !!order.waybillNumber;
-  const canDispatch = order.paymentStatus === "paid" && !hasWaybill && order.status !== "cancelled" && !order.isImportOrder;
+  const canDispatch = order.paymentStatus === "paid" && !hasWaybill && order.status !== "cancelled";
 
   return (
     <div className={styles.adminContent}>
@@ -247,43 +259,101 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
             </div>
           ) : canDispatch ? (
             <div>
-              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 16 }}>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <p style={{ fontSize: 13, color: "#6b6540", lineHeight: 1.6, margin: 0 }}>
-                    Order is paid and ready for dispatch. Click <strong>Dispatch with GIGL</strong> to create a GIG Logistics waybill and schedule a pickup from Beembai HQ.
-                  </p>
-                  <p style={{ fontSize: 12, color: "#6b6540", marginTop: 8, opacity: 0.7 }}>
-                    📍 Deliver to: {order.address ? `${order.address.city}, ${order.address.stateName}` : "Customer address on file"} &nbsp;|&nbsp;
-                    🚀 Method: {shippingMethodLabel(order.shippingMethod)}
-                  </p>
+              {!isWarehouseReady ? (
+                <div style={{ background: "#fffbeb", border: "1.5px solid #fde68a", borderRadius: 10, padding: "16px 18px", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                    <span style={{ fontSize: 26, lineHeight: 1 }}>⚠️</span>
+                    <div style={{ flex: 1 }}>
+                      <strong style={{ fontSize: 14, color: "#92400e", display: "block", marginBottom: 6 }}>
+                        {isImport
+                          ? "US Warehouse Address Required Before Dispatch"
+                          : "Nigeria Warehouse Address Required Before Dispatch"}
+                      </strong>
+                      <p style={{ fontSize: 13, color: "#b45309", margin: "0 0 12px 0", lineHeight: 1.5 }}>
+                        {isImport
+                          ? "This is an international foreign import order. GIG Logistics requires a designated US warehouse pickup address where your purchased item from Amazon / US store is received. You must configure your US Warehouse in Beembai Store Management before generating a waybill."
+                          : "GIG Logistics requires your local warehouse pickup address to schedule courier dispatch. Please set up your Nigerian warehouse address in Beembai Store Management before dispatching."}
+                      </p>
+                      <Link
+                        href="/admin/beembai"
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                        style={{
+                          fontSize: 12.5,
+                          padding: "8px 16px",
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          background: "#d97706",
+                        }}
+                      >
+                        <span>🏢 Configure {isImport ? "US" : "Nigeria"} Warehouse Address</span>
+                        <span>→</span>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={handleDispatchWithGIGL}
-                  disabled={isDispatching}
-                  className={`${styles.btn} ${styles.btnPrimary}`}
-                  style={{ minWidth: 180, background: "#16a34a", color: "white", border: "none", whiteSpace: "nowrap" }}
-                  id="dispatch-with-gigl-btn"
-                >
-                  {isDispatching ? "Creating shipment..." : "🚚 Dispatch with GIGL"}
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 16 }}>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <p style={{ fontSize: 13, color: "#282600", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                      {isImport
+                        ? "Order is paid and prepared. Click below to create a GIG Logistics Inbound Waybill to pick up this package from your US Warehouse and deliver it to Nigeria."
+                        : "Order is paid and ready for dispatch. Click below to create a GIG Logistics waybill and schedule a courier pickup from your Nigeria Warehouse."}
+                    </p>
+                    <div style={{ fontSize: 12, color: "#475569", marginTop: 10, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px", lineHeight: 1.5 }}>
+                      <div>
+                        📍 <strong>Pickup Origin:</strong>{" "}
+                        {isImport
+                          ? `🇺🇸 ${store?.usWarehouseAddress}, ${store?.usWarehouseCity}, ${store?.usWarehouseCounty ? store?.usWarehouseCounty + ", " : ""}${store?.usWarehouseState} ${store?.usWarehouseZip || ""}`
+                          : `🇳🇬 ${store?.physicalAddress}, ${store?.city}, ${store?.lga ? store?.lga + " LGA, " : ""}${store?.stateName}`}
+                      </div>
+                      <div style={{ marginTop: 4 }}>
+                        🎯 <strong>Delivery Destination:</strong>{" "}
+                        {order.address ? `${order.address.streetAddress}, ${order.address.city}, ${order.address.stateName}` : "Customer address on file"} &nbsp;|&nbsp;
+                        🚀 <strong>Method:</strong> {shippingMethodLabel(order.shippingMethod)}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleDispatchWithGIGL}
+                    disabled={isDispatching}
+                    className={`${styles.btn} ${styles.btnPrimary}`}
+                    style={{
+                      minWidth: 200,
+                      background: isImport ? "#2563eb" : "#16a34a",
+                      color: "white",
+                      border: "none",
+                      whiteSpace: "nowrap",
+                      padding: "12px 20px",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                    }}
+                    id="dispatch-with-gigl-btn"
+                  >
+                    {isDispatching
+                      ? "Creating shipment..."
+                      : isImport
+                      ? "🚚 Dispatch Inbound Import (GIGL)"
+                      : "🚚 Dispatch with GIGL"}
+                  </button>
+                </div>
+              )}
 
               {dispatchError && (
-                <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#dc2626" }}>
+                <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#dc2626", marginTop: 12 }}>
                   ⚠️ {dispatchError}
                 </div>
               )}
               {dispatchSuccess && (
-                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#166534" }}>
+                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#166534", marginTop: 12 }}>
                   {dispatchSuccess}
                 </div>
               )}
             </div>
           ) : (
             <p style={{ fontSize: 13, color: "#6b6540", margin: 0 }}>
-              {order.isImportOrder
-                ? "🇺🇸 Import orders are fulfilled via the source store, not GIGL dispatch."
-                : order.paymentStatus !== "paid"
+              {order.paymentStatus !== "paid"
                 ? "⏳ Waiting for buyer payment confirmation before dispatch can be created."
                 : order.status === "cancelled"
                 ? "❌ This order has been cancelled and cannot be dispatched."
