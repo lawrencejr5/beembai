@@ -154,6 +154,7 @@ export default function CheckoutPage() {
     api.paystackActions.verifyInlinePaymentForCheckout,
   );
   const calculateGiglFee = useAction(api.gigl.calculateShippingFee);
+  const calculateInboundFee = useAction(api.gigl.calculateInboundShippingFee);
   const getServiceCentres = useAction(api.gigl.getServiceCentres);
 
   const [shippingMethod, setShippingMethod] = useState<
@@ -254,16 +255,37 @@ export default function CheckoutPage() {
     };
   }, [destinationState, destinationCity, getServiceCentres]);
 
+  // Split cart: local items vs imported (buy-from-abroad) items
+  const findDbProduct = (item: any) =>
+    dbProducts?.find((p: any) => p.title === item.product.title);
+  const isForeignItem = (item: any) =>
+    item.product.categorySlug === "foreign-import" ||
+    findDbProduct(item)?.categorySlug === "foreign-import";
+  const domesticCart = selectedCart.filter((i: any) => !isForeignItem(i));
+  const foreignCart = selectedCart.filter((i: any) => isForeignItem(i));
+  const foreignOnly = selectedCart.length > 0 && domesticCart.length === 0;
+
+  const [foreignShipping, setForeignShipping] = useState({
+    fee: 0,
+    totalWeight: 0,
+    estimatedDelivery: "",
+    isFallback: false,
+    isCalculating: false,
+  });
+
   useEffect(() => {
     if (!destinationState && !destinationCity) return;
-    if (selectedCart.length === 0) return;
+    if (domesticCart.length === 0) {
+      setGiglQuotes((prev) => ({ ...prev, isCalculating: false }));
+      return;
+    }
 
     let isMounted = true;
     setGiglQuotes((prev) => ({ ...prev, isCalculating: true }));
 
     const timer = setTimeout(async () => {
       try {
-        const itemsPayload = selectedCart.map((i: any) => ({
+        const itemsPayload = domesticCart.map((i: any) => ({
           title: i.product.title,
           price: i.product.price,
           quantity: i.quantity,
@@ -309,16 +331,104 @@ export default function CheckoutPage() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [destinationState, destinationCity, selectedCart, calculateGiglFee]);
+  }, [destinationState, destinationCity, selectedCart, calculateGiglFee, dbProducts]);
 
-  const shippingFee =
-    selectedCart.length === 0
+  useEffect(() => {
+    if (foreignOnly && shippingMethod !== "doorstep") {
+      setShippingMethod("doorstep");
+    }
+  }, [foreignOnly, shippingMethod]);
+
+  // GIGL inbound (abroad → Nigeria) shipping for imported items, grouped by origin country
+  const foreignKey = foreignCart
+    .map((i: any) => `${i.product.title}x${i.quantity}`)
+    .join("|");
+  useEffect(() => {
+    if (foreignCart.length === 0 || (!destinationState && !destinationCity)) {
+      setForeignShipping({
+        fee: 0,
+        totalWeight: 0,
+        estimatedDelivery: "",
+        isFallback: false,
+        isCalculating: false,
+      });
+      return;
+    }
+    if (!dbProducts) return;
+
+    let isMounted = true;
+    setForeignShipping((prev) => ({ ...prev, isCalculating: true }));
+
+    const timer = setTimeout(async () => {
+      try {
+        const groups: Record<string, { weight: number; value: number }> = {};
+        for (const item of foreignCart) {
+          const dbProd: any = findDbProduct(item);
+          const origin = String(dbProd?.originCountry || "US").toUpperCase();
+          const unitWeight = parseFloat(String(dbProd?.weight ?? "")) || 1;
+          const g = (groups[origin] ??= { weight: 0, value: 0 });
+          g.weight += unitWeight * item.quantity;
+          g.value += item.product.price * item.quantity;
+        }
+
+        const results = await Promise.all(
+          Object.entries(groups).map(([origin, g]) =>
+            calculateInboundFee({
+              originCountry: origin,
+              receiverState: destinationState || "Lagos",
+              receiverAddress:
+                [
+                  activeAddress?.streetAddress,
+                  destinationCity,
+                  destinationState,
+                  "Nigeria",
+                ]
+                  .filter(Boolean)
+                  .join(", ") || undefined,
+              declaredValueNgn: g.value,
+              weightKg: g.weight,
+              quantity: 1,
+            }),
+          ),
+        );
+
+        const totalForeignWeight = Object.values(groups).reduce(
+          (sum, g) => sum + g.weight,
+          0,
+        );
+
+        if (!isMounted) return;
+        setForeignShipping({
+          fee: results.reduce((sum, r) => sum + r.shippingFeeNgn, 0),
+          totalWeight: Number(totalForeignWeight.toFixed(2)),
+          estimatedDelivery: results[0]?.estimatedDelivery ?? "",
+          isFallback: results.some((r) => r.isFallback),
+          isCalculating: false,
+        });
+      } catch (err) {
+        console.error("GIGL inbound fee calculation error:", err);
+        if (isMounted) {
+          setForeignShipping((prev) => ({ ...prev, isCalculating: false }));
+        }
+      }
+    }, 450);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foreignKey, destinationState, destinationCity, dbProducts, calculateInboundFee]);
+
+  const domesticShippingFee =
+    domesticCart.length === 0
       ? 0
       : shippingMethod === "pickup"
         ? giglQuotes.pickupFee
         : shippingMethod === "express"
           ? giglQuotes.expressFee
           : giglQuotes.doorstepFee;
+  const shippingFee = domesticShippingFee + foreignShipping.fee;
   const finalTotal = selectedSubtotalPrice + shippingFee;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -1122,17 +1232,60 @@ export default function CheckoutPage() {
                   }}
                 >
                   <span>🚚 Powered by GIG Logistics</span>
-                  {giglQuotes.isCalculating ? (
+                  {giglQuotes.isCalculating || foreignShipping.isCalculating ? (
                     <span style={{ opacity: 0.6, fontSize: "0.72rem" }}>
                       (calculating...)
                     </span>
                   ) : (
                     <span style={{ opacity: 0.85, fontSize: "0.72rem" }}>
-                      • Parcel: {giglQuotes.totalWeight}kg
+                      • Parcel:{" "}
+                      {Number(
+                        (
+                          (domesticCart.length > 0 ? giglQuotes.totalWeight : 0) +
+                          (foreignCart.length > 0 ? foreignShipping.totalWeight : 0)
+                        ).toFixed(2),
+                      )}
+                      kg
                     </span>
                   )}
                 </div>
               </div>
+              {foreignCart.length > 0 && (
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: "1.5px solid var(--color-palm)",
+                    background: "rgba(35, 78, 64, 0.06)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    fontSize: "0.88rem",
+                  }}
+                >
+                  <div>
+                    <strong>✈️ International delivery (imported items)</strong>
+                    <p style={{ margin: "2px 0 0", opacity: 0.75, fontSize: "0.78rem" }}>
+                      {foreignCart.length} imported item
+                      {foreignCart.length > 1 ? "s" : ""} (
+                      {foreignShipping.totalWeight}kg) shipped door-to-door via
+                      GIG Logistics
+                      {foreignShipping.estimatedDelivery
+                        ? ` · ${foreignShipping.estimatedDelivery}`
+                        : ""}
+                      {foreignShipping.isFallback ? " · estimated" : ""}
+                    </p>
+                  </div>
+                  <strong>
+                    {foreignShipping.isCalculating
+                      ? "Calculating..."
+                      : `₦${formatPrice(foreignShipping.fee)}`}
+                  </strong>
+                </div>
+              )}
+              {!foreignOnly && (
               <div
                 className={styles.shippingOptions}
                 style={{ marginTop: "1rem" }}
@@ -1361,6 +1514,7 @@ export default function CheckoutPage() {
                   </span>
                 </label>
               </div>
+              )}
             </div>
 
             {/* Step 3: Payment Details */}

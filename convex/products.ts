@@ -377,6 +377,7 @@ export const createForeignProduct = mutation({
     sourceUrl: v.optional(v.string()),
     variants: v.optional(v.array(v.string())),
     weightKg: v.optional(v.number()),
+    originCountry: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Ensure the Beembai Official Store exists and get its ID
@@ -407,6 +408,7 @@ export const createForeignProduct = mutation({
       sourceUrl: args.sourceUrl,
       variants: args.variants,
       weight: args.weightKg !== undefined ? String(args.weightKg) : undefined,
+      originCountry: args.originCountry,
       storeId: beembaiStoreId as any,
     });
     return productId;

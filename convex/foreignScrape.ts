@@ -112,7 +112,7 @@ export const scrapeProductUrl = action({
       extract: {
         schema: extractSchema,
         prompt:
-          "Extract the product title, numeric price (no symbols), currency (3-letter code like USD/GBP/EUR or the symbol), the main product image absolute URL, a short description, the brand name, whether it is in stock (true/false), available variants like sizes or colors as string array, star rating, and review count. For price output only the number.",
+          "Extract the product title, numeric price (no symbols), currency (3-letter code like USD/GBP/EUR or the symbol), the main product image absolute URL, a short description, the brand name, whether it is in stock (true/false), available variants like sizes or colors as string array, star rating, review count, and the item's shipping or package weight converted to numeric kilograms (weightKg). For price and weight output only numbers.",
       },
     };
 
@@ -210,6 +210,16 @@ export const scrapeProductUrl = action({
     const rating = typeof extract.rating === "number" ? extract.rating : null;
     const reviewCount = typeof extract.reviewCount === "number" ? extract.reviewCount : null;
 
+    let extractedWeightKg: number | null = null;
+    if (typeof extract.weightKg === "number" && extract.weightKg > 0) {
+      extractedWeightKg = extract.weightKg;
+    } else if (typeof extract.weightKg === "string") {
+      const parsed = parseFloat((extract.weightKg as string).replace(/[^0-9.]/g, ""));
+      if (!isNaN(parsed) && parsed > 0) {
+        extractedWeightKg = parsed;
+      }
+    }
+
     return {
       title,
       price,
@@ -222,10 +232,7 @@ export const scrapeProductUrl = action({
       rating,
       reviewCount,
       originCountry: detectOriginFromUrl(args.url),
-      weightKg: estimateWeightKg(
-        title,
-        typeof extract.weightKg === "number" ? extract.weightKg : null,
-      ),
+      weightKg: estimateWeightKg(title, extractedWeightKg),
       sourceUrl: args.url,
     };
   },

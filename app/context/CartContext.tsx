@@ -221,6 +221,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
               status: dbProd.status,
               brand: dbProd.brand,
               condition: dbProd.condition || "New",
+              weight: dbProd.weight,
+              weightClass: dbProd.weightClass,
+              originCountry: dbProd.originCountry,
             }
           : { ...mockProduct, id: item.productId }; // override mock id with Convex _id
 

@@ -19,6 +19,9 @@ export interface Product {
   storeId?: string;
   rating?: number;
   numReviews?: number;
+  weight?: string | number;
+  weightClass?: string;
+  originCountry?: string;
 }
 
 export interface Store {
