@@ -29,6 +29,7 @@ import type * as seed from "../seed.js";
 import type * as shipments from "../shipments.js";
 import type * as store from "../store.js";
 import type * as users from "../users.js";
+import type * as wallets from "../wallets.js";
 
 import type {
   ApiFromModules,
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   shipments: typeof shipments;
   store: typeof store;
   users: typeof users;
+  wallets: typeof wallets;
 }>;
 
 /**

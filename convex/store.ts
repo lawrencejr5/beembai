@@ -1,7 +1,7 @@
 import { query, mutation, action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 // Get user's store
 export const getStoreByOwner = query({
@@ -277,6 +277,22 @@ export const updateStore = mutation({
       routingNumber: args.routingNumber,
       faceVerificationImage: args.faceVerificationImage,
     });
+
+    // If store is approved, ensure wallet exists and if banking details are present, refresh Paystack recipient code
+    if (store.status === "approved") {
+      await ctx.scheduler.runAfter(0, (internal as any).wallets.ensureWalletExistsInternal, {
+        storeId: args.storeId,
+      });
+
+      if (args.accountNumber && args.bankCode) {
+        await ctx.scheduler.runAfter(0, (api as any).wallets.createOrUpdatePaystackRecipientAction, {
+          storeId: args.storeId,
+          accountName: args.accountName || args.name,
+          accountNumber: args.accountNumber,
+          bankCode: args.bankCode,
+        });
+      }
+    }
 
     return args.storeId;
   },

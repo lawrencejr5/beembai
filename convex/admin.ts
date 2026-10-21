@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
+import { internal, api } from "./_generated/api";
 
 // ── Admin Guard Helper ────────────────────────────────────
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
@@ -178,6 +179,22 @@ export const approveStore = mutation({
       status: "approved",
       verified: true,
     });
+
+    // 1. Ensure wallet exists for this store
+    await (ctx as any).runMutation((internal as any).wallets.ensureWalletExistsInternal, {
+      storeId: args.storeId,
+    });
+
+    // 2. If banking details exist on the store, generate Paystack recipient code
+    const store = await ctx.db.get(args.storeId);
+    if (store && store.accountNumber && store.bankCode) {
+      await ctx.scheduler.runAfter(0, (api as any).wallets.createOrUpdatePaystackRecipientAction, {
+        storeId: args.storeId,
+        accountName: store.accountName || store.name,
+        accountNumber: store.accountNumber,
+        bankCode: store.bankCode,
+      });
+    }
   },
 });
 
@@ -516,6 +533,16 @@ export const adminUpdateOrderStatus = mutation({
         },
       ],
     });
+
+    // If marked delivered and payment is paid, release funds to the store's availableBalance
+    if (args.status === "delivered" && order.paymentStatus === "paid" && order.storeId) {
+      const releaseAmount = order.subtotal ?? (order.totalAmount - (order.shippingFee ?? 0));
+      await (ctx as any).runMutation((internal as any).wallets.releaseOrderFundsInternal, {
+        storeId: order.storeId,
+        orderId: args.orderId,
+        amount: releaseAmount,
+      });
+    }
   },
 });
 

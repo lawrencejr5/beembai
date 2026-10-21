@@ -51,6 +51,7 @@ export default function SellerSettingsPage() {
   const updateStoreMut = useMutation(api.store.updateStore);
   const deleteStoreMut = useMutation(api.store.sellerDeleteStore);
   const resolveBankAccount = useAction(api.paystackActions.resolveBankAccount);
+  const createOrUpdateRecipient = useAction(api.wallets.createOrUpdatePaystackRecipientAction);
 
   // States
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -325,7 +326,19 @@ export default function SellerSettingsPage() {
         accountNumber: cleanAcc,
       });
 
-      setSuccessMsg("Payout bank credentials updated successfully.");
+      // Synchronously generate and link Paystack recipient code
+      try {
+        await createOrUpdateRecipient({
+          storeId: activeStoreId as Id<"stores">,
+          accountName,
+          accountNumber: cleanAcc,
+          bankCode,
+        });
+      } catch (recipientErr) {
+        console.warn("Could not immediately generate Paystack recipient:", recipientErr);
+      }
+
+      setSuccessMsg("Payout bank credentials and Paystack recipient updated successfully.");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
       console.error(err);

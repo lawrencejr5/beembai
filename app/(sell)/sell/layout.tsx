@@ -16,6 +16,7 @@ const navItems = [
   { href: "/sell", label: "Overview", icon: "🏪", exact: true },
   { href: "/sell/products", label: "Products", icon: "📦", exact: false },
   { href: "/sell/orders", label: "Orders", icon: "🛒", exact: false },
+  { href: "/sell/wallet", label: "Wallet & Payouts", icon: "💳", exact: false },
   { href: "/sell/settings", label: "Settings", icon: "⚙️", exact: false },
 ];
 
