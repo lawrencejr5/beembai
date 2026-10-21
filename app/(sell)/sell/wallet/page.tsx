@@ -207,6 +207,17 @@ export default function SellerWalletPage() {
             </svg>
             Withdraw Funds
           </button>
+          {!hasValidRecipient && (
+            <span className={styles.recipientWarningText}>
+              <span>⚠️</span>
+              <span>
+                <Link href="/sell/settings" className={styles.recipientWarningLink}>
+                  Update bank details
+                </Link>{" "}
+                to enable withdrawals
+              </span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -250,7 +261,19 @@ export default function SellerWalletPage() {
             {formatCurrency(availableBalance)}
           </div>
           <p className={styles.metricSubtext}>
-            <span className={styles.highlightGreen}>Ready for immediate transfer</span> to your bank account via Paystack.
+            {!hasValidRecipient ? (
+              <span style={{ color: "#9c6c19", fontWeight: 600 }}>
+                ⚠️{" "}
+                <Link href="/sell/settings" className={styles.recipientWarningLink}>
+                  Update bank details
+                </Link>{" "}
+                to enable withdrawals.
+              </span>
+            ) : (
+              <>
+                <span className={styles.highlightGreen}>Ready for immediate transfer</span> to your bank account via Paystack.
+              </>
+            )}
           </p>
         </div>
 
