@@ -139,30 +139,41 @@ export const getSellerWalletsOverview = query({
 // ─── INTERNAL MUTATIONS ────────────────────────────────────────
 
 /**
+ * Shared helper to guarantee a store wallet document exists before performing any operation.
+ * If the wallet does not exist, it creates one with balance 0 and returns the wallet document.
+ */
+export async function ensureStoreWallet(ctx: { db: any }, storeId: Id<"stores">) {
+  const existing = await ctx.db
+    .query("storeWallets")
+    .withIndex("by_storeId", (q: any) => q.eq("storeId", storeId))
+    .first();
+
+  if (existing) return existing;
+
+  const store = await ctx.db.get(storeId);
+  const now = Date.now();
+
+  const walletId = await ctx.db.insert("storeWallets", {
+    storeId,
+    balance: 0,
+    availableBalance: 0,
+    recipientCode: store?.recipientCode,
+    currency: "NGN",
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return (await ctx.db.get(walletId))!;
+}
+
+/**
  * Ensure a store wallet document exists, returning its ID.
  */
 export const ensureWalletExistsInternal = internalMutation({
   args: { storeId: v.id("stores") },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("storeWallets")
-      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
-      .first();
-
-    if (existing) return existing._id;
-
-    const store = await ctx.db.get(args.storeId);
-    const now = Date.now();
-
-    return await ctx.db.insert("storeWallets", {
-      storeId: args.storeId,
-      balance: 0,
-      availableBalance: 0,
-      recipientCode: store?.recipientCode,
-      currency: "NGN",
-      createdAt: now,
-      updatedAt: now,
-    });
+    const wallet = await ensureStoreWallet(ctx, args.storeId);
+    return wallet._id;
   },
 });
 
@@ -180,27 +191,11 @@ export const saveRecipientCodeInternal = internalMutation({
       recipientCode: args.recipientCode,
     });
 
-    const wallet = await ctx.db
-      .query("storeWallets")
-      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
-      .first();
-
-    if (wallet) {
-      await ctx.db.patch(wallet._id, {
-        recipientCode: args.recipientCode,
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("storeWallets", {
-        storeId: args.storeId,
-        balance: 0,
-        availableBalance: 0,
-        recipientCode: args.recipientCode,
-        currency: "NGN",
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
+    const wallet = await ensureStoreWallet(ctx, args.storeId);
+    await ctx.db.patch(wallet._id, {
+      recipientCode: args.recipientCode,
+      updatedAt: now,
+    });
   },
 });
 
@@ -229,34 +224,14 @@ export const creditStoreWalletOnOrderInternal = internalMutation({
       return;
     }
 
-    // Ensure wallet exists
-    let wallet = await ctx.db
-      .query("storeWallets")
-      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
-      .first();
-
+    // Ensure wallet exists before crediting
+    const wallet = await ensureStoreWallet(ctx, args.storeId);
     const now = Date.now();
 
-    if (!wallet) {
-      const store = await ctx.db.get(args.storeId);
-      const walletId = await ctx.db.insert("storeWallets", {
-        storeId: args.storeId,
-        balance: args.amount,
-        availableBalance: 0,
-        recipientCode: store?.recipientCode,
-        currency: "NGN",
-        createdAt: now,
-        updatedAt: now,
-      });
-      wallet = await ctx.db.get(walletId);
-    } else {
-      await ctx.db.patch(wallet._id, {
-        balance: wallet.balance + args.amount,
-        updatedAt: now,
-      });
-    }
-
-    if (!wallet) return;
+    await ctx.db.patch(wallet._id, {
+      balance: wallet.balance + args.amount,
+      updatedAt: now,
+    });
 
     // Record wallet transaction in pending (escrow) state
     const orderRef = args.checkoutId ? args.checkoutId.slice(-8).toUpperCase() : args.orderId.slice(-6).toUpperCase();
@@ -295,17 +270,9 @@ export const releaseOrderFundsInternal = internalMutation({
       return;
     }
 
-    const wallet = await ctx.db
-      .query("storeWallets")
-      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
-      .first();
-
+    // Ensure wallet exists before releasing
+    const wallet = await ensureStoreWallet(ctx, args.storeId);
     const now = Date.now();
-
-    if (!wallet) {
-      console.warn(`[StoreWallet]: No wallet found for store ${args.storeId} on delivery release.`);
-      return;
-    }
 
     // Top up availableBalance
     await ctx.db.patch(wallet._id, {
@@ -343,12 +310,8 @@ export const lockFundsForWithdrawalInternal = internalMutation({
     description: v.string(),
   },
   handler: async (ctx, args) => {
-    const wallet = await ctx.db
-      .query("storeWallets")
-      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
-      .first();
-
-    if (!wallet) throw new Error("Wallet not found");
+    // Ensure wallet exists before locking funds
+    const wallet = await ensureStoreWallet(ctx, args.storeId);
 
     if (args.amount > wallet.availableBalance) {
       throw new Error(`Insufficient available balance. You requested ₦${args.amount.toLocaleString()}, but only ₦${wallet.availableBalance.toLocaleString()} is available.`);
@@ -410,18 +373,13 @@ export const revertWithdrawalInternal = internalMutation({
     reason: v.string(),
   },
   handler: async (ctx, args) => {
-    const wallet = await ctx.db
-      .query("storeWallets")
-      .withIndex("by_storeId", (q) => q.eq("storeId", args.storeId))
-      .first();
+    const wallet = await ensureStoreWallet(ctx, args.storeId);
 
-    if (wallet) {
-      await ctx.db.patch(wallet._id, {
-        balance: wallet.balance + args.amount,
-        availableBalance: wallet.availableBalance + args.amount,
-        updatedAt: Date.now(),
-      });
-    }
+    await ctx.db.patch(wallet._id, {
+      balance: wallet.balance + args.amount,
+      availableBalance: wallet.availableBalance + args.amount,
+      updatedAt: Date.now(),
+    });
 
     await ctx.db.patch(args.transactionId, {
       status: "failed",
