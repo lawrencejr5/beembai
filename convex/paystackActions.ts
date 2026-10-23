@@ -94,6 +94,7 @@ export const verifyInlinePaymentForCheckout = action({
   args: {
     checkoutId: v.string(),
     reference: v.string(),
+    saveCard: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
     // 1. Fetch all orders for this checkoutId
@@ -154,6 +155,30 @@ export const verifyInlinePaymentForCheckout = action({
       checkoutId: args.checkoutId,
       paystackReference: args.reference,
     });
+
+    // 5. If requested and card authorization is reusable, save tokenized card
+    if (args.saveCard && data.data?.authorization?.reusable) {
+      const auth = data.data.authorization;
+      const targetUserId = orders[0]?.userId ?? (await getAuthUserId(ctx));
+      const customerEmail = data.data.customer?.email || orders[0]?.email || "";
+
+      if (targetUserId && auth.authorization_code) {
+        try {
+          await ctx.runMutation((internal as any).billing.savePaymentMethodInternal, {
+            userId: targetUserId,
+            authorizationCode: auth.authorization_code,
+            cardType: auth.card_type ?? "unknown",
+            last4: auth.last4 ?? "****",
+            expMonth: auth.exp_month ?? "",
+            expYear: auth.exp_year ?? "",
+            bank: auth.bank ?? "Unknown Bank",
+            email: customerEmail,
+          });
+        } catch (saveErr) {
+          console.error("Failed to save card payment method after checkout:", saveErr);
+        }
+      }
+    }
 
     return { success: true, message: "Payment verified successfully" };
   },

@@ -95,6 +95,7 @@ export default function CheckoutPage() {
   const [isCustomCity, setIsCustomCity] = useState(false);
   const [customCity, setCustomCity] = useState("");
   const [saveAddressToAccount, setSaveAddressToAccount] = useState(true);
+  const [saveCardToAccount, setSaveCardToAccount] = useState(true);
 
   // Cascading options for state, LGA, and city selection
   const availableLgas = guestAddress.stateName
@@ -331,7 +332,13 @@ export default function CheckoutPage() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [destinationState, destinationCity, selectedCart, calculateGiglFee, dbProducts]);
+  }, [
+    destinationState,
+    destinationCity,
+    selectedCart,
+    calculateGiglFee,
+    dbProducts,
+  ]);
 
   useEffect(() => {
     if (foreignOnly && shippingMethod !== "doorstep") {
@@ -418,7 +425,13 @@ export default function CheckoutPage() {
       clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreignKey, destinationState, destinationCity, dbProducts, calculateInboundFee]);
+  }, [
+    foreignKey,
+    destinationState,
+    destinationCity,
+    dbProducts,
+    calculateInboundFee,
+  ]);
 
   const domesticShippingFee =
     domesticCart.length === 0
@@ -630,6 +643,7 @@ export default function CheckoutPage() {
                   const result = await verifyInlinePaymentForCheckout({
                     checkoutId,
                     reference: transaction.reference,
+                    saveCard: !isGuest && saveCardToAccount,
                   });
 
                   if (!result.success) {
@@ -711,19 +725,15 @@ export default function CheckoutPage() {
         !guestAddress.phone ||
         !guestAddress.streetAddress ||
         !guestAddress.city ||
-        !guestAddress.stateName ||
-        !guestAddress.postalCode)) ||
+        !guestAddress.stateName)) ||
     (!isGuest &&
       useManualAddress &&
       (!guestAddress.fullName ||
         !guestAddress.phone ||
         !guestAddress.streetAddress ||
         !guestAddress.city ||
-        !guestAddress.stateName ||
-        !guestAddress.postalCode)) ||
-    (!isGuest && !useManualAddress && !activeAddress) ||
-    (!isGuest && !payDirectly && !activePayment);
-
+        !guestAddress.stateName)) ||
+    (!isGuest && !useManualAddress && !activeAddress);
   return (
     <main className={styles.checkoutPage}>
       {/* Header Row */}
@@ -1241,8 +1251,12 @@ export default function CheckoutPage() {
                       • Parcel:{" "}
                       {Number(
                         (
-                          (domesticCart.length > 0 ? giglQuotes.totalWeight : 0) +
-                          (foreignCart.length > 0 ? foreignShipping.totalWeight : 0)
+                          (domesticCart.length > 0
+                            ? giglQuotes.totalWeight
+                            : 0) +
+                          (foreignCart.length > 0
+                            ? foreignShipping.totalWeight
+                            : 0)
                         ).toFixed(2),
                       )}
                       kg
@@ -1267,7 +1281,13 @@ export default function CheckoutPage() {
                 >
                   <div>
                     <strong>✈️ International delivery (imported items)</strong>
-                    <p style={{ margin: "2px 0 0", opacity: 0.75, fontSize: "0.78rem" }}>
+                    <p
+                      style={{
+                        margin: "2px 0 0",
+                        opacity: 0.75,
+                        fontSize: "0.78rem",
+                      }}
+                    >
                       {foreignCart.length} imported item
                       {foreignCart.length > 1 ? "s" : ""} (
                       {foreignShipping.totalWeight}kg) shipped door-to-door via
@@ -1286,21 +1306,202 @@ export default function CheckoutPage() {
                 </div>
               )}
               {!foreignOnly && (
-              <div
-                className={styles.shippingOptions}
-                style={{ marginTop: "1rem" }}
-              >
-                {/* 1. GIGL Station Pickup */}
-                <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  className={styles.shippingOptions}
+                  style={{ marginTop: "1rem" }}
+                >
+                  {/* 1. GIGL Station Pickup */}
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <label
+                      className={`${styles.shippingRadioLabel} ${shippingMethod === "pickup" ? styles.shippingRadioLabelActive : ""}`}
+                    >
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <input
+                          type="radio"
+                          name="shipping"
+                          checked={shippingMethod === "pickup"}
+                          onChange={() => setShippingMethod("pickup")}
+                          className={styles.radioInput}
+                          disabled={isProcessing}
+                        />
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                              gap: "4px",
+                            }}
+                          >
+                            <span className={styles.radioLabelText}>
+                              🏢 GIGL Pickup Station
+                            </span>
+                          </div>
+                          <p className={styles.radioLabelDesc}>
+                            Collect at your nearest GIGL Service Centre in{" "}
+                            {destinationState || "your state"} •{" "}
+                            {giglQuotes.estimatedDaysPickup}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={styles.shippingPrice}>
+                        ₦{formatPrice(giglQuotes.pickupFee)}
+                      </span>
+                    </label>
+
+                    {/* Station Selector Sub-card when Pickup is selected */}
+                    {shippingMethod === "pickup" && (
+                      <div className={styles.stationSelectorCard}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <label
+                            style={{
+                              fontSize: "0.82rem",
+                              fontWeight: 700,
+                              color: "var(--foreground)",
+                            }}
+                          >
+                            Choose GIGL Experience Centre:
+                          </label>
+                          {loadingCentres && (
+                            <span
+                              style={{
+                                fontSize: "0.74rem",
+                                color: "var(--color-olive-gray)",
+                              }}
+                            >
+                              Refreshing stations...
+                            </span>
+                          )}
+                        </div>
+
+                        {serviceCentres.length > 0 ? (
+                          <>
+                            <select
+                              className={styles.selectField}
+                              value={selectedStationId ?? ""}
+                              onChange={(e) =>
+                                setSelectedStationId(Number(e.target.value))
+                              }
+                              disabled={isProcessing}
+                              style={{
+                                width: "100%",
+                                padding: "0.65rem 0.85rem",
+                                borderRadius: "8px",
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              {serviceCentres.map((centre) => (
+                                <option
+                                  key={centre.serviceCentreId}
+                                  value={centre.serviceCentreId}
+                                >
+                                  {centre.name} — {centre.address}
+                                </option>
+                              ))}
+                            </select>
+
+                            {chosenStation && (
+                              <div
+                                style={{
+                                  marginTop: "0.65rem",
+                                  padding: "0.6rem 0.85rem",
+                                  borderRadius: "8px",
+                                  background: "rgba(35, 78, 64, 0.06)",
+                                  borderLeft: "3px solid var(--color-palm)",
+                                  fontSize: "0.78rem",
+                                }}
+                              >
+                                <strong
+                                  style={{
+                                    color: "var(--color-palm)",
+                                    display: "block",
+                                  }}
+                                >
+                                  🏢 {chosenStation.name}
+                                </strong>
+                                <span
+                                  style={{
+                                    color: "var(--foreground)",
+                                    opacity: 0.85,
+                                  }}
+                                >
+                                  {chosenStation.address}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        ) : loadingCentres ? (
+                          <div
+                            style={{
+                              fontSize: "0.82rem",
+                              color: "var(--color-olive-gray)",
+                              padding: "0.5rem 0",
+                            }}
+                          >
+                            Finding nearest GIG Logistics stations in{" "}
+                            {destinationState || "your state"}...
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              fontSize: "0.82rem",
+                              color: "var(--color-olive-gray)",
+                              padding: "0.5rem 0",
+                            }}
+                          >
+                            Select your destination state above to view
+                            available GIGL experience centres.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. Standard Home Delivery */}
                   <label
-                    className={`${styles.shippingRadioLabel} ${shippingMethod === "pickup" ? styles.shippingRadioLabelActive : ""}`}
+                    className={`${styles.shippingRadioLabel} ${shippingMethod === "doorstep" ? styles.shippingRadioLabelActive : ""}`}
                   >
                     <div style={{ display: "flex", alignItems: "center" }}>
                       <input
                         type="radio"
                         name="shipping"
-                        checked={shippingMethod === "pickup"}
-                        onChange={() => setShippingMethod("pickup")}
+                        checked={shippingMethod === "doorstep"}
+                        onChange={() => setShippingMethod("doorstep")}
+                        className={styles.radioInput}
+                        disabled={isProcessing}
+                      />
+                      <div>
+                        <span className={styles.radioLabelText}>
+                          🏠 Standard Home Delivery
+                        </span>
+                        <p className={styles.radioLabelDesc}>
+                          Doorstep delivery to your street address in{" "}
+                          {giglQuotes.estimatedDaysDoorstep}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={styles.shippingPrice}>
+                      ₦{formatPrice(giglQuotes.doorstepFee)}
+                    </span>
+                  </label>
+
+                  {/* 3. Priority Express Delivery */}
+                  <label
+                    className={`${styles.shippingRadioLabel} ${shippingMethod === "express" ? styles.shippingRadioLabelActive : ""}`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <input
+                        type="radio"
+                        name="shipping"
+                        checked={shippingMethod === "express"}
+                        onChange={() => setShippingMethod("express")}
                         className={styles.radioInput}
                         disabled={isProcessing}
                       />
@@ -1314,206 +1515,25 @@ export default function CheckoutPage() {
                           }}
                         >
                           <span className={styles.radioLabelText}>
-                            🏢 GIGL Pickup Station
+                            ⚡ Priority Express Delivery
+                          </span>
+                          <span
+                            className={`${styles.shippingBadge} ${styles.shippingBadgeExpress}`}
+                          >
+                            Fastest
                           </span>
                         </div>
                         <p className={styles.radioLabelDesc}>
-                          Collect at your nearest GIGL Service Centre in{" "}
-                          {destinationState || "your state"} •{" "}
-                          {giglQuotes.estimatedDaysPickup}
+                          Expedited priority dispatch in{" "}
+                          {giglQuotes.estimatedDaysExpress}
                         </p>
                       </div>
                     </div>
                     <span className={styles.shippingPrice}>
-                      ₦{formatPrice(giglQuotes.pickupFee)}
+                      ₦{formatPrice(giglQuotes.expressFee)}
                     </span>
                   </label>
-
-                  {/* Station Selector Sub-card when Pickup is selected */}
-                  {shippingMethod === "pickup" && (
-                    <div className={styles.stationSelectorCard}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "0.82rem",
-                            fontWeight: 700,
-                            color: "var(--foreground)",
-                          }}
-                        >
-                          Choose GIGL Experience Centre:
-                        </label>
-                        {loadingCentres && (
-                          <span
-                            style={{
-                              fontSize: "0.74rem",
-                              color: "var(--color-olive-gray)",
-                            }}
-                          >
-                            Refreshing stations...
-                          </span>
-                        )}
-                      </div>
-
-                      {serviceCentres.length > 0 ? (
-                        <>
-                          <select
-                            className={styles.selectField}
-                            value={selectedStationId ?? ""}
-                            onChange={(e) =>
-                              setSelectedStationId(Number(e.target.value))
-                            }
-                            disabled={isProcessing}
-                            style={{
-                              width: "100%",
-                              padding: "0.65rem 0.85rem",
-                              borderRadius: "8px",
-                              fontSize: "0.85rem",
-                            }}
-                          >
-                            {serviceCentres.map((centre) => (
-                              <option
-                                key={centre.serviceCentreId}
-                                value={centre.serviceCentreId}
-                              >
-                                {centre.name} — {centre.address}
-                              </option>
-                            ))}
-                          </select>
-
-                          {chosenStation && (
-                            <div
-                              style={{
-                                marginTop: "0.65rem",
-                                padding: "0.6rem 0.85rem",
-                                borderRadius: "8px",
-                                background: "rgba(35, 78, 64, 0.06)",
-                                borderLeft: "3px solid var(--color-palm)",
-                                fontSize: "0.78rem",
-                              }}
-                            >
-                              <strong
-                                style={{
-                                  color: "var(--color-palm)",
-                                  display: "block",
-                                }}
-                              >
-                                🏢 {chosenStation.name}
-                              </strong>
-                              <span
-                                style={{
-                                  color: "var(--foreground)",
-                                  opacity: 0.85,
-                                }}
-                              >
-                                {chosenStation.address}
-                              </span>
-                            </div>
-                          )}
-                        </>
-                      ) : loadingCentres ? (
-                        <div
-                          style={{
-                            fontSize: "0.82rem",
-                            color: "var(--color-olive-gray)",
-                            padding: "0.5rem 0",
-                          }}
-                        >
-                          Finding nearest GIG Logistics stations in{" "}
-                          {destinationState || "your state"}...
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            fontSize: "0.82rem",
-                            color: "var(--color-olive-gray)",
-                            padding: "0.5rem 0",
-                          }}
-                        >
-                          Select your destination state above to view available
-                          GIGL experience centres.
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
-
-                {/* 2. Standard Home Delivery */}
-                <label
-                  className={`${styles.shippingRadioLabel} ${shippingMethod === "doorstep" ? styles.shippingRadioLabelActive : ""}`}
-                >
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <input
-                      type="radio"
-                      name="shipping"
-                      checked={shippingMethod === "doorstep"}
-                      onChange={() => setShippingMethod("doorstep")}
-                      className={styles.radioInput}
-                      disabled={isProcessing}
-                    />
-                    <div>
-                      <span className={styles.radioLabelText}>
-                        🏠 Standard Home Delivery
-                      </span>
-                      <p className={styles.radioLabelDesc}>
-                        Doorstep delivery to your street address in{" "}
-                        {giglQuotes.estimatedDaysDoorstep}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={styles.shippingPrice}>
-                    ₦{formatPrice(giglQuotes.doorstepFee)}
-                  </span>
-                </label>
-
-                {/* 3. Priority Express Delivery */}
-                <label
-                  className={`${styles.shippingRadioLabel} ${shippingMethod === "express" ? styles.shippingRadioLabelActive : ""}`}
-                >
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <input
-                      type="radio"
-                      name="shipping"
-                      checked={shippingMethod === "express"}
-                      onChange={() => setShippingMethod("express")}
-                      className={styles.radioInput}
-                      disabled={isProcessing}
-                    />
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          flexWrap: "wrap",
-                          gap: "4px",
-                        }}
-                      >
-                        <span className={styles.radioLabelText}>
-                          ⚡ Priority Express Delivery
-                        </span>
-                        <span
-                          className={`${styles.shippingBadge} ${styles.shippingBadgeExpress}`}
-                        >
-                          Fastest
-                        </span>
-                      </div>
-                      <p className={styles.radioLabelDesc}>
-                        Expedited priority dispatch in{" "}
-                        {giglQuotes.estimatedDaysExpress}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={styles.shippingPrice}>
-                    ₦{formatPrice(giglQuotes.expressFee)}
-                  </span>
-                </label>
-              </div>
               )}
             </div>
 
@@ -1579,6 +1599,55 @@ export default function CheckoutPage() {
                     Paystack supports Cards, USSD, Bank Transfers, and EFTs
                     securely.
                   </p>
+                  {!isGuest && (
+                    <div
+                      style={{
+                        padding: "0.85rem 1rem",
+                        borderRadius: "10px",
+                        background: "rgba(35, 78, 64, 0.05)",
+                        border: "1px solid rgba(35, 78, 64, 0.15)",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.6rem",
+                          cursor: "pointer",
+                          fontSize: "0.88rem",
+                          fontWeight: 600,
+                          color: "var(--foreground)",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={saveCardToAccount}
+                          onChange={(e) =>
+                            setSaveCardToAccount(e.target.checked)
+                          }
+                          style={{
+                            width: "17px",
+                            height: "17px",
+                            accentColor: "var(--color-palm)",
+                            cursor: "pointer",
+                          }}
+                        />
+                        Save this card for future purchases
+                      </label>
+                      <p
+                        style={{
+                          margin: "4px 0 0 27px",
+                          fontSize: "0.76rem",
+                          color: "var(--color-olive-gray, #6b7280)",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Your card details are tokenized securely by Paystack. We
+                        never store your full card number or CVV.
+                      </p>
+                    </div>
+                  )}
                   {!isGuest && paymentMethods.length > 0 && (
                     <button
                       type="button"

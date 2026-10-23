@@ -1,6 +1,60 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
+
+// ── Helpers ──────────────────────────────────────────────
+
+async function savePaymentMethodForUser(
+  ctx: { db: any },
+  userId: Id<"users">,
+  args: {
+    authorizationCode: string;
+    cardType: string;
+    last4: string;
+    expMonth: string;
+    expYear: string;
+    bank: string;
+    email: string;
+  },
+) {
+  // Check if this card is already saved (same last4 + expiry + bank)
+  const existing = await ctx.db
+    .query("paymentMethods")
+    .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+    .collect();
+
+  const duplicate = existing.find(
+    (m: any) =>
+      m.last4 === args.last4 &&
+      m.expMonth === args.expMonth &&
+      m.expYear === args.expYear &&
+      m.bank === args.bank,
+  );
+
+  if (duplicate) {
+    // Update authorization code to latest (card may have been re-authorised)
+    await ctx.db.patch(duplicate._id, {
+      authorizationCode: args.authorizationCode,
+    });
+    return duplicate._id;
+  }
+
+  // First card becomes the default automatically
+  const isDefault = existing.length === 0;
+
+  return await ctx.db.insert("paymentMethods", {
+    userId,
+    authorizationCode: args.authorizationCode,
+    cardType: args.cardType,
+    last4: args.last4,
+    expMonth: args.expMonth,
+    expYear: args.expYear,
+    bank: args.bank,
+    email: args.email,
+    isDefault,
+  });
+}
 
 // ── Queries ──────────────────────────────────────────────
 
@@ -34,43 +88,25 @@ export const savePaymentMethod = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+    return await savePaymentMethodForUser(ctx, userId, args);
+  },
+});
 
-    // Check if this card is already saved (same last4 + expiry + bank)
-    const existing = await ctx.db
-      .query("paymentMethods")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-
-    const duplicate = existing.find(
-      (m) =>
-        m.last4 === args.last4 &&
-        m.expMonth === args.expMonth &&
-        m.expYear === args.expYear &&
-        m.bank === args.bank,
-    );
-
-    if (duplicate) {
-      // Update authorization code to latest (card may have been re-authorised)
-      await ctx.db.patch(duplicate._id, {
-        authorizationCode: args.authorizationCode,
-      });
-      return duplicate._id;
-    }
-
-    // First card becomes the default automatically
-    const isDefault = existing.length === 0;
-
-    return await ctx.db.insert("paymentMethods", {
-      userId,
-      authorizationCode: args.authorizationCode,
-      cardType: args.cardType,
-      last4: args.last4,
-      expMonth: args.expMonth,
-      expYear: args.expYear,
-      bank: args.bank,
-      email: args.email,
-      isDefault,
-    });
+/** Internal mutation to save payment method with explicit userId */
+export const savePaymentMethodInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    authorizationCode: v.string(),
+    cardType: v.string(),
+    last4: v.string(),
+    expMonth: v.string(),
+    expYear: v.string(),
+    bank: v.string(),
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { userId, ...cardArgs } = args;
+    return await savePaymentMethodForUser(ctx, userId, cardArgs);
   },
 });
 
