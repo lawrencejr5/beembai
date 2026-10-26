@@ -156,8 +156,70 @@
 .metaHeader {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.metaHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shareButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--color-olive-gray);
+  background-color: var(--color-sand);
+  border: 1.5px solid var(--color-border);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-left: auto;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.shareButton:hover {
+  background-color: var(--color-cream);
+  color: var(--color-palm);
+  border-color: var(--color-palm);
+  transform: translateY(-1px);
+}
+
+.shareButton:active {
+  transform: translateY(0);
+}
+
+.shareButtonCopied {
+  background-color: rgba(99, 109, 33, 0.12);
+  color: var(--color-palm);
+  border-color: var(--color-palm);
+}
+
+:global([data-theme="dark"]) .shareButton {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--color-olive-gray);
+  border-color: var(--color-border);
+}
+
+:global([data-theme="dark"]) .shareButton:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-coconut);
+  border-color: var(--color-palm);
+}
+
+:global([data-theme="dark"]) .shareButtonCopied {
+  background-color: rgba(127, 139, 45, 0.2);
+  color: var(--color-lemonade);
+  border-color: var(--color-palm);
 }
 
 .brandBadge {

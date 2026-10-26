@@ -144,6 +144,42 @@ const ArrowLeftIcon = () => (
   </svg>
 );
 
+const ShareIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
@@ -273,6 +309,31 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleShare = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        const url = window.location.href;
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = url;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        }
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2500);
+      }
+    } catch (err) {
+      console.error("Failed to copy product link:", err);
+    }
+  };
 
   // Edit Product Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -559,22 +620,44 @@ export default function ProductPage({ params }: ProductPageProps) {
         {/* Right Column: Product Details & Purchase Actions */}
         <div className={styles.productInfoContainer}>
           <div className={styles.metaHeader}>
-            {product.brand && (
-              <span className={styles.brandBadge}>{product.brand}</span>
-            )}
-            {isForeignImport ? (
-              <Link href="/buy-from-abroad" className={styles.categoryLink}>
-                🌐 Foreign Import (Global Store)
-              </Link>
-            ) : (
-              <Link
-                href={`/category/${product.categorySlug}`}
-                className={styles.categoryLink}
-              >
-                {product.categoryName}
-              </Link>
-            )}
-        </div>
+            <div className={styles.metaHeaderLeft}>
+              {product.brand && (
+                <span className={styles.brandBadge}>{product.brand}</span>
+              )}
+              {isForeignImport ? (
+                <Link href="/buy-from-abroad" className={styles.categoryLink}>
+                  🌐 Foreign Import (Global Store)
+                </Link>
+              ) : (
+                <Link
+                  href={`/category/${product.categorySlug}`}
+                  className={styles.categoryLink}
+                >
+                  {product.categoryName}
+                </Link>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              className={`${styles.shareButton} ${copiedLink ? styles.shareButtonCopied : ""}`}
+              title="Share product link"
+              aria-label="Share product"
+            >
+              {copiedLink ? (
+                <>
+                  <CheckIcon />
+                  <span>product link copied</span>
+                </>
+              ) : (
+                <>
+                  <ShareIcon />
+                  <span>Share</span>
+                </>
+              )}
+            </button>
+          </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
           <h1 className={styles.productTitle} style={{ flex: 1, margin: 0 }}>{product.title}</h1>
