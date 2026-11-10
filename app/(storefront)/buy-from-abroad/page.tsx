@@ -88,8 +88,7 @@ const FALLBACK_EXCHANGE_RATES: Record<string, number> = {
 };
 const DEFAULT_FALLBACK_RATE = 1373;
 
-const CUSTOMS_TAX_RATE = 0.1; // 10% customs/clearing tax
-const SERVICE_FEE_RATE = 0.05; // 5% service fee
+const SERVICE_FEE_RATE = 0.02; // 2% service fee
 
 // Simple link validator
 const isValidUrl = (urlString: string) => {
@@ -318,9 +317,8 @@ export default function BuyFromAbroad() {
   const productPriceNaira = scrapedProduct
     ? Math.round(scrapedProduct.price * exchangeRate)
     : 0;
-  const customsTaxNaira = Math.round(productPriceNaira * CUSTOMS_TAX_RATE);
   const serviceFeeNaira = Math.round(productPriceNaira * SERVICE_FEE_RATE);
-  const totalNaira = productPriceNaira + customsTaxNaira + serviceFeeNaira;
+  const totalNaira = productPriceNaira + serviceFeeNaira;
 
   // Handle local data updates if user overrides
   const handleUpdateField = (
@@ -666,18 +664,6 @@ export default function BuyFromAbroad() {
 
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
-                      Customs & Cleared Tax (10%):
-                      <span title="Government duty tax to import goods into Nigeria">
-                        <InfoIcon />
-                      </span>
-                    </span>
-                    <span className={styles.priceValue}>
-                      ₦{formatPrice(customsTaxNaira)}
-                    </span>
-                  </div>
-
-                  <div className={styles.pricingRow}>
-                    <span className={styles.pricingLabel}>
                       International Shipping:
                       <span title="International shipping via GIG Logistics is calculated at checkout based on weight and your delivery address">
                         <InfoIcon />
@@ -690,7 +676,7 @@ export default function BuyFromAbroad() {
 
                   <div className={styles.pricingRow}>
                     <span className={styles.pricingLabel}>
-                      Beembai Import Service Fee (5%):
+                      Beembai Import Service Fee (2%):
                       <span title="Procurement, inspection, and guarantee handling fee">
                         <InfoIcon />
                       </span>
