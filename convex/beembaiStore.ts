@@ -271,6 +271,7 @@ export const getBeembaiOrderById = query({
           ...item,
           sourceUrl: product?.sourceUrl ?? null,
           brand: product?.brand ?? null,
+          buyerNote: product?.buyerNote ?? null,
         };
       })
     );

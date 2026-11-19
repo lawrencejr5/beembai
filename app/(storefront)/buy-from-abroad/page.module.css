@@ -356,6 +356,209 @@
   color: var(--color-coconut);
 }
 
+/* Options / Variant Selector Section */
+.optionsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+  padding: 0.85rem 1rem;
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+:global([data-theme="dark"]) .optionsSection {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.optionsSectionTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-olive-gray);
+  margin-bottom: 0.2rem;
+}
+
+.optionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.optionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .optionHeader {
+  color: var(--color-coconut);
+}
+
+.optionSelectedValue {
+  color: var(--color-gold);
+  font-weight: 700;
+}
+
+.optionUnselectedNotice {
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.optionPillGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.optionPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 7px;
+  background-color: #ffffff;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-papyrus);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  user-select: none;
+}
+
+:global([data-theme="dark"]) .optionPill {
+  background-color: rgba(23, 22, 0, 0.7);
+  color: var(--color-coconut);
+}
+
+.optionPill:hover:not(:disabled) {
+  border-color: var(--color-gold);
+  transform: translateY(-1px);
+}
+
+.optionPillActive {
+  background-color: var(--color-gold) !important;
+  color: #171600 !important;
+  border-color: var(--color-gold) !important;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(220, 165, 0, 0.28);
+}
+
+.optionPillPrice {
+  font-size: 0.76rem;
+  font-weight: 700;
+  opacity: 0.82;
+}
+
+.optionPillActive .optionPillPrice {
+  opacity: 0.95;
+  color: #171600;
+}
+
+.optionPillUnavailable {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* Extra Notes for Beembai */
+.extraNotesBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.extraNotesLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-papyrus);
+}
+
+:global([data-theme="dark"]) .extraNotesLabel {
+  color: var(--color-coconut);
+}
+
+.optionalBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-olive-gray);
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  padding: 0.1rem 0.5rem;
+}
+
+:global([data-theme="dark"]) .optionalBadge {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.extraNotesTextarea {
+  width: 100%;
+  min-height: 76px;
+  resize: vertical;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.45;
+  transition: border-color 0.2s;
+}
+
+.extraNotesTextarea:focus {
+  outline: none;
+  border-color: var(--color-palm);
+}
+
+.extraNotesTextarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.optionsWarning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #b91c1c;
+  background-color: #fef2f2;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  margin-top: 0.6rem;
+  line-height: 1.35;
+}
+
+:global([data-theme="dark"]) .optionsWarning {
+  background-color: rgba(185, 28, 28, 0.15);
+  border-color: rgba(185, 28, 28, 0.35);
+  color: #fca5a5;
+}
+
+.helpText {
+  font-size: 0.75rem;
+  color: var(--color-olive-gray);
+  margin-top: 0.25rem;
+}
+
 
 .productMainInfo {
   display: flex;
@@ -606,14 +809,14 @@
   gap: 0.75rem;
 }
 
-.addToCartBtn:hover {
+.addToCartBtn:hover:not(:disabled) {
   background-color: #525a1b;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(99, 109, 33, 0.3);
 }
 
 .addToCartBtn:disabled {
-  opacity: 0.7;
+  opacity: 0.42;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;

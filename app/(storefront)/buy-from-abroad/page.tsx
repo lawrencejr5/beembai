@@ -23,6 +23,24 @@ const SUPPORTED_STORES = [
     invertDark: false,
   },
   {
+    name: "Apple",
+    logo: "/images/logos/apple.svg",
+    domain: "apple.com",
+    invertDark: false,
+  },
+  {
+    name: "Samsung",
+    logo: "/images/logos/samsung.svg",
+    domain: "samsung.com",
+    invertDark: false,
+  },
+  {
+    name: "Sam’s Club",
+    logo: "/images/logos/samsclub.svg",
+    domain: "samsclub.com",
+    invertDark: false,
+  },
+  {
     name: "Zara",
     logo: "/images/logos/zara.png",
     domain: "zara.com",
@@ -199,6 +217,24 @@ const CheckIcon = () => (
   </svg>
 );
 
+export interface ScrapedOptionValue {
+  label: string;
+  price: number | null;
+  priceDelta: number | null;
+  inStock: boolean;
+}
+
+export interface ScrapedOptionGroup {
+  name: string;
+  values: ScrapedOptionValue[];
+}
+
+export interface ScrapedVariantPrice {
+  attributes: { name: string; value: string }[];
+  price: number;
+  inStock: boolean;
+}
+
 interface ScrapedProduct {
   title: string;
   price: number; // numeric price in the original currency
@@ -208,11 +244,220 @@ interface ScrapedProduct {
   brand: string;
   url: string;
   inStock: boolean;
+  options: ScrapedOptionGroup[];
+  variantPrices: ScrapedVariantPrice[];
   variants: string[];
   rating: number | null;
   reviewCount: number | null;
   originCountry: string; // ISO-2, e.g. "US", "GB", "CN"
   weightKg: number;
+}
+
+function getCurrencySymbol(currency: string): string {
+  const code = currency?.toUpperCase();
+  if (code === "USD") return "$";
+  if (code === "GBP") return "£";
+  if (code === "EUR") return "€";
+  if (code === "CAD") return "CA$";
+  if (code === "AUD") return "AU$";
+  return code ? `${code} ` : "$";
+}
+
+function formatSourcePrice(amount: number, currency: string): string {
+  const isWhole = Math.abs(amount - Math.round(amount)) < 1e-9;
+  const formattedNumber = isWhole
+    ? Math.round(amount).toLocaleString()
+    : amount.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+  return `${getCurrencySymbol(currency)}${formattedNumber}`;
+}
+
+function buildInitialSelectedOptions(
+  options: ScrapedOptionGroup[],
+): Record<string, string> {
+  const initial: Record<string, string> = {};
+  for (const group of options) {
+    if (group.values.length === 1) {
+      initial[group.name] = group.values[0].label;
+    }
+  }
+  return initial;
+}
+
+function findVariantPriceForSelection(
+  variantPrices: ScrapedVariantPrice[],
+  selectedOptions: Record<string, string>,
+): number | null {
+  if (!variantPrices || variantPrices.length === 0) return null;
+
+  const selectedMap = new Map<string, string>();
+  for (const [k, v] of Object.entries(selectedOptions)) {
+    const cleanKey = k.trim().toLowerCase();
+    const cleanVal = v.trim().toLowerCase();
+    if (cleanKey && cleanVal) {
+      selectedMap.set(cleanKey, cleanVal);
+    }
+  }
+  if (selectedMap.size === 0) return null;
+
+  // 1. Exact attribute match (every attribute in variant entry matches selection, pick most specific)
+  let bestMatch: ScrapedVariantPrice | null = null;
+  for (const entry of variantPrices) {
+    if (!entry.attributes || entry.attributes.length === 0 || entry.price <= 0)
+      continue;
+    const allMatch = entry.attributes.every(
+      (a) =>
+        selectedMap.get(a.name.trim().toLowerCase()) ===
+        a.value.trim().toLowerCase(),
+    );
+    if (allMatch) {
+      if (
+        !bestMatch ||
+        entry.attributes.length > bestMatch.attributes.length
+      ) {
+        bestMatch = entry;
+      }
+    }
+  }
+  if (bestMatch) return bestMatch.price;
+
+  // 2. Partial consistent match: consistent with all selected attributes & all consistent entries agree on price
+  const consistentEntries = variantPrices.filter((entry) => {
+    if (!entry.attributes || entry.attributes.length === 0 || entry.price <= 0)
+      return false;
+    let matchedAtLeastOne = false;
+    for (const [selName, selVal] of selectedMap.entries()) {
+      const attr = entry.attributes.find(
+        (a) => a.name.trim().toLowerCase() === selName,
+      );
+      if (attr) {
+        if (attr.value.trim().toLowerCase() !== selVal) {
+          return false;
+        }
+        matchedAtLeastOne = true;
+      }
+    }
+    return matchedAtLeastOne;
+  });
+
+  if (consistentEntries.length > 0) {
+    const firstPrice = consistentEntries[0].price;
+    if (consistentEntries.every((e) => e.price === firstPrice)) {
+      return firstPrice;
+    }
+  }
+
+  return null;
+}
+
+function computeEffectivePrice(
+  product: ScrapedProduct | null,
+  selectedOptions: Record<string, string>,
+  lastPricedGroup: string | null,
+): number {
+  if (!product) return 0;
+
+  const variantMatch = findVariantPriceForSelection(
+    product.variantPrices,
+    selectedOptions,
+  );
+  if (variantMatch !== null) return variantMatch;
+
+  const explicitPrices: { groupName: string; price: number }[] = [];
+  const deltas: number[] = [];
+
+  for (const group of product.options) {
+    const selectedLabel = selectedOptions[group.name];
+    if (!selectedLabel) continue;
+    const matchedVal = group.values.find((v) => v.label === selectedLabel);
+    if (!matchedVal) continue;
+
+    if (matchedVal.price !== null && matchedVal.price > 0) {
+      explicitPrices.push({ groupName: group.name, price: matchedVal.price });
+    } else if (
+      matchedVal.priceDelta !== null &&
+      matchedVal.priceDelta !== 0
+    ) {
+      deltas.push(matchedVal.priceDelta);
+    }
+  }
+
+  let base = product.price;
+  if (explicitPrices.length === 1) {
+    base = explicitPrices[0].price;
+  } else if (explicitPrices.length > 1) {
+    const fromLastGroup = lastPricedGroup
+      ? explicitPrices.find((p) => p.groupName === lastPricedGroup)
+      : undefined;
+    const differingFromBase = explicitPrices.find(
+      (p) => p.price !== product.price,
+    );
+    base =
+      fromLastGroup?.price ??
+      differingFromBase?.price ??
+      explicitPrices[explicitPrices.length - 1].price;
+  }
+
+  const totalDelta = deltas.reduce((sum, d) => sum + d, 0);
+  return Math.max(0, Math.round((base + totalDelta) * 100) / 100);
+}
+
+function getGroupPillPrices(
+  group: ScrapedOptionGroup,
+  product: ScrapedProduct,
+  selectedOptions: Record<string, string>,
+): Map<string, string> {
+  const candidates = group.values.map((val) => {
+    const nextSelected = { ...selectedOptions, [group.name]: val.label };
+    const vpPrice = findVariantPriceForSelection(
+      product.variantPrices,
+      nextSelected,
+    );
+
+    let candidatePrice: number | null = vpPrice;
+    let candidateDelta: number | null = null;
+
+    if (candidatePrice === null) {
+      if (val.price !== null && val.price > 0) {
+        candidatePrice = val.price;
+      } else if (val.priceDelta !== null && val.priceDelta !== 0) {
+        candidateDelta = val.priceDelta;
+      }
+    }
+
+    return { label: val.label, price: candidatePrice, delta: candidateDelta };
+  });
+
+  const hasNonZeroDelta = candidates.some(
+    (c) => c.delta !== null && c.delta !== 0,
+  );
+  const distinctPrices = new Set(
+    candidates.filter((c) => c.price !== null).map((c) => c.price!),
+  );
+  const differsFromBase = candidates.some(
+    (c) => c.price !== null && c.price !== product.price,
+  );
+
+  const result = new Map<string, string>();
+  if (!hasNonZeroDelta && distinctPrices.size <= 1 && !differsFromBase) {
+    return result;
+  }
+
+  for (const c of candidates) {
+    if (c.price !== null) {
+      result.set(c.label, formatSourcePrice(c.price, product.currency));
+    } else if (c.delta !== null && c.delta !== 0) {
+      const sign = c.delta > 0 ? "+" : "-";
+      result.set(
+        c.label,
+        `${sign}${formatSourcePrice(Math.abs(c.delta), product.currency)}`,
+      );
+    }
+  }
+
+  return result;
 }
 
 export default function BuyFromAbroad() {
@@ -239,7 +484,11 @@ export default function BuyFromAbroad() {
   const [scrapedProduct, setScrapedProduct] = useState<ScrapedProduct | null>(
     null,
   );
-  const [isEditing, setIsEditing] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
+    {},
+  );
+  const [lastPricedGroup, setLastPricedGroup] = useState<string | null>(null);
+  const [extraNotes, setExtraNotes] = useState("");
 
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -269,11 +518,16 @@ export default function BuyFromAbroad() {
 
     setError(null);
     setScrapedProduct(null);
-    setIsEditing(false);
+    setSelectedOptions({});
+    setLastPricedGroup(null);
+    setExtraNotes("");
     setIsScraping(true);
 
     try {
       const result = await scrapeProductUrl({ url: targetUrl });
+      const options = result.options ?? [];
+      const variantPrices = result.variantPrices ?? [];
+      const initialSelected = buildInitialSelectedOptions(options);
 
       setScrapedProduct({
         title: result.title,
@@ -287,12 +541,15 @@ export default function BuyFromAbroad() {
         brand: result.brand,
         url: targetUrl,
         inStock: result.inStock,
+        options,
+        variantPrices,
         variants: result.variants,
         rating: result.rating,
         reviewCount: result.reviewCount,
         originCountry: result.originCountry,
         weightKg: result.weightKg,
       });
+      setSelectedOptions(initialSelected);
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Failed to extract product data.";
@@ -301,6 +558,34 @@ export default function BuyFromAbroad() {
       setIsScraping(false);
     }
   };
+
+  // Option selection handler
+  const handleSelectOption = (
+    group: ScrapedOptionGroup,
+    val: ScrapedOptionValue,
+  ) => {
+    const isUnavailable =
+      val.inStock === false && group.values.some((v) => v.inStock !== false);
+    if (isUnavailable) return;
+
+    // Single-option groups remain auto-selected and cannot be toggled off
+    setSelectedOptions((prev) => ({
+      ...prev,
+      [group.name]: val.label,
+    }));
+
+    if (val.price !== null && val.price > 0) {
+      setLastPricedGroup(group.name);
+    }
+    setError(null);
+  };
+
+  const productOptions = scrapedProduct?.options || [];
+  const hasOptions = productOptions.length > 0;
+  const missingOptions = productOptions.filter(
+    (g) => !selectedOptions[g.name],
+  );
+  const allOptionsSelected = missingOptions.length === 0;
 
   // Pricing calculations (currency-aware with live market rates + buffer)
   const getExchangeRate = (currency: string): number => {
@@ -314,51 +599,67 @@ export default function BuyFromAbroad() {
   const exchangeRate = scrapedProduct
     ? getExchangeRate(scrapedProduct.currency)
     : (liveRatesData?.rates?.USD ?? DEFAULT_FALLBACK_RATE);
+  const effectivePrice = computeEffectivePrice(
+    scrapedProduct,
+    selectedOptions,
+    lastPricedGroup,
+  );
   const productPriceNaira = scrapedProduct
-    ? Math.round(scrapedProduct.price * exchangeRate)
+    ? Math.round(effectivePrice * exchangeRate)
     : 0;
   const serviceFeeNaira = Math.round(productPriceNaira * SERVICE_FEE_RATE);
   const totalNaira = productPriceNaira + serviceFeeNaira;
-
-  // Handle local data updates if user overrides
-  const handleUpdateField = (
-    field: keyof ScrapedProduct,
-    value: string | number | boolean,
-  ) => {
-    if (!scrapedProduct) return;
-    setScrapedProduct({
-      ...scrapedProduct,
-      [field]: value,
-    });
-  };
 
   // Add scraped product to cart
   const handleAddToCart = async () => {
     if (!scrapedProduct) return;
 
+    if (hasOptions && !allOptionsSelected) {
+      setError(
+        `Please select an option for: ${missingOptions.map((g) => g.name).join(", ")}`,
+      );
+      return;
+    }
+
     try {
       setIsAdding(true);
 
+      const selectedOptionsSummary = productOptions
+        .filter((g) => !!selectedOptions[g.name])
+        .map((g) => `${g.name}: ${selectedOptions[g.name]}`)
+        .join(", ");
+
+      const trimmedNote = extraNotes.trim();
+
+      const itemDisplayTitle = selectedOptionsSummary
+        ? `${scrapedProduct.title} (${selectedOptionsSummary})`
+        : scrapedProduct.title;
+
       // Save product to database to get a valid Convex Product ID
       const dbProductId = await saveForeignProductToDb({
-        title: scrapedProduct.title,
+        title: itemDisplayTitle,
         price: totalNaira,
         originalPrice: productPriceNaira,
         image: scrapedProduct.image,
-        description: `${scrapedProduct.description} (Imported from ${scrapedProduct.brand}. Original Link: ${scrapedProduct.url})`,
+        description: `${scrapedProduct.description} (Imported from ${scrapedProduct.brand}${
+          selectedOptionsSummary
+            ? `. Selected Options: ${selectedOptionsSummary}`
+            : ""
+        }${trimmedNote ? `. Buyer Note: ${trimmedNote}` : ""}. Original Link: ${scrapedProduct.url})`,
         brand: scrapedProduct.brand,
         inStock: scrapedProduct.inStock,
         sourceUrl: scrapedProduct.url,
         variants: scrapedProduct.variants,
         weightKg: scrapedProduct.weightKg,
         originCountry: scrapedProduct.originCountry,
+        buyerNote: trimmedNote || undefined,
       });
 
       // Add to cart context (Convex or Guest)
       await addToCart(
         {
           id: dbProductId,
-          title: scrapedProduct.title,
+          title: itemDisplayTitle,
           categorySlug: "foreign-import",
           categoryName: "Foreign Import",
           price: totalNaira,
@@ -371,11 +672,15 @@ export default function BuyFromAbroad() {
           originCountry: scrapedProduct.originCountry,
         },
         1,
+        selectedOptionsSummary || undefined,
       );
 
-      setToastMessage(`"Added item to cart!`);
+      setToastMessage("Added item to cart!");
       setUrlInput("");
       setScrapedProduct(null);
+      setSelectedOptions({});
+      setLastPricedGroup(null);
+      setExtraNotes("");
     } catch (err) {
       console.error(err);
       setError("Failed to add this product to cart. Please try again.");
@@ -531,114 +836,121 @@ export default function BuyFromAbroad() {
                   <p className={styles.productDescription}>
                     {scrapedProduct.description}
                   </p>
-                  {/* Variants */}
-                  {scrapedProduct.variants.length > 0 && (
-                    <div className={styles.variantChips}>
-                      {scrapedProduct.variants.map((v) => (
-                        <span key={v} className={styles.variantChip}>
-                          {v}
-                        </span>
-                      ))}
+                  {/* Interactive Option Selectors (Sizes, Colors, Storage, etc.) */}
+                  {productOptions.length > 0 && (
+                    <div className={styles.optionsSection}>
+                      <div className={styles.optionsSectionTitle}>
+                        Select Product Options
+                      </div>
+                      {productOptions.map((group) => {
+                        const currentSelected =
+                          selectedOptions[group.name] || "";
+                        const pillPrices = getGroupPillPrices(
+                          group,
+                          scrapedProduct,
+                          selectedOptions,
+                        );
+                        const hasAnyInStock = group.values.some(
+                          (v) => v.inStock !== false,
+                        );
+
+                        return (
+                          <div key={group.name} className={styles.optionGroup}>
+                            <div className={styles.optionHeader}>
+                              <span>
+                                {group.name}:{" "}
+                                {currentSelected ? (
+                                  <span className={styles.optionSelectedValue}>
+                                    {currentSelected}
+                                  </span>
+                                ) : (
+                                  <span className={styles.optionUnselectedNotice}>
+                                    * Please choose
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className={styles.optionPillGrid}>
+                              {group.values.map((val) => {
+                                const isSelected =
+                                  currentSelected === val.label;
+                                const isUnavailable =
+                                  val.inStock === false && hasAnyInStock;
+                                const pillPriceText = pillPrices.get(val.label);
+
+                                return (
+                                  <button
+                                    key={val.label}
+                                    type="button"
+                                    disabled={isUnavailable}
+                                    onClick={() =>
+                                      handleSelectOption(group, val)
+                                    }
+                                    className={`${styles.optionPill} ${
+                                      isSelected ? styles.optionPillActive : ""
+                                    } ${
+                                      isUnavailable
+                                        ? styles.optionPillUnavailable
+                                        : ""
+                                    }`}
+                                    title={
+                                      isUnavailable ? "Out of stock" : undefined
+                                    }
+                                  >
+                                    <span>{val.label}</span>
+                                    {pillPriceText && (
+                                      <span className={styles.optionPillPrice}>
+                                        {pillPriceText}
+                                      </span>
+                                    )}
+                                    {isUnavailable && (
+                                      <span className={styles.optionPillPrice}>
+                                        (Out of stock)
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
+
+                  {/* Fallback Variants (if no options group detected, or additional raw tags) */}
+                  {productOptions.length === 0 &&
+                    scrapedProduct.variants.length > 0 && (
+                      <div className={styles.variantChips}>
+                        {scrapedProduct.variants.map((v) => (
+                          <span key={v} className={styles.variantChip}>
+                            {v}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(!isEditing)}
-                  className={styles.editToggleBtn}
-                >
-                  <EditIcon />
-                  <span>
-                    {isEditing
-                      ? "Done Adjusting"
-                      : "Incorrect details? Adjust manually"}
-                  </span>
-                </button>
-
-                {/* Edit details form */}
-                {isEditing && (
-                  <div className={styles.manualForm}>
-                    <div className={styles.formGrid}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Product Name</label>
-                        <input
-                          type="text"
-                          value={scrapedProduct.title}
-                          onChange={(e) =>
-                            handleUpdateField("title", e.target.value)
-                          }
-                          className={styles.formInput}
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>
-                          Price ({scrapedProduct.currency})
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={scrapedProduct.price}
-                          onChange={(e) =>
-                            handleUpdateField(
-                              "price",
-                              parseFloat(e.target.value) || 0,
-                            )
-                          }
-                          className={styles.formInput}
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Weight (kg)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0.1"
-                          value={scrapedProduct.weightKg}
-                          onChange={(e) =>
-                            handleUpdateField(
-                              "weightKg",
-                              Math.max(0.1, parseFloat(e.target.value) || 0.1),
-                            )
-                          }
-                          className={styles.formInput}
-                        />
-                      </div>
-                    </div>
-
-                    <div className={styles.formGrid}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>
-                          Sourced Store
-                        </label>
-                        <select
-                          value={scrapedProduct.brand}
-                          onChange={(e) =>
-                            handleUpdateField("brand", e.target.value)
-                          }
-                          className={styles.formSelect}
-                        >
-                          {SUPPORTED_STORES.map((store) => (
-                            <option key={store.name} value={store.name}>
-                              {store.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Image Link</label>
-                        <input
-                          type="text"
-                          value={scrapedProduct.image}
-                          onChange={(e) =>
-                            handleUpdateField("image", e.target.value)
-                          }
-                          className={styles.formInput}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {/* Extra Notes for Beembai */}
+                <div className={styles.extraNotesBox}>
+                  <label
+                    htmlFor="extra-notes-input"
+                    className={styles.extraNotesLabel}
+                  >
+                    <EditIcon />
+                    <span>Extra Notes for Beembai</span>
+                    <span className={styles.optionalBadge}>Optional</span>
+                  </label>
+                  <textarea
+                    id="extra-notes-input"
+                    rows={3}
+                    placeholder="Add any extra instructions for Beembai (e.g. preferred shade, gift packaging, bundle preference, or special sizing notes)..."
+                    value={extraNotes}
+                    onChange={(e) => setExtraNotes(e.target.value)}
+                    disabled={isAdding}
+                    className={styles.extraNotesTextarea}
+                  />
+                </div>
               </div>
 
               {/* Price Calculation Card */}
@@ -653,10 +965,8 @@ export default function BuyFromAbroad() {
                       Base Item Value:
                     </span>
                     <span className={styles.priceValue}>
-                      {scrapedProduct.currency !== "USD"
-                        ? scrapedProduct.currency
-                        : "$"}
-                      {scrapedProduct.price.toFixed(2)}
+                      {getCurrencySymbol(scrapedProduct.currency)}
+                      {effectivePrice.toFixed(2)}
                       {" → ₦"}
                       {formatPrice(productPriceNaira)}
                     </span>
@@ -714,7 +1024,10 @@ export default function BuyFromAbroad() {
                 <button
                   onClick={handleAddToCart}
                   disabled={
-                    isAdding || totalNaira <= 0 || !scrapedProduct.inStock
+                    isAdding ||
+                    totalNaira <= 0 ||
+                    !scrapedProduct.inStock ||
+                    (hasOptions && !allOptionsSelected)
                   }
                   className={styles.addToCartBtn}
                 >
@@ -724,9 +1037,24 @@ export default function BuyFromAbroad() {
                       ? "Preparing Import..."
                       : !scrapedProduct.inStock
                         ? "Out of Stock on Source Store"
-                        : "Add to Cart"}
+                        : hasOptions && !allOptionsSelected
+                          ? "Select options first"
+                          : "Add to Cart"}
                   </span>
                 </button>
+
+                {hasOptions && !allOptionsSelected && (
+                  <div className={styles.optionsWarning}>
+                    <InfoIcon />
+                    <span>
+                      Please select{" "}
+                      <strong>
+                        {missingOptions.map((g) => g.name).join(" and ")}
+                      </strong>{" "}
+                      above before adding this product to your cart.
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

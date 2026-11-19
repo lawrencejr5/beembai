@@ -73,6 +73,7 @@ export default defineSchema({
     sourceUrl: v.optional(v.string()),
     variants: v.optional(v.array(v.string())),
     originCountry: v.optional(v.string()),
+    buyerNote: v.optional(v.string()),
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"])

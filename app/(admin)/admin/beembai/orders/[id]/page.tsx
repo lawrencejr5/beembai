@@ -415,6 +415,24 @@ export default function BeembaiOrderDetailPage({ params }: { params: Promise<{ i
                               <span>Store: {item.brand || "US Store"}</span>
                               {item.color && <span>• Color: {item.color}</span>}
                             </div>
+                            {item.buyerNote && (
+                              <div
+                                style={{
+                                  marginTop: 4,
+                                  fontSize: 11,
+                                  color: "#525a1b",
+                                  backgroundColor: "#f7f5eb",
+                                  border: "1px solid #e5dfc4",
+                                  borderRadius: 6,
+                                  padding: "3px 7px",
+                                  maxWidth: 260,
+                                  whiteSpace: "normal",
+                                  lineHeight: 1.35,
+                                }}
+                              >
+                                📝 Note: {item.buyerNote}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>

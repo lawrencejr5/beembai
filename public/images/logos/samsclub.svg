@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 170" width="100%" height="100%">
+  <rect width="170" height="170" rx="85" fill="#ffffff"/>
+  <g transform="translate(15, 18) scale(0.82)">
+    <!-- Sam's Club diamond emblem -->
+    <path fill="#0067a0" d="M85 18 L118 51 L85 84 L52 51 Z"/>
+    <path fill="#00b0ff" d="M85 40 L108 63 L85 86 L62 63 Z" opacity="0.85"/>
+    <!-- Text: Sam's Club -->
+    <text x="85" y="118" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="21" font-weight="800" fill="#003b64" text-anchor="middle" letter-spacing="0.5">sam's club</text>
+  </g>
+</svg>
+
