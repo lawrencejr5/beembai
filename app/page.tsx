@@ -410,7 +410,7 @@ export default function Home() {
     if (!dbProducts) return [];
     const sponsored = dbProducts.filter((p) => p.isSponsored);
     if (sponsored.length === 0) return [];
-    
+
     return sponsored.map((product, index) => {
       const gradients = [
         "linear-gradient(135deg, #241c0e 0%, #3d2f16 50%, #140f07 100%)",
@@ -539,8 +539,6 @@ export default function Home() {
     }
   };
 
-
-
   // Auto-advance advert slides every 15 seconds
   React.useEffect(() => {
     if (!isAutoPlaying || activeSlides.length === 0) return;
@@ -561,10 +559,6 @@ export default function Home() {
     if (activeSlides.length === 0) return;
     setCurrentSlideIndex((prev) => (prev + 1) % activeSlides.length);
   };
-
-
-
-
 
   // Featured products (horizontal line fetched from database with mock fallback)
   const featuredProducts = useMemo(() => {
@@ -633,7 +627,9 @@ export default function Home() {
                 } else if (e.key === "Enter" && searchQuery.trim()) {
                   saveRecentSearch(searchQuery);
                   setIsSearchFocused(false);
-                  router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                  router.push(
+                    `/search?q=${encodeURIComponent(searchQuery.trim())}`,
+                  );
                 }
               }}
               className={styles.subHeaderSearchInput}
@@ -742,7 +738,9 @@ export default function Home() {
                   </div>
 
                   {searchResults === undefined && debouncedQuery ? (
-                    <div className={styles.noMatchesText}>Loading suggestions…</div>
+                    <div className={styles.noMatchesText}>
+                      Loading suggestions…
+                    </div>
                   ) : searchMatchingProducts.length > 0 ? (
                     <>
                       <div className={styles.productSuggestionList}>
@@ -790,7 +788,8 @@ export default function Home() {
                         }}
                         className={styles.viewAllResultsBtn}
                       >
-                        View all {searchMatchingProducts.length} results for &ldquo;{searchQuery}&rdquo; →
+                        View all {searchMatchingProducts.length} results for
+                        &ldquo;{searchQuery}&rdquo; →
                       </Link>
                     </>
                   ) : (
@@ -1090,8 +1089,11 @@ export default function Home() {
         <div className={styles.footerGrid}>
           <div className={styles.footerBrandColumn}>
             <div className={styles.footerLogo}>
-              beembai
-              <span className={styles.logoDot} />
+              <img
+                src="/images/logos/beembai-full.png"
+                alt="Beembai"
+                className={styles.footerLogoImage}
+              />
             </div>
             <p className={styles.footerDescription}>
               Crafting premium organic e-commerce design structures. Elevating

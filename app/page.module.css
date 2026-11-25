@@ -1623,6 +1623,14 @@
   color: var(--color-coconut);
 }
 
+.footerLogoImage {
+  height: 38px;
+  width: auto;
+  display: block;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
 .footerDescription {
   opacity: 0.75;
   font-size: 0.95rem;
@@ -1801,6 +1809,9 @@
   }
   .logo {
     font-size: 1.5rem;
+  }
+  .footerLogoImage {
+    height: 28px;
   }
   .navLinks {
     display: flex;

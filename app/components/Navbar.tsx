@@ -93,8 +93,11 @@ export default function Navbar() {
   return (
     <header className={styles.navbar}>
       <Link href="/" className={styles.logo}>
-        beembai
-        <span className={styles.logoDot} />
+        <img
+          src="/images/logos/beembai-full.png"
+          alt="Beembai"
+          className={styles.logoImage}
+        />
       </Link>
 
       <nav className={styles.navLinks}>

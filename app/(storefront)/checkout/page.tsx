@@ -761,8 +761,11 @@ export default function CheckoutPage() {
             <span>Back</span>
           </button>
           <Link href="/" className={styles.logo}>
-            <span>beembai</span>
-            <span className={styles.logoDot} />
+            <img
+              src="/images/logos/beembai-full.png"
+              alt="Beembai"
+              className={styles.logoImage}
+            />
           </Link>
         </div>
         <div className={styles.securityBadge}>

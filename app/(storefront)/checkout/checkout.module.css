@@ -28,6 +28,14 @@
   gap: 0.1rem;
 }
 
+.logoImage {
+  height: 36px;
+  width: auto;
+  display: block;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
 .logoDot {
   width: 6px;
   height: 6px;
@@ -114,6 +122,12 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .logoImage {
+    height: 26px;
+  }
 }
 
 @media (max-width: 576px) {
