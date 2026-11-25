@@ -238,6 +238,9 @@ export default function AdminProductsPage() {
     id: Id<"products">;
     title: string;
   } | null>(null);
+  const [showResetNewArrivalsModal, setShowResetNewArrivalsModal] =
+    useState(false);
+  const [isResettingNewArrivals, setIsResettingNewArrivals] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const {
@@ -279,6 +282,7 @@ export default function AdminProductsPage() {
   const setFeatured = useMutation(api.admin.setProductFeatured);
   const setNewArrival = useMutation(api.admin.setProductNewArrival);
   const setSponsored = useMutation(api.admin.setProductSponsored);
+  const resetAllNewArrivals = useMutation(api.admin.adminResetAllNewArrivals);
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -338,6 +342,16 @@ export default function AdminProductsPage() {
     [setFeatured, setNewArrival, setSponsored],
   );
 
+  const handleResetAllNewArrivals = useCallback(async () => {
+    setIsResettingNewArrivals(true);
+    try {
+      await resetAllNewArrivals({});
+      setShowResetNewArrivalsModal(false);
+    } finally {
+      setIsResettingNewArrivals(false);
+    }
+  }, [resetAllNewArrivals]);
+
   return (
     <div className={styles.adminContent}>
       {rejectTarget && (
@@ -348,6 +362,58 @@ export default function AdminProductsPage() {
         />
       )}
 
+      {showResetNewArrivalsModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() =>
+            !isResettingNewArrivals && setShowResetNewArrivalsModal(false)
+          }
+        >
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Reset All New Arrivals</h3>
+              <button
+                className={styles.modalClose}
+                onClick={() => setShowResetNewArrivalsModal(false)}
+                disabled={isResettingNewArrivals}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p style={{ fontSize: 14, color: "#6b6540", margin: 0 }}>
+                This will unmark{" "}
+                <strong style={{ color: "#282600" }}>
+                  {counts?.newArrivalProducts ?? "all"}
+                </strong>{" "}
+                product(s) as New Arrival and remove them from the homepage New
+                Arrivals section. You can re-enable any product individually
+                afterward.
+              </p>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={`${styles.btn} ${styles.btnGhost}`}
+                onClick={() => setShowResetNewArrivalsModal(false)}
+                disabled={isResettingNewArrivals}
+              >
+                Cancel
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnDanger}`}
+                onClick={handleResetAllNewArrivals}
+                disabled={isResettingNewArrivals}
+                id="confirm-reset-new-arrivals"
+              >
+                {isResettingNewArrivals
+                  ? "Resetting…"
+                  : "Reset All New Arrivals"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Products</h1>
@@ -355,6 +421,20 @@ export default function AdminProductsPage() {
             Review, approve, and manage product listings
           </p>
         </div>
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnDanger}`}
+          onClick={() => setShowResetNewArrivalsModal(true)}
+          disabled={
+            isResettingNewArrivals || counts?.newArrivalProducts === 0
+          }
+          id="reset-new-arrivals-btn"
+        >
+          Reset New Arrivals
+          {counts?.newArrivalProducts !== undefined &&
+            counts.newArrivalProducts > 0 &&
+            ` (${counts.newArrivalProducts})`}
+        </button>
       </div>
 
       <div className={styles.adminCard}>

@@ -2,6 +2,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { internal, api } from "./_generated/api";
 
@@ -331,6 +332,39 @@ export const setProductSponsored = mutation({
   },
 });
 
+async function clearProductNewArrival(
+  ctx: MutationCtx,
+  product: { _id: Id<"products">; tag?: string },
+) {
+  const shouldClearTag =
+    product.tag === "New Arrival" || product.tag === "new";
+  await ctx.db.patch(product._id, {
+    isNewArrival: false,
+    newArrivalAt: undefined,
+    ...(shouldClearTag ? { tag: undefined } : {}),
+  });
+}
+
+async function resetNewArrivalsBatch(ctx: MutationCtx) {
+  const products = await ctx.db
+    .query("products")
+    .withIndex("by_isNewArrival_and_newArrivalAt", (q) =>
+      q.eq("isNewArrival", true)
+    )
+    .take(100);
+
+  for (const product of products) {
+    await clearProductNewArrival(ctx, product);
+  }
+
+  const hasMore = products.length === 100;
+  if (hasMore) {
+    await ctx.scheduler.runAfter(0, internal.admin.resetAllNewArrivals, {});
+  }
+
+  return { cleared: products.length, hasMore };
+}
+
 export const setProductNewArrival = mutation({
   args: { productId: v.id("products"), isNewArrival: v.boolean() },
   handler: async (ctx, args) => {
@@ -347,47 +381,30 @@ export const setProductNewArrival = mutation({
         tag: product.tag === "import" ? "import" : "New Arrival",
       });
     } else {
-      const shouldClearTag =
-        product.tag === "New Arrival" || product.tag === "new";
-      await ctx.db.patch(args.productId, {
-        isNewArrival: false,
-        newArrivalAt: undefined,
-        ...(shouldClearTag ? { tag: undefined } : {}),
-      });
+      await clearProductNewArrival(ctx, product);
     }
   },
 });
 
 /**
- * One-off internal backfill to clear auto-applied `isNewArrival` flags and
- * legacy `"new"` / `"New Arrival"` tags on existing products so admins can
- * curate New Arrivals explicitly.
+ * Internal batch mutation to clear `isNewArrival` flags and legacy
+ * `"new"` / `"New Arrival"` tags across existing products.
  */
 export const resetAllNewArrivals = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const products = await ctx.db
-      .query("products")
-      .withIndex("by_isNewArrival_and_newArrivalAt", (q) =>
-        q.eq("isNewArrival", true)
-      )
-      .take(100);
+    return await resetNewArrivalsBatch(ctx);
+  },
+});
 
-    for (const product of products) {
-      const shouldClearTag =
-        product.tag === "New Arrival" || product.tag === "new";
-      await ctx.db.patch(product._id, {
-        isNewArrival: false,
-        newArrivalAt: undefined,
-        ...(shouldClearTag ? { tag: undefined } : {}),
-      });
-    }
-
-    if (products.length === 100) {
-      await ctx.scheduler.runAfter(0, internal.admin.resetAllNewArrivals, {});
-    }
-
-    return { cleared: products.length };
+/**
+ * Admin-callable mutation to reset all products' New Arrival flags.
+ */
+export const adminResetAllNewArrivals = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return await resetNewArrivalsBatch(ctx);
   },
 });
 
