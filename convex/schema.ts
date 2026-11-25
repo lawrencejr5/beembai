@@ -60,6 +60,7 @@ export default defineSchema({
     productDetails: v.optional(v.array(v.string())),
     isFeatured: v.optional(v.boolean()),
     isNewArrival: v.optional(v.boolean()),
+    newArrivalAt: v.optional(v.number()),
     isSponsored: v.optional(v.boolean()),
     stock: v.optional(v.number()),
     storeId: v.optional(v.id("stores")),
@@ -77,6 +78,7 @@ export default defineSchema({
   })
     .index("by_categorySlug", ["categorySlug"])
     .index("by_storeId", ["storeId"])
+    .index("by_isNewArrival_and_newArrivalAt", ["isNewArrival", "newArrivalAt"])
     .searchIndex("search_products", {
       searchField: "title",
       filterFields: ["categorySlug", "status"],

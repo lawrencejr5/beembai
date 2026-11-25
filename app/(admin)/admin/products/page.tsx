@@ -85,7 +85,7 @@ const ProductRow = React.memo(
     actionLoading: string | null;
     handleToggle: (
       productId: Id<"products">,
-      field: "featured" | "sponsored",
+      field: "featured" | "sponsored" | "newArrival",
       current: boolean,
     ) => void;
     handleApprove: (productId: Id<"products">) => void;
@@ -150,6 +150,20 @@ const ProductRow = React.memo(
               }
               disabled={actionLoading === `featured-${product._id}`}
               id={`featured-toggle-${product._id}`}
+            />
+            <span className={styles.toggleSlider} />
+          </label>
+        </td>
+        <td>
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={!!product.isNewArrival}
+              onChange={() =>
+                handleToggle(product._id, "newArrival", !!product.isNewArrival)
+              }
+              disabled={actionLoading === `newArrival-${product._id}`}
+              id={`new-arrival-toggle-${product._id}`}
             />
             <span className={styles.toggleSlider} />
           </label>
@@ -263,6 +277,7 @@ export default function AdminProductsPage() {
   const approveProduct = useMutation(api.admin.approveProduct);
   const rejectProduct = useMutation(api.admin.rejectProduct);
   const setFeatured = useMutation(api.admin.setProductFeatured);
+  const setNewArrival = useMutation(api.admin.setProductNewArrival);
   const setSponsored = useMutation(api.admin.setProductSponsored);
 
   const filtered = useMemo(() => {
@@ -309,16 +324,18 @@ export default function AdminProductsPage() {
   const handleToggle = useCallback(
     async (
       productId: Id<"products">,
-      field: "featured" | "sponsored",
+      field: "featured" | "sponsored" | "newArrival",
       current: boolean,
     ) => {
       setActionLoading(`${field}-${productId}`);
       if (field === "featured")
         await setFeatured({ productId, isFeatured: !current });
+      else if (field === "newArrival")
+        await setNewArrival({ productId, isNewArrival: !current });
       else await setSponsored({ productId, isSponsored: !current });
       setActionLoading(null);
     },
-    [setFeatured, setSponsored],
+    [setFeatured, setNewArrival, setSponsored],
   );
 
   return (
@@ -452,6 +469,10 @@ export default function AdminProductsPage() {
                   />
                   <div
                     className={styles.skeleton}
+                    style={{ width: 60, height: 20, borderRadius: 100 }}
+                  />
+                  <div
+                    className={styles.skeleton}
                     style={{ width: 120, height: 32, borderRadius: 8 }}
                   />
                 </div>
@@ -477,6 +498,7 @@ export default function AdminProductsPage() {
                   <th>Price</th>
                   <th>Status</th>
                   <th>Featured</th>
+                  <th>New Arrival</th>
                   <th>Sponsored</th>
                   <th>Actions</th>
                 </tr>

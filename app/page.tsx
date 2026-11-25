@@ -9,7 +9,6 @@ import { api } from "@/convex/_generated/api";
 import styles from "./page.module.css";
 import {
   getFeaturedProducts,
-  getNewArrivalsProducts,
   Product,
   PRODUCTS_DATA,
   CATEGORIES_DATA,
@@ -384,6 +383,7 @@ export default function Home() {
   const categoryRowRef = useRef<HTMLDivElement>(null);
 
   const dbProducts = useQuery(api.products.getProducts);
+  const dbNewArrivals = useQuery(api.products.getNewArrivalProducts);
 
   // Helper mapper to normalize db product details
   const mapDbProduct = (p: any) => ({
@@ -567,12 +567,11 @@ export default function Home() {
     return dbFeatured.length > 0 ? dbFeatured : getFeaturedProducts();
   }, [dbProducts]);
 
-  // New arrivals (fetched from database with mock fallback)
+  // New arrivals (fetched from dedicated indexed query; only admin-marked products)
   const newArrivalsProducts = useMemo(() => {
-    if (!dbProducts) return getNewArrivalsProducts();
-    const dbNew = dbProducts.filter((p) => p.isNewArrival).map(mapDbProduct);
-    return dbNew.length > 0 ? dbNew : getNewArrivalsProducts();
-  }, [dbProducts]);
+    if (!dbNewArrivals) return [];
+    return dbNewArrivals.map(mapDbProduct);
+  }, [dbNewArrivals]);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product, 1);
@@ -1003,25 +1002,27 @@ export default function Home() {
       </section>
 
       {/* New Arrivals Section (3x3 Grid) */}
-      <section
-        id="shop"
-        className={styles.section}
-        style={{ paddingTop: "1rem" }}
-      >
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionTag}>Latest Drops</span>
-          <h2 className={styles.sectionTitle}>New Arrivals</h2>
-          <p className={styles.sectionSubtitle}>
-            Explore the newest additions to the beembai ecosystem.
-          </p>
-        </div>
+      {newArrivalsProducts.length > 0 && (
+        <section
+          id="shop"
+          className={styles.section}
+          style={{ paddingTop: "1rem" }}
+        >
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTag}>Latest Drops</span>
+            <h2 className={styles.sectionTitle}>New Arrivals</h2>
+            <p className={styles.sectionSubtitle}>
+              Explore the newest additions to the beembai ecosystem.
+            </p>
+          </div>
 
-        <div className={styles.newArrivalsGrid}>
-          {newArrivalsProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          <div className={styles.newArrivalsGrid}>
+            {newArrivalsProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Sell on Beembai / Showcase Banner */}
       <section id="sell-promo" className={styles.promoSection}>

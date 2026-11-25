@@ -25,6 +25,25 @@ export const getProducts = query({
   },
 });
 
+export const getNewArrivalProducts = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("products")
+      .withIndex("by_isNewArrival_and_newArrivalAt", (q) =>
+        q.eq("isNewArrival", true),
+      )
+      .order("desc")
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "approved"),
+          q.eq(q.field("status"), undefined),
+        ),
+      )
+      .take(30);
+  },
+});
+
 export const getStores = query({
   args: {},
   handler: async (ctx) => {
@@ -93,7 +112,6 @@ export const createProduct = mutation({
       price: args.price,
       originalPrice: args.originalPrice,
       image: args.image, // main image URL
-      tag: "new",
       description: args.description,
       brand: store.name,
       condition: args.condition,
@@ -111,7 +129,7 @@ export const createProduct = mutation({
       displayType: args.displayType,
       productDetails: [],
       isFeatured: false,
-      isNewArrival: true,
+      isNewArrival: false,
       isSponsored: false,
       stock: args.stock,
       storeId: args.storeId,

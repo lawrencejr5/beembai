@@ -329,6 +329,13 @@ export default function AdminDashboard() {
           href="/admin/products"
         />
         <StatCard
+          icon="🆕"
+          label="New Arrivals"
+          value={stats.newArrivalProducts}
+          color="green"
+          href="/admin/products"
+        />
+        <StatCard
           icon="📢"
           label="Sponsored Products"
           value={stats.sponsoredProducts}

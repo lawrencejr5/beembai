@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
@@ -71,6 +71,7 @@ export const getDashboardStats = query({
       ).length,
       rejectedProducts: products.filter((p) => p.status === "rejected").length,
       featuredProducts: products.filter((p) => p.isFeatured).length,
+      newArrivalProducts: products.filter((p) => p.isNewArrival).length,
       sponsoredProducts: products.filter((p) => p.isSponsored).length,
       totalOrders: orders.length,
       beembaiOrders: beembaiOrders.length,
@@ -334,7 +335,59 @@ export const setProductNewArrival = mutation({
   args: { productId: v.id("products"), isNewArrival: v.boolean() },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    await ctx.db.patch(args.productId, { isNewArrival: args.isNewArrival });
+    const product = await ctx.db.get(args.productId);
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    if (args.isNewArrival) {
+      await ctx.db.patch(args.productId, {
+        isNewArrival: true,
+        newArrivalAt: Date.now(),
+        tag: product.tag === "import" ? "import" : "New Arrival",
+      });
+    } else {
+      const shouldClearTag =
+        product.tag === "New Arrival" || product.tag === "new";
+      await ctx.db.patch(args.productId, {
+        isNewArrival: false,
+        newArrivalAt: undefined,
+        ...(shouldClearTag ? { tag: undefined } : {}),
+      });
+    }
+  },
+});
+
+/**
+ * One-off internal backfill to clear auto-applied `isNewArrival` flags and
+ * legacy `"new"` / `"New Arrival"` tags on existing products so admins can
+ * curate New Arrivals explicitly.
+ */
+export const resetAllNewArrivals = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_isNewArrival_and_newArrivalAt", (q) =>
+        q.eq("isNewArrival", true)
+      )
+      .take(100);
+
+    for (const product of products) {
+      const shouldClearTag =
+        product.tag === "New Arrival" || product.tag === "new";
+      await ctx.db.patch(product._id, {
+        isNewArrival: false,
+        newArrivalAt: undefined,
+        ...(shouldClearTag ? { tag: undefined } : {}),
+      });
+    }
+
+    if (products.length === 100) {
+      await ctx.scheduler.runAfter(0, internal.admin.resetAllNewArrivals, {});
+    }
+
+    return { cleared: products.length };
   },
 });
 
